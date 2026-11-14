@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { emptyDataset, type Datasets } from './dataset'
+import { emptyDataset, runDataChecks, type Datasets } from './dataset'
 import { loadDemo } from './demo'
 import { buildEventContext, explainEvent, knownsAndUnknowns, reasonInfo, timelineFor } from './explain'
+import { buildEvent, buildExternalReading, buildSession } from './testing'
 
 const bundle = JSON.parse(readFileSync(new URL('../../fixtures/simulated/demo-bundle.json', import.meta.url), 'utf8'))
 function demo() {
@@ -118,5 +119,121 @@ describe('activity timeline', () => {
     const ds = demo()
     const ctx = buildEventContext(ds.events['sim-evt-20261112-a'], ds, NOW)
     expect(timelineFor(ctx.event, ctx.session).map((i) => i.kind)).not.toContain('ACKNOWLEDGED')
+  })
+})
+
+describe('review fixes: explanations', () => {
+  const mission = () => emptyDataset('mission')
+
+  it('says "reported by a crew observer" when a crew member observed the symptom', () => {
+    const ds = mission()
+    const session = buildSession({
+      rest: [70, 72, 74],
+      recovery: [82, 84, 86],
+      symptoms: [{ symptomId: 'sym-1', code: 'DIZZY', reportedAt: '2026-11-14T19:31:55Z', phase: 'RECOVERY', bodyRegion: null, reportedBy: 'CREW_OBSERVED', note: null }],
+    })
+    ds.sessions[session.sessionId] = session
+    const event = buildEvent()
+    ds.events[event.eventId] = event
+    const ctx = buildEventContext(event, ds, NOW)
+    const all = [...knownsAndUnknowns(ctx).known, ...knownsAndUnknowns(ctx).unknown].map((f) => f.text).join(' ')
+    expect(all).toMatch(/reported by a crew observer/)
+    expect(all).not.toMatch(/self-reported/)
+    expect(reasonInfo('SYMPTOM_REPORTED').meaning).toBe('A symptom was reported during the check.')
+  })
+
+  it('takes the link from the device that sent the event, not another watch of the same person', () => {
+    const ds = mission()
+    const event = buildEvent()
+    ds.events[event.eventId] = event
+    const dev = (deviceId: string, lastSeenAt: string) => ({ deviceId, subjectId: 'crew-a', isSimulated: false, firstSeenAt: lastSeenAt, lastSeenAt, lastSyncAt: lastSeenAt, appVersion: null, deviceModel: null, pendingRecords: null })
+    ds.devices['watch-1'] = dev('watch-1', '2026-11-14T19:30:00Z')
+    ds.devices['watch-2'] = dev('watch-2', '2026-11-14T19:39:55Z')
+    const ctx = buildEventContext(event, ds, '2026-11-14T19:40:00Z')
+    expect(ctx.link).toBe('WATCH_UNREACHABLE')
+    expect(ctx.sourceMode).toBe('SAVED DEVICE DATA')
+  })
+
+  it('labels a computer check by how the cited reading arrived, not as an import', () => {
+    const ds = mission()
+    const r = buildExternalReading({ measurementId: 'bp-typed', sessionId: null, measuredAt: '2026-11-14T19:00:00Z', value: 150, quality: 'QUESTIONABLE' })
+    ds.readings[r.measurementId] = { ...r, provenance: { ...r.provenance, ingestPath: 'MANUAL_ENTRY', origin: 'MISSION_COMPUTER' } }
+    const [id] = runDataChecks(ds, NOW)
+    const ctx = buildEventContext(ds.events[id], ds, NOW)
+    expect(ctx.sourceMode).toBe('MANUALLY ENTERED')
+    const text = [...explainEvent(ctx), ...knownsAndUnknowns(ctx).unknown.map((f) => f.text)].join(' ')
+    expect(text).toMatch(/not linked to a recovery session/)
+    expect(text).not.toMatch(/has not been received/)
+    expect(explainEvent(ctx)[0]).toMatch(/flagged 1 reading for source verification/)
+  })
+
+  it('describes undelivered computer alerts without claiming a send that never happened', () => {
+    const ds = demo()
+    const e = ds.events['dq-sim-b-20261113b']
+    const text = explainEvent(buildEventContext(e, ds, NOW)).join(' ')
+    expect(text).toMatch(/was not sent/)
+    expect(text).not.toMatch(/when this computer tried/)
+    const unconfirmed = { ...e, status: 'DELIVERY_UNCONFIRMED' as const, delivery: { ...e.delivery, state: 'UNCONFIRMED' as const } }
+    const t2 = explainEvent(buildEventContext(unconfirmed, ds, NOW)).join(' ')
+    expect(t2).toMatch(/queued for the watch/)
+    expect(t2).not.toMatch(/was sent/)
+  })
+
+  it('names how many sessions the baseline median really uses', () => {
+    const ds = mission()
+    const prior = (i: number, rec: number) =>
+      buildSession({ sessionId: `p${i}`, startedAt: `2026-11-0${i}T10:00:00Z`, rest: [70, 70, 70], recovery: [rec, rec, rec] })
+    for (const [i, rec] of [[1, 80], [2, 80], [3, 80], [4, 80], [5, 90], [6, 90], [7, 90]] as const) ds.sessions[`p${i}`] = prior(i, rec)
+    const cur = buildSession({ sessionId: 'cur', startedAt: '2026-11-09T10:00:00Z', rest: [70, 70, 70], recovery: [95, 95, 95] })
+    ds.sessions.cur = cur
+    const ev = buildEvent({ sessionId: 'cur', evidence: [] })
+    const text = explainEvent(buildEventContext(ev, ds, NOW)).join(' ')
+    expect(text).toMatch(/median of the 5 most recent of 7 earlier comparable sessions/)
+  })
+
+  it('counts valid readings that carry no phase tag', () => {
+    const ds = mission()
+    const s = buildSession({ rest: [70, 72, 74] })
+    s.measurements = s.measurements.map((m) => ({ ...m, phase: null }))
+    ds.sessions[s.sessionId] = s
+    const ev = buildEvent({ evidence: [] })
+    const k = knownsAndUnknowns(buildEventContext(ev, ds, NOW))
+    const readings = [...k.known, ...k.unknown].find((f) => f.id === 'readings')
+    expect(readings?.text).toMatch(/3 valid heart-rate readings/)
+    expect(readings?.text).toMatch(/3 have no phase tag/)
+  })
+
+  it('does not crash on an event whose session id is a built-in property name', () => {
+    const ds = mission()
+    const ev = buildEvent({ sessionId: 'constructor', evidence: [] })
+    const ctx = buildEventContext(ev, ds, NOW)
+    expect(ctx.session).toBeNull()
+    expect(explainEvent(ctx).join(' ')).toMatch(/has not been received/)
+  })
+})
+
+describe('heart-rate permission from the watch', () => {
+  it('says plainly when the watch was refused heart-rate permission', () => {
+    const ds = emptyDataset('mission')
+    const s = { ...buildSession({ rest: [], recovery: [] }), heartRateAccess: 'DENIED' as const }
+    ds.sessions[s.sessionId] = s
+    const ev = buildEvent({ category: 'RECORDING_INCOMPLETE', severity: 'NOTICE', reasonCodes: ['HR_UNAVAILABLE'], evidence: [] })
+    const k = knownsAndUnknowns(buildEventContext(ev, ds, NOW))
+    const f = k.unknown.find((x) => x.id === 'hr-access')
+    expect(f?.text).toMatch(/permission was denied on the watch/)
+    expect(k.known.find((x) => x.id === 'hr-access')).toBeUndefined()
+  })
+
+  it('records granted permission as a known fact and says nothing when the watch did not report it', () => {
+    const ds = emptyDataset('mission')
+    const granted = { ...buildSession({ rest: [70, 72, 74] }), heartRateAccess: 'AUTHORIZED' as const }
+    ds.sessions[granted.sessionId] = granted
+    const ev = buildEvent({ evidence: [] })
+    expect(knownsAndUnknowns(buildEventContext(ev, ds, NOW)).known.map((x) => x.id)).toContain('hr-access')
+    const silent = buildSession({ sessionId: 'ses-2', rest: [70, 72, 74] })
+    ds.sessions['ses-2'] = silent
+    const ev2 = buildEvent({ eventId: 'evt-2', sessionId: 'ses-2', evidence: [] })
+    const all = knownsAndUnknowns(buildEventContext(ev2, ds, NOW))
+    expect([...all.known, ...all.unknown].map((x) => x.id)).not.toContain('hr-access')
   })
 })

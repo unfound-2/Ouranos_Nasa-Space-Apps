@@ -131,7 +131,15 @@ function LinkReadouts() {
   const device = ds && subjectId ? subjectDevice(ds, subjectId) : null
   const link = device ? (snapshot?.links[device.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED'
   const meta = LINK_META[link]
-  const lastSync = device?.lastSyncAt ?? null
+  // The most recent live sync from any of this crew member's watches.
+  const lastSync =
+    ds && subjectId
+      ? Object.values(ds.devices)
+          .filter((d) => d.subjectId === subjectId && d.lastSyncAt)
+          .map((d) => d.lastSyncAt as string)
+          .sort()
+          .at(-1) ?? null
+      : null
   return (
     <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-1" data-testid="link-readouts">
       <span className="flex items-center gap-2" title={meta.hint}>

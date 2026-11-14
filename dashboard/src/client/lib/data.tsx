@@ -197,18 +197,24 @@ export function useExternalRequests(): { count: number; origins: string[] } {
         return true
       }
     }
-    const collect = () => {
-      const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
-      const external = entries.filter((e) => !isLocal(e.name))
-      setState({ count: external.length, origins: [...new Set(external.map((e) => new URL(e.name).origin))] })
+    // Keep a running total from the observer's own entries. The browser's resource buffer stops at
+    // 250 entries, but the observer keeps reporting new ones after that.
+    let count = 0
+    const origins = new Set<string>()
+    const add = (entries: PerformanceEntryList) => {
+      for (const e of entries) {
+        if (isLocal(e.name)) continue
+        count += 1
+        origins.add(new URL(e.name).origin)
+      }
+      setState({ count, origins: [...origins] })
     }
-    collect()
     let obs: PerformanceObserver | null = null
     try {
-      obs = new PerformanceObserver(collect)
+      obs = new PerformanceObserver((list) => add(list.getEntries()))
       obs.observe({ type: 'resource', buffered: true })
     } catch {
-      /* older engines: the initial count still stands */
+      add(performance.getEntriesByType('resource'))
     }
     return () => obs?.disconnect()
   }, [])

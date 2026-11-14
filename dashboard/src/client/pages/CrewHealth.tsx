@@ -7,7 +7,7 @@ import { signed, SYMPTOM_LABEL, utcDate, utcStamp } from '../../shared/format'
 import { Empty, Panel, Pill, SimTag } from '../components/ui'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
-import { eventsOf, REVIEW_META, sessionsOf, subjectLabel, subjectsOf } from '../lib/view'
+import { eventsOf, REVIEW_META, sessionsOf, subjectLabel, subjectsOf, symptomCheckText } from '../lib/view'
 
 export interface SessionRow {
   s: StoredSession
@@ -170,7 +170,7 @@ export function SessionsTable({ rows, ds }: { rows: SessionRow[]; ds: Dataset })
                 {r.s.symptomCheck.status === 'REPORTED' ? (
                   <span className="text-coral">{r.s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ')}</span>
                 ) : (
-                  <span className="text-ink-3">{r.s.symptomCheck.status === 'NONE_REPORTED' ? 'None' : 'Not answered'}</span>
+                  <span className="text-ink-3">{symptomCheckText(r.s)}</span>
                 )}
               </td>
               <td>

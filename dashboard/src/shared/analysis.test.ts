@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   comparePhases,
+  freshnessAt,
   externalReadingFindings,
   hrCoverage,
   median,
@@ -178,5 +179,32 @@ describe('external readings', () => {
   it('raises nothing for a valid reading taken during the session', () => {
     const r = buildExternalReading({ measurementId: 'bp-3', sessionId: 'ses-1', measuredAt: '2026-11-14T19:31:00Z', value: 118 })
     expect(externalReadingFindings(session, [r])).toEqual([])
+  })
+})
+
+describe('review fixes: analysis', () => {
+  it('coverage ignores a phase window that cannot be real (a reset watch clock) and stays fast', () => {
+    const s = buildSession({ rest: [70, 71, 72], recovery: [80, 81, 82, 83, 84, 85, 86, 87, 88] })
+    s.phases[0] = { ...s.phases[0], startedAt: '2001-01-01T00:00:00Z' }
+    const t0 = Date.now()
+    const c = hrCoverage(s)
+    expect(Date.now() - t0).toBeLessThan(200)
+    expect(c.totalIntervals).toBe(5)
+    expect(c.coveredIntervals).toBe(5)
+  })
+
+  it('does not call a cuff reading "after the session ended" while the session is still in progress', () => {
+    const s = buildSession({ rest: [70, 72, 74], endReason: 'IN_PROGRESS' })
+    const r = buildExternalReading({ measurementId: 'bp-9', sessionId: 'ses-1', measuredAt: '2026-11-14T20:10:00Z', value: 118 })
+    expect(externalReadingFindings(s, [r])).toEqual([])
+  })
+
+  it('judges freshness from the latest reading at or before the event, never a later one', () => {
+    const s = buildSession({ rest: [70, 72, 74], recovery: [82, 84, 86, 88, 90, 92, 94, 96, 98] })
+    // Event raised at 19:31:20, while recovery readings continued until 19:31:48.
+    const f = freshnessAt(s, '2026-11-14T19:31:20Z')
+    expect(f.latestValidAt).toBe('2026-11-14T19:31:18Z')
+    expect(f.ageSeconds).toBe(2)
+    expect(f.laterValidReadings).toBe(6)
   })
 })

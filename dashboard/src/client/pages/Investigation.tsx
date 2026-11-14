@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BASELINE_EXCLUSION_LABEL, EXCLUSION_LABEL, RULES, type PhaseComparison } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
 import { REVIEW_CHECKLIST, type Dataset, type ResolvedEvidence } from '../../shared/dataset'
-import { buildEventContext, explainEvent, knownsAndUnknowns, reasonInfo, timelineFor, type EventContext, type Fact } from '../../shared/explain'
+import { baselineBasis, buildEventContext, explainEvent, knownsAndUnknowns, reasonInfo, timelineFor, type EventContext, type Fact } from '../../shared/explain'
 import { plural, signed, SYMPTOM_LABEL, utcStamp, utcTime } from '../../shared/format'
 import { BaselineChart } from '../components/BaselineChart'
 import { ackLabel, Timeline } from '../components/Events'
@@ -114,11 +114,15 @@ function WatchSummaryCheck({ session, c }: { session: StoredSession; c: PhaseCom
   )
 }
 
-export function RecoveryPanel({ session, c, className = '' }: { session: StoredSession | null; c: PhaseComparison | null; className?: string }) {
+export function RecoveryPanel({ session, c, className = '', unlinked = false }: { session: StoredSession | null; c: PhaseComparison | null; className?: string; unlinked?: boolean }) {
   return (
     <Panel title="Recovery heart rate" meta={session?.isSimulated ? <SimTag /> : session ? <RealTag /> : undefined} className={className}>
       {!session || !c ? (
-        <Empty title="Session record not received">The event arrived without its session, so there are no readings to show. Nothing is estimated in their place.</Empty>
+        unlinked ? (
+          <Empty title="Not linked to a recovery session">This event concerns readings outside a recovery check, so there is no heart-rate comparison to show.</Empty>
+        ) : (
+          <Empty title="Session record not received">The event arrived without its session, so there are no readings to show. Nothing is estimated in their place.</Empty>
+        )
       ) : (
         <>
           {c.status === 'CALCULATED' ? (
@@ -204,8 +208,7 @@ export function HistoryPanel({ ctx, className = '' }: { ctx: Pick<EventContext, 
         <div data-testid="history">
           {b.status === 'ESTABLISHED' ? (
             <p className="text-[13px] text-ink-2">
-              Baseline <span className="font-bold text-ink">{signed(b.baselineDelta ?? 0)} bpm</span>: median recovery − rest difference of the {b.used.length} most recent of{' '}
-              {plural(b.compatibleCount, 'earlier comparable session')}.
+              Baseline <span className="font-bold text-ink">{signed(b.baselineDelta ?? 0)} bpm</span>: median recovery − rest difference {baselineBasis(b)}.
               {b.differenceFromBaseline !== null && (
                 <>
                   {' '}
@@ -489,7 +492,7 @@ export function Investigation({ id }: { id: string }) {
 
       <section className="grid gap-5 lg:grid-cols-12">
         <WhyFlagged ctx={ctx} />
-        <RecoveryPanel session={ctx.session} c={ctx.comparison} className="lg:col-span-7" />
+        <RecoveryPanel session={ctx.session} c={ctx.comparison} className="lg:col-span-7" unlinked={event.sessionId === null} />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-12">

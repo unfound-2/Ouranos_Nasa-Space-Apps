@@ -327,3 +327,252 @@ describe('computer-side checks and evidence', () => {
     expect(runDataChecks(ds.mission, NOW)).toHaveLength(0)
   })
 })
+
+const thrown = (fn: () => unknown): unknown => {
+  try {
+    fn()
+  } catch (e) {
+    return e
+  }
+  throw new Error('expected an error')
+}
+const boundTo = (deviceId: string, subjectId: string) => ({
+  deviceId,
+  subjectId,
+  isSimulated: false,
+  firstSeenAt: NOW,
+  lastSeenAt: NOW,
+  lastSyncAt: null,
+  appVersion: null,
+  deviceModel: null,
+  pendingRecords: null,
+})
+const ACKED = { status: 'ACKNOWLEDGED', acknowledgement: { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH' } }
+const FILE = { now: NOW, path: 'FILE_IMPORT' as const, fileName: 'watch-export.json' }
+
+describe('links between subjects', () => {
+  const cuffFor = (subjectId: string) => ({
+    ...hr('bp-x', 'REST', '2026-11-14T19:30:40Z', 118),
+    subjectId,
+    indicator: 'BLOOD_PRESSURE_SYSTOLIC',
+    unit: 'mmHg',
+    phase: null,
+    source: { kind: 'EXTERNAL_INSTRUMENT', device: 'Upper-arm cuff', sensor: null },
+    provenance: { origin: 'EXTERNAL_SYSTEM' },
+  })
+
+  it('rejects an event that names a stored session of another subject', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchSession()], live)
+    const r = ingestRecords(ds, [watchEvent({ subjectId: 'crew-b' })], live)
+    expect(r.results[0].outcome).toBe('REJECTED')
+    expect(r.results[0].detail).toMatch(/ses-1.*different subject/)
+    expect(Object.keys(ds.mission.events)).toEqual([])
+  })
+
+  it('rejects a session that stored readings or events already link to under another subject', () => {
+    const viaEvent = fresh()
+    expect(ingestRecords(viaEvent, [watchEvent({ subjectId: 'crew-b' })], live).results[0].outcome).toBe('CREATED')
+    const s = ingestRecords(viaEvent, [watchSession()], live)
+    expect(s.results[0].outcome).toBe('REJECTED')
+    expect(s.results[0].detail).toMatch(/different subject/)
+    expect(Object.keys(viaEvent.mission.sessions)).toEqual([])
+
+    const viaReading = fresh()
+    expect(ingestRecords(viaReading, [cuffFor('crew-b')], live).results[0].outcome).toBe('CREATED')
+    expect(ingestRecords(viaReading, [watchSession()], live).results[0].outcome).toBe('REJECTED')
+  })
+
+  it('never stores a cross-subject link, whichever record arrives first', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchSession()], live)
+    expect(ingestRecords(ds, [cuffFor('crew-b')], live).results[0].outcome).toBe('REJECTED')
+    expect(ingestRecords(ds, [watchEvent({ subjectId: 'crew-b' })], live).results[0].outcome).toBe('REJECTED')
+    expect(ingestRecords(ds, [cuffFor('crew-a')], live).results[0].outcome).toBe('CREATED')
+  })
+})
+
+describe('what a file import may change', () => {
+  const notShown = { channel: 'WATCH_LOCAL', state: 'NOT_ATTEMPTED', presentedAt: null, hapticRequested: null, lastAttemptAt: null, confirmedBy: null }
+  const ONLY_THE_WATCH = 'delivery and acknowledgement of a stored event can only be reported by the watch over the device API'
+
+  it('refuses a file copy that advances the delivery of a stored event', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchEvent({ status: 'CREATED', delivery: notShown })], live)
+    const r = ingestRecords(ds, [watchEvent()], FILE)
+    expect(r.results[0]).toMatchObject({ outcome: 'CONFLICT', detail: ONLY_THE_WATCH })
+    expect(ds.mission.events['evt-1'].delivery.state).toBe('NOT_ATTEMPTED')
+  })
+
+  it('refuses a file copy that adds an acknowledgement, but applies the same copy sent live by the watch', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchEvent()], live)
+    expect(ingestRecords(ds, [watchEvent(ACKED)], FILE).results[0]).toMatchObject({ outcome: 'CONFLICT', detail: ONLY_THE_WATCH })
+    expect(ds.mission.events['evt-1'].acknowledgement).toBeNull()
+    expect(ingestRecords(ds, [watchEvent(ACKED)], live).results[0].outcome).toBe('UPDATED')
+  })
+
+  it('keeps the delivery and acknowledgement a brand-new event in a file carries', () => {
+    const ds = fresh()
+    expect(ingestRecords(ds, [watchEvent(ACKED)], FILE).results[0].outcome).toBe('CREATED')
+    expect(ds.mission.events['evt-1'].status).toBe('ACKNOWLEDGED')
+    expect(ingestRecords(ds, [watchEvent(ACKED)], FILE).results[0].outcome).toBe('DUPLICATE')
+  })
+})
+
+describe('computer checks only trust events this computer created', () => {
+  it('a stored check event that this computer did not create does not hide a stale reading', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchSession()], FILE)
+    const cuff = {
+      measurementId: 'bp-1',
+      subjectId: 'crew-a',
+      sessionId: 'ses-1',
+      indicator: 'BLOOD_PRESSURE_SYSTOLIC',
+      value: 118,
+      unit: 'mmHg',
+      measuredAt: '2026-11-14T13:00:00Z',
+      phase: null,
+      source: { kind: 'EXTERNAL_INSTRUMENT', device: 'Upper-arm cuff', sensor: null },
+      provenance: { origin: 'EXTERNAL_SYSTEM' },
+      isSimulated: false,
+      quality: 'VALID',
+    }
+    ingestRecords(ds, [cuff], { now: NOW, path: 'FILE_IMPORT', fileName: 'cuff.json' })
+    ds.mission.events.forged = buildEvent({
+      eventId: 'forged',
+      origin: { kind: 'MISSION_COMPUTER_CHECK', ruleSet: 'computer-checks 1.0', deviceId: null },
+      reasonCodes: ['SENSOR_DATA_STALE'],
+      evidence: [{ reasonCode: 'SENSOR_DATA_STALE', kind: 'MEASUREMENT', refId: 'bp-1', note: null }],
+    })
+    expect(runDataChecks(ds.mission, NOW)).toEqual(['dq-ses-1'])
+  })
+})
+
+describe('which device reported', () => {
+  it('records the device that acknowledged and refuses a device bound to another crew member', () => {
+    const e = buildEvent()
+    const acked = applyAck(e, { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-1' }, 'DEVICE', boundTo('watch-1', 'crew-a'))
+    expect(acked.acknowledgement).toEqual({ acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-1' })
+    expect(acked.statusHistory.at(-1)?.note).toMatch(/watch-1/)
+    expect(thrown(() => applyAck(e, { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-2' }, 'DEVICE', boundTo('watch-2', 'crew-b')))).toMatchObject({
+      code: 'DEVICE_SUBJECT_MISMATCH',
+      httpStatus: 409,
+    })
+    // A device this computer has not bound to anyone yet may report.
+    expect(applyAck(e, { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-3' }, 'DEVICE', null).acknowledgement?.deviceId).toBe('watch-3')
+  })
+
+  it('records the device that confirmed a delivery and refuses a device bound to another crew member', () => {
+    const queued = buildEvent({
+      status: 'QUEUED',
+      delivery: { channel: 'COMPUTER_TO_WATCH', state: 'QUEUED', presentedAt: null, hapticRequested: null, lastAttemptAt: NOW, confirmedBy: null },
+    })
+    const shown = applyDeliveryReport(queued, { presentedAt: NOW, hapticRequested: true, deviceId: 'watch-1' }, 'DEVICE', boundTo('watch-1', 'crew-a'))
+    expect(shown.delivery).toMatchObject({ state: 'PRESENTED', confirmedBy: 'WATCH_APP', confirmedByDeviceId: 'watch-1' })
+    expect(shown.statusHistory.at(-1)?.note).toMatch(/watch-1/)
+    expect(
+      thrown(() => applyDeliveryReport(queued, { presentedAt: NOW, hapticRequested: true, deviceId: 'watch-2' }, 'DEVICE', boundTo('watch-2', 'crew-b'))),
+    ).toMatchObject({ code: 'DEVICE_SUBJECT_MISMATCH', httpStatus: 409 })
+  })
+
+  it('fills the confirming device from the producer provenance and still recognises a re-send', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchEvent(ACKED)], live)
+    const e = ds.mission.events['evt-1']
+    expect(e.delivery.confirmedByDeviceId).toBe('watch-1')
+    expect(e.acknowledgement?.deviceId).toBe('watch-1')
+    const reported = e.statusHistory.filter((h) => h.status === 'DELIVERED' || h.status === 'ACKNOWLEDGED')
+    expect(reported).toHaveLength(2)
+    for (const h of reported) expect(h.note).toMatch(/watch-1/)
+    expect(ingestRecords(ds, [watchEvent(ACKED)], live).results[0].outcome).toBe('DUPLICATE')
+    // An event stored before these fields existed is still recognised.
+    delete (e.delivery as { confirmedByDeviceId?: string | null }).confirmedByDeviceId
+    delete (e.acknowledgement as { deviceId?: string | null }).deviceId
+    expect(ingestRecords(ds, [watchEvent(ACKED)], live).results[0].outcome).toBe('DUPLICATE')
+  })
+
+  it('does not let a live re-send report for an alert from a device bound to another crew member', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchEvent()], live)
+    applyHeartbeat(ds.mission, { deviceId: 'watch-9', subjectId: 'crew-b', sentAt: NOW, appVersion: null, deviceModel: null, pendingRecords: null }, NOW)
+    const other = watchEvent({ ...ACKED, provenance: { origin: 'WATCH_APP', appVersion: '0.1.0', deviceId: 'watch-9' } })
+    const r = ingestRecords(ds, [other], live)
+    expect(r.results[0].outcome).toBe('CONFLICT')
+    expect(r.results[0].detail).toMatch(/watch-9/)
+    expect(ds.mission.events['evt-1'].acknowledgement).toBeNull()
+  })
+})
+
+describe('re-sent copies', () => {
+  it('ignores an older in-progress copy of a session that arrives late', () => {
+    const ds = fresh()
+    const finished = watchSession()
+    const copy = (n: number) =>
+      watchSession(false, { endedAt: null, endReason: 'IN_PROGRESS', measurements: finished.measurements.slice(0, n), symptomCheck: { status: 'NOT_ASKED', answeredAt: null }, symptoms: [] })
+    expect(ingestRecords(ds, [copy(3)], live).results[0].outcome).toBe('CREATED')
+    expect(ingestRecords(ds, [copy(5)], live).results[0].outcome).toBe('UPDATED')
+    expect(ingestRecords(ds, [copy(3)], live).results[0].outcome).toBe('STALE_IGNORED')
+    expect(ingestRecords(ds, [finished], live).results[0].outcome).toBe('UPDATED')
+    for (const n of [3, 5]) expect(ingestRecords(ds, [copy(n)], live).results[0].outcome).toBe('STALE_IGNORED')
+    expect(ds.mission.sessions['ses-1'].endReason).toBe('COMPLETED')
+    expect(ds.mission.sessions['ses-1'].measurements).toHaveLength(6)
+    const withNewReading = copy(3)
+    withNewReading.measurements = [...withNewReading.measurements, hr('m9', 'RECOVERY', '2026-11-14T19:31:40Z', 90)]
+    expect(ingestRecords(ds, [withNewReading], live).results[0].outcome).toBe('CONFLICT')
+  })
+
+  it('reports a re-sent event that differs only in provenance or extensions as a duplicate, keeping the first copy', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchEvent()], live)
+    expect(ingestRecords(ds, [watchEvent()], live).results[0].detail).toBe('identical event already stored')
+    const r = ingestRecords(ds, [watchEvent({ provenance: { origin: 'WATCH_APP', appVersion: '0.2.0', deviceId: 'watch-1' }, extensions: { build: 7 } })], live)
+    expect(r.results[0]).toMatchObject({ outcome: 'DUPLICATE', detail: 'already stored; provenance and extensions are kept from the first copy' })
+    expect(ds.mission.events['evt-1'].provenance.appVersion).toBe('0.1.0')
+    expect(ds.mission.events['evt-1'].extensions).toBeUndefined()
+  })
+
+  it('still recognises a re-sent session stored before heartRateAccess existed', () => {
+    const ds = fresh()
+    ingestRecords(ds, [watchSession()], live)
+    delete (ds.mission.sessions['ses-1'] as { heartRateAccess?: unknown }).heartRateAccess
+    ds.mission.fingerprints['session:ses-1'] = ds.mission.fingerprints['session:ses-1'].replace(/"heartRateAccess":null,?/, '')
+    expect(ingestRecords(ds, [watchSession()], live).results[0].outcome).toBe('DUPLICATE')
+    expect(ingestRecords(ds, [watchSession(false, { heartRateAccess: null })], live).results[0].outcome).toBe('DUPLICATE')
+  })
+})
+
+describe('simulated records are described as simulated', () => {
+  const simEvent = (extra: Record<string, unknown> = {}) =>
+    watchEvent({
+      isSimulated: true,
+      delivery: { channel: 'SIMULATED_WATCH', state: 'PRESENTED', presentedAt: '2026-11-14T19:31:57Z', hapticRequested: true, confirmedBy: 'SIMULATION' },
+      provenance: { origin: 'DEMO_FIXTURE', appVersion: 'demo', deviceId: 'sim-watch-a' },
+      ...extra,
+    })
+
+  it('says "simulated watch" and "simulated acknowledgement" in the history, never "on the watch"', () => {
+    const ds = fresh()
+    ingestRecords(ds, [simEvent()], { now: NOW, path: 'DEMO_FIXTURE' })
+    const later = simEvent({ status: 'ACKNOWLEDGED', acknowledgement: { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'SIMULATED_WATCH' } })
+    expect(ingestRecords(ds, [later], { now: NOW, path: 'DEMO_FIXTURE' }).results[0].outcome).toBe('UPDATED')
+    const fresh2 = fresh()
+    ingestRecords(fresh2, [later], { now: NOW, path: 'DEMO_FIXTURE' })
+    for (const e of [ds.demo.events['evt-1'], fresh2.demo.events['evt-1']]) {
+      const notes = Object.fromEntries(e.statusHistory.map((h) => [h.status, h.note]))
+      expect(notes.DELIVERED).toBe('presented on the simulated watch (simulation)')
+      expect(notes.ACKNOWLEDGED).toBe('simulated acknowledgement')
+    }
+  })
+
+  it('stores a simulated heartbeat as a simulated device', () => {
+    const ds = fresh()
+    const d = applyHeartbeat(
+      ds.demo,
+      { deviceId: 'sim-watch-z', subjectId: 'sim-crew-a', sentAt: NOW, appVersion: null, deviceModel: null, pendingRecords: null, isSimulated: true },
+      NOW,
+    )
+    expect(d.isSimulated).toBe(true)
+    expect(linkState(d, NOW)).toBe('SIMULATED')
+  })
+})

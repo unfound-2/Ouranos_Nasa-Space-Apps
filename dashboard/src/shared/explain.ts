@@ -21,7 +21,6 @@ import {
   linkState,
   recordSourceMode,
   resolveEvidence,
-  subjectDevice,
   type Dataset,
   type LinkState,
   type ResolvedEvidence,
@@ -30,8 +29,9 @@ import {
 import { listJoin, plural, signed, SYMPTOM_NOUN, utcDate, utcTime } from './format'
 
 export const REASON_CODES: Record<string, { label: string; meaning: string }> = {
-  SYMPTOM_REPORTED: { label: 'Symptom reported', meaning: 'The wearer reported a symptom during the check.' },
-  SESSION_STOPPED_BY_WEARER: { label: 'Check stopped by wearer', meaning: "The wearer ended the check early with Stop / I'm unwell." },
+  SYMPTOM_REPORTED: { label: 'Symptom reported', meaning: 'A symptom was reported during the check.' },
+  SESSION_STOPPED_UNWELL: { label: 'Stopped: wearer unwell', meaning: "The wearer ended the check early with Stop / I'm unwell." },
+  SESSION_STOPPED_BY_WEARER: { label: 'Check stopped by wearer', meaning: 'The wearer ended the check early.' },
   INSUFFICIENT_HR_SAMPLES: { label: 'Insufficient heart-rate samples', meaning: `A phase has fewer than ${RULES.minValidSamplesPerPhase} valid heart-rate readings.` },
   SENSOR_DATA_STALE: { label: 'Sensor data stale', meaning: 'A reading was taken too long before or after the check to describe it.' },
   MISSING_BASELINE: { label: 'Missing baseline', meaning: `Fewer than ${RULES.minBaselineSessions} earlier comparable sessions exist, so there is no personal baseline.` },
@@ -60,9 +60,29 @@ export interface EventContext {
   now: string
 }
 
+/** Own-property lookup: ids such as "constructor" must never find Object.prototype members. */
+const own = <T,>(map: Record<string, T>, key: string | null): T | null => (key !== null && Object.hasOwn(map, key) ? map[key] : null)
+
+/**
+ * The data-source label of an event. A computer check has no ingest path of its own, so it takes
+ * the label of the reading it cites; a watch event takes the link of the device that sent it.
+ */
+function eventSourceMode(event: StoredEvent, ds: Dataset, session: StoredSession | null, now: string, link: LinkState): SourceMode {
+  if (event.isSimulated) return 'SIMULATED DEMO'
+  if (event.origin.kind !== 'MISSION_COMPUTER_CHECK') return recordSourceMode(event, link)
+  for (const ref of event.evidence) {
+    if (ref.kind !== 'MEASUREMENT') continue
+    const r = own(ds.readings, ref.refId) ?? session?.measurements.find((m) => m.measurementId === ref.refId) ?? null
+    if (r) return recordSourceMode(r, linkState(own(ds.devices, r.provenance.deviceId), now))
+  }
+  return 'UNAVAILABLE'
+}
+
 export function buildEventContext(event: StoredEvent, ds: Dataset, now: string): EventContext {
-  const session = event.sessionId ? (ds.sessions[event.sessionId] ?? null) : null
-  const link = linkState(subjectDevice(ds, event.subjectId), now)
+  const stored = own(ds.sessions, event.sessionId)
+  // A session that belongs to someone else is never used to explain this crew member's event.
+  const session = stored && stored.subjectId === event.subjectId ? stored : null
+  const link = linkState(own(ds.devices, event.provenance.deviceId), now)
   return {
     event,
     session,
@@ -71,10 +91,17 @@ export function buildEventContext(event: StoredEvent, ds: Dataset, now: string):
     readings: session ? linkedReadings(ds, session.sessionId) : [],
     evidence: resolveEvidence(event, ds),
     link,
-    sourceMode: recordSourceMode(event, link),
+    sourceMode: eventSourceMode(event, ds, session, now, link),
     now,
   }
 }
+
+const reporter = (symptoms: { reportedBy: 'SELF_REPORTED' | 'CREW_OBSERVED' }[]) =>
+  symptoms.every((s) => s.reportedBy === 'SELF_REPORTED')
+    ? 'self-reported'
+    : symptoms.every((s) => s.reportedBy === 'CREW_OBSERVED')
+      ? 'reported by a crew observer'
+      : 'reported'
 
 const symptomPhrase = (codes: string[]) => {
   const nouns = [...new Set(codes)].map((c) => SYMPTOM_NOUN[c as keyof typeof SYMPTOM_NOUN] ?? c.toLowerCase())
@@ -98,7 +125,8 @@ function leadSentence(ctx: EventContext): string {
   if (event.category === 'VERIFY_SOURCE') {
     const cited = new Set(event.evidence.filter((e) => e.kind === 'MEASUREMENT').map((e) => e.refId)).size
     const who = event.origin.kind === 'MISSION_COMPUTER_CHECK' ? 'The mission computer flagged' : 'The watch flagged'
-    return `${who} ${plural(cited || 1, 'reading')} for source verification: ${listJoin(event.reasonCodes.map((c) => reasonInfo(c).label.toLowerCase()))}.`
+    const what = cited ? plural(cited, 'reading') : 'this record'
+    return `${who} ${what} for source verification: ${listJoin(event.reasonCodes.map((c) => reasonInfo(c).label.toLowerCase()))}.`
   }
   const labels = event.reasonCodes.map((c) => reasonInfo(c).label.toLowerCase())
   if (event.category === 'RECORDING_INCOMPLETE') return `The watch flagged this recording as incomplete: ${listJoin(labels)}.`
@@ -107,7 +135,12 @@ function leadSentence(ctx: EventContext): string {
 
 function comparisonSentences(ctx: EventContext): string[] {
   const c = ctx.comparison
-  if (!ctx.session || !c) return ['The session record for this event has not been received, so no heart-rate comparison is possible.']
+  if (!ctx.session || !c)
+    return [
+      ctx.event.sessionId === null
+        ? 'This event is not linked to a recovery session, so there is no heart-rate comparison.'
+        : 'The session record for this event has not been received, so no heart-rate comparison is possible.',
+    ]
   const out: string[] = []
   if (c.status === 'CALCULATED') {
     out.push(
@@ -130,13 +163,21 @@ function baselineSentence(ctx: EventContext): string | null {
   const b = ctx.baseline
   if (!b) return null
   if (b.status === 'ESTABLISHED' && b.baselineDelta !== null) {
+    const basis = baselineBasis(b)
     if (b.differenceFromBaseline === null)
-      return `A personal baseline exists (median ${signed(b.baselineDelta)} bpm from ${b.compatibleCount} earlier comparable sessions), but this session cannot be compared with it.`
+      return `A personal baseline exists (median ${signed(b.baselineDelta)} bpm, ${basis}), but this session cannot be compared with it.`
     const d = b.differenceFromBaseline
     const rel = d === 0 ? 'the same as it' : `${signed(d)} bpm ${d > 0 ? 'above' : 'below'} it`
-    return `Against this crew member's baseline of ${signed(b.baselineDelta)} bpm (median of ${b.compatibleCount} earlier comparable sessions), this session's difference is ${rel}.`
+    return `Against this crew member's baseline of ${signed(b.baselineDelta)} bpm (median of ${basis.replace(/^from /, '')}), this session's difference is ${rel}.`
   }
   return `No personal baseline yet: ${b.compatibleCount} of ${b.required} earlier comparable sessions.`
+}
+
+/** "3 earlier comparable sessions", or "the 5 most recent of 7 ..." when the median uses only some. */
+export function baselineBasis(b: BaselineResult): string {
+  return b.used.length === b.compatibleCount
+    ? `from ${plural(b.compatibleCount, 'earlier comparable session')}`
+    : `from the ${b.used.length} most recent of ${b.compatibleCount} earlier comparable sessions`
 }
 
 function deliverySentence(ctx: EventContext): string {
@@ -148,9 +189,9 @@ function deliverySentence(ctx: EventContext): string {
     case 'PRESENTED':
       return `The alert was presented on the ${sim} at ${utcTime(d.presentedAt ?? event.createdAt)}${ack}.`
     case 'WATCH_UNREACHABLE':
-      return 'The alert was not delivered: the watch was unreachable when this computer tried.'
+      return 'The alert was not sent to the watch: no watch link was verified when this computer created it.'
     case 'UNCONFIRMED':
-      return 'The alert was sent, but the watch never confirmed showing it.'
+      return 'The alert was queued for the watch, but the watch never confirmed showing it.'
     case 'QUEUED':
       return 'The alert is queued for the watch and has not been confirmed as shown.'
     default:
@@ -179,22 +220,37 @@ export function knownsAndUnknowns(ctx: EventContext): { known: Fact[]; unknown: 
   const facts: Fact[] = []
   const { session, comparison: c, event } = ctx
   if (!session || !c) {
-    facts.push({ id: 'session', kind: 'gap', text: 'The session record for this event has not been received.' })
-  } else {
-    const valid = c.rest.valid.length + c.recovery.valid.length
     facts.push(
-      valid > 0
-        ? { id: 'readings', kind: 'known', text: `${plural(valid, 'valid heart-rate reading')} recorded (${c.rest.valid.length} rest, ${c.recovery.valid.length} recovery).` }
+      event.sessionId === null
+        ? { id: 'session', kind: 'known', text: 'This event is not linked to a recovery session.' }
+        : { id: 'session', kind: 'gap', text: 'The session record for this event has not been received.' },
+    )
+  } else {
+    const hr = session.measurements.filter((m) => m.indicator === 'HEART_RATE' && m.value !== null && m.quality === 'VALID')
+    const untagged = hr.filter((m) => m.phase === null).length
+    const tagged = `${c.rest.valid.length} rest, ${c.recovery.valid.length} recovery${untagged ? `; ${untagged} have no phase tag` : ''}`
+    facts.push(
+      hr.length > 0
+        ? { id: 'readings', kind: 'known', text: `${plural(hr.length, 'valid heart-rate reading')} recorded (${tagged}).` }
         : { id: 'readings', kind: 'gap', text: 'No valid heart-rate readings in this record.' },
     )
+    const access = session.heartRateAccess ?? null
+    if (access === 'AUTHORIZED') facts.push({ id: 'hr-access', kind: 'known', text: 'The watch reported that heart-rate permission was granted.' })
+    else if (access === 'DENIED') facts.push({ id: 'hr-access', kind: 'gap', text: 'Heart-rate permission was denied on the watch, so it could not record heart rate.' })
+    else if (access === 'NOT_DETERMINED') facts.push({ id: 'hr-access', kind: 'gap', text: 'Heart-rate permission had not been decided on the watch, so it could not record heart rate.' })
+    else if (access === 'UNAVAILABLE') facts.push({ id: 'hr-access', kind: 'gap', text: 'The watch reported heart rate as unavailable during this check.' })
     // Freshness is judged against the moment the watch raised the event. A computer check runs
     // whenever records are imported, so its creation time says nothing about the readings.
     const fresh = freshnessAt(session, event.createdAt)
     if (fresh.ageSeconds !== null && event.origin.kind !== 'MISSION_COMPUTER_CHECK')
       facts.push(
         fresh.fresh
-          ? { id: 'freshness', kind: 'known', text: `The latest valid reading was taken ${formatDuration(fresh.ageSeconds)} before the event was created.` }
-          : { id: 'freshness', kind: 'gap', text: `Heart rate at the time of the event: the latest valid reading is ${formatDuration(fresh.ageSeconds)} older than the event.` },
+          ? {
+              id: 'freshness',
+              kind: 'known',
+              text: `The latest valid reading before the event was taken ${formatDuration(fresh.ageSeconds)} before it was created${fresh.laterValidReadings ? `; ${plural(fresh.laterValidReadings, 'more reading was', 'more readings were')} taken after` : ''}.`,
+            }
+          : { id: 'freshness', kind: 'gap', text: `Heart rate at the time of the event: the latest valid reading before it is ${formatDuration(fresh.ageSeconds)} older than the event.` },
       )
     facts.push(
       c.status === 'CALCULATED'
@@ -221,7 +277,7 @@ export function knownsAndUnknowns(ctx: EventContext): { known: Fact[]; unknown: 
       facts.push({
         id: 'symptoms',
         kind: 'known',
-        text: `${symptomPhrase(session.symptoms.map((s) => s.code)).replace(/^./, (m) => m.toUpperCase())} self-reported at ${utcTime(session.symptoms[0].reportedAt)}.`,
+        text: `${symptomPhrase(session.symptoms.map((s) => s.code)).replace(/^./, (m) => m.toUpperCase())} ${reporter(session.symptoms)} at ${utcTime(session.symptoms[0].reportedAt)}.`,
       })
     else if (st.status === 'NONE_REPORTED')
       facts.push({ id: 'symptoms', kind: 'known', text: `No symptoms were reported (answered ${st.answeredAt ? utcTime(st.answeredAt) : 'at an unrecorded time'}).` })
@@ -245,7 +301,7 @@ export function knownsAndUnknowns(ctx: EventContext): { known: Fact[]; unknown: 
     if (b)
       facts.push(
         b.status === 'ESTABLISHED'
-          ? { id: 'baseline', kind: 'known', text: `Personal baseline from ${b.compatibleCount} earlier comparable sessions (median ${signed(b.baselineDelta ?? 0)} bpm).` }
+          ? { id: 'baseline', kind: 'known', text: `Personal baseline ${baselineBasis(b)} (median ${signed(b.baselineDelta ?? 0)} bpm).` }
           : { id: 'baseline', kind: 'gap', text: `No personal baseline: ${b.compatibleCount} of ${b.required} earlier comparable sessions.` },
       )
   }
@@ -261,7 +317,9 @@ export function knownsAndUnknowns(ctx: EventContext): { known: Fact[]; unknown: 
   const d = event.delivery
   if (d.state === 'PRESENTED')
     facts.push({ id: 'delivery', kind: 'known', text: `Presented on the ${d.channel === 'SIMULATED_WATCH' ? 'simulated watch' : 'watch'} at ${utcTime(d.presentedAt ?? event.createdAt)} (reported by ${d.confirmedBy === 'SIMULATION' ? 'the simulation' : 'the watch app'}).` })
-  else if (d.state === 'WATCH_UNREACHABLE') facts.push({ id: 'delivery', kind: 'gap', text: 'Not delivered: the watch was unreachable, so the alert was never shown on the wrist.' })
+  else if (d.state === 'WATCH_UNREACHABLE')
+    facts.push({ id: 'delivery', kind: 'gap', text: 'Not delivered: no watch link was verified when the alert was created, so it was never sent or shown on the wrist.' })
+  else if (d.state === 'UNCONFIRMED') facts.push({ id: 'delivery', kind: 'gap', text: 'Queued for the watch, but the watch never confirmed showing it.' })
   else facts.push({ id: 'delivery', kind: 'gap', text: 'Delivery to the watch is not confirmed.' })
   facts.push(
     event.acknowledgement

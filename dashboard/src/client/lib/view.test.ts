@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { emptyDataset, ingestRecords, type Datasets } from '../../shared/dataset'
 import { loadDemo } from '../../shared/demo'
 import { buildEvent, buildSession } from '../../shared/testing'
-import { bannerSourceMode, focusFor, regionsFor, sortEvents } from './view'
+import { bannerSourceMode, focusFor, recoveryCheckState, regionsFor, sortEvents } from './view'
 
 const bundle = JSON.parse(readFileSync(new URL('../../../fixtures/simulated/demo-bundle.json', import.meta.url), 'utf8'))
 function demo() {
@@ -117,5 +117,27 @@ describe('data-source banner', () => {
     expect(r.results[0].outcome).toBe('CREATED')
     expect(bannerSourceMode(ds.mission, { 'watch-1': 'VERIFIED' }, 'crew-a')).toBe('LIVE DEVICE')
     expect(bannerSourceMode(ds.mission, { 'watch-1': 'WATCH_UNREACHABLE' }, 'crew-a')).toBe('SAVED DEVICE DATA')
+  })
+})
+
+describe('review fixes: view', () => {
+  it('calls an unfinished session live only when its data is LIVE DEVICE', () => {
+    const s = buildSession({ rest: [70, 72, 74], endReason: 'IN_PROGRESS', recoveryPhase: 'open' })
+    expect(recoveryCheckState(s, 'LIVE DEVICE').value).toBe('RECOVERY · live')
+    expect(recoveryCheckState(s, 'SAVED DEVICE DATA').value).toBe('RECOVERY · no end time yet')
+    expect(recoveryCheckState(s, 'SAVED DEVICE DATA').sub).not.toMatch(/waiting for the watch/i)
+  })
+
+  it('does not use a computer-created event as the source record for the banner', () => {
+    const ds = emptyDataset('mission')
+    const e = buildEvent({ eventId: 'dq-x', origin: { kind: 'MISSION_COMPUTER_CHECK', ruleSet: 'computer-checks 1.0', deviceId: null } })
+    ds.events['dq-x'] = { ...e, provenance: { ...e.provenance, origin: 'MISSION_COMPUTER', ingestPath: null } }
+    expect(bannerSourceMode(ds, {}, 'crew-a')).toBe('UNAVAILABLE')
+  })
+
+  it('does not crash when an event names a session id that is a built-in property name', () => {
+    const ds = emptyDataset('mission')
+    ds.events['e1'] = buildEvent({ eventId: 'e1', sessionId: 'constructor' })
+    expect(focusFor(ds, 'crew-a').session).toBeNull()
   })
 })

@@ -667,6 +667,22 @@
               }
             ]
           },
+          "heartRateAccess": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "AUTHORIZED",
+                  "DENIED",
+                  "NOT_DETERMINED",
+                  "UNAVAILABLE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "provenance": {
             "type": "object",
             "properties": {
@@ -755,7 +771,8 @@
             "propertyNames": {
               "type": "string"
             },
-            "additionalProperties": {}
+            "additionalProperties": {},
+            "description": "Free-form producer data, kept as sent. At most 8 levels of objects and arrays (counting extensions itself) and 8192 bytes as JSON."
           }
         },
         "required": [
@@ -823,7 +840,6 @@
                 "type": "string",
                 "enum": [
                   "WATCH_RULES",
-                  "MISSION_COMPUTER_CHECK",
                   "DEMO_TRIGGER",
                   "DEMO_FIXTURE"
                 ]
@@ -1034,6 +1050,19 @@
                     "type": "null"
                   }
                 ]
+              },
+              "confirmedByDeviceId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -1057,6 +1086,19 @@
                     "enum": [
                       "WATCH",
                       "SIMULATED_WATCH"
+                    ]
+                  },
+                  "deviceId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   }
                 },
@@ -1162,7 +1204,8 @@
             "propertyNames": {
               "type": "string"
             },
-            "additionalProperties": {}
+            "additionalProperties": {},
+            "description": "Free-form producer data, kept as sent. At most 8 levels of objects and arrays (counting extensions itself) and 8192 bytes as JSON."
           }
         },
         "required": [

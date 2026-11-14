@@ -74,13 +74,18 @@ export function SessionReport({ id }: { id: string }) {
               <ul className="space-y-1.5">
                 {s.symptoms.map((x) => (
                   <li key={x.symptomId} className="text-[12.5px]">
-                    <span className="font-bold text-coral">{SYMPTOM_LABEL[x.code]}</span> <span className="text-ink-2">— self-reported {utcStamp(x.reportedAt)}</span>
+                    <span className="font-bold text-coral">{SYMPTOM_LABEL[x.code]}</span>{' '}
+                    <span className="text-ink-2">
+                      — {x.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'reported by a crew observer'} {utcStamp(x.reportedAt)}
+                    </span>
                     {x.bodyRegion && <span className="text-ink-3"> · location {x.bodyRegion.toLowerCase()}</span>}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[12.5px] text-ink-2">{s.symptomCheck.status === 'NONE_REPORTED' ? 'No symptoms reported.' : 'The symptom question was not answered.'}</p>
+              <p className="text-[12.5px] text-ink-2">
+                {s.symptomCheck.status === 'NONE_REPORTED' ? 'No symptoms reported.' : s.symptomCheck.status === 'NO_RESPONSE' ? 'The symptom question was not answered.' : 'No symptom check was recorded.'}
+              </p>
             )}
           </div>
           <div className="mt-4 border-t border-hair pt-4">

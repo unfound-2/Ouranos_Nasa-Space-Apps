@@ -18,6 +18,8 @@ export class ApiError extends Error {
   }
 }
 
+const TIMEOUT_MS = 4000
+
 async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   let res: Response
   try {
@@ -26,8 +28,12 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
       headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
       body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
       cache: 'no-store',
+      // A frozen API must not leave old LIVE or verified labels on screen.
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     })
-  } catch {
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'TimeoutError')
+      throw new ApiError(0, 'API_TIMEOUT', `The local mission-computer API did not answer within ${TIMEOUT_MS / 1000} s.`)
     throw new ApiError(0, 'API_UNREACHABLE', 'The local mission-computer API is not reachable.')
   }
   const text = await res.text()

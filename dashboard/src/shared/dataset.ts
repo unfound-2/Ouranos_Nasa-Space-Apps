@@ -165,6 +165,8 @@ function producerContent(kind: RecordKind, r: RecoverySession | ReviewEvent | Me
     const s = r as RecoverySession
     return stableStringify({
       ...s,
+      // Left out and null are the same copy; dropping null keeps fingerprints stored before the field existed valid.
+      heartRateAccess: s.heartRateAccess ?? undefined,
       provenance: blankIngest(s.provenance),
       measurements: s.measurements.map((m) => ({ ...m, receivedAt: null, provenance: m.provenance ? blankIngest(m.provenance) : undefined })),
     })
@@ -193,6 +195,32 @@ function actorForChannel(channel: StoredEvent['delivery']['channel']): StatusCha
   return 'WATCH'
 }
 
+/**
+ * A producer's event with the reporting watch filled in from provenance.deviceId where the producer
+ * left it out: the watch that produced a presented or acknowledged event is the one that reported it.
+ */
+function withReportingDevice(e: ReviewEvent): ReviewEvent {
+  const producer = e.provenance.deviceId ?? null
+  return {
+    ...e,
+    delivery: { ...e.delivery, confirmedByDeviceId: e.delivery.confirmedByDeviceId ?? (e.delivery.state === 'PRESENTED' ? producer : null) },
+    acknowledgement: e.acknowledgement ? { ...e.acknowledgement, deviceId: e.acknowledgement.deviceId ?? producer } : null,
+  }
+}
+
+const deliveryActor = (d: { confirmedBy: string | null }): StatusChange['actor'] => (d.confirmedBy === 'SIMULATION' ? 'SIMULATION' : 'WATCH')
+const ackActor = (a: { via: string }): StatusChange['actor'] => (a.via === 'SIMULATED_WATCH' ? 'SIMULATION' : 'WATCH')
+
+function presentedNote(actor: StatusChange['actor'], deviceId: string | null | undefined): string {
+  if (actor === 'SIMULATION') return 'presented on the simulated watch (simulation)'
+  return deviceId ? `presented on the watch (device ${deviceId})` : 'presented on the watch'
+}
+
+function acknowledgedNote(actor: StatusChange['actor'], deviceId: string | null | undefined): string {
+  if (actor === 'SIMULATION') return 'simulated acknowledgement'
+  return deviceId ? `acknowledged on the watch (device ${deviceId})` : 'acknowledged on the watch'
+}
+
 /** Rebuild the facts a producer reported as a time-ordered history. */
 function historyFromProducer(e: ReviewEvent): StatusChange[] {
   const h: StatusChange[] = [
@@ -204,14 +232,11 @@ function historyFromProducer(e: ReviewEvent): StatusChange[] {
   if (d.state === 'WATCH_UNREACHABLE') h.push({ status: 'WATCH_UNREACHABLE', at, actor: 'MISSION_COMPUTER', note: null })
   if (d.state === 'UNCONFIRMED') h.push({ status: 'DELIVERY_UNCONFIRMED', at, actor: actorForChannel(d.channel), note: null })
   if (d.state === 'PRESENTED' && d.presentedAt)
-    h.push({ status: 'DELIVERED', at: d.presentedAt, actor: d.confirmedBy === 'SIMULATION' ? 'SIMULATION' : 'WATCH', note: 'presented on the watch' })
-  if (e.acknowledgement)
-    h.push({
-      status: 'ACKNOWLEDGED',
-      at: e.acknowledgement.acknowledgedAt,
-      actor: e.acknowledgement.via === 'SIMULATED_WATCH' ? 'SIMULATION' : 'WATCH',
-      note: 'acknowledged on the watch',
-    })
+    h.push({ status: 'DELIVERED', at: d.presentedAt, actor: deliveryActor(d), note: presentedNote(deliveryActor(d), d.confirmedByDeviceId) })
+  if (e.acknowledgement) {
+    const a = e.acknowledgement
+    h.push({ status: 'ACKNOWLEDGED', at: a.acknowledgedAt, actor: ackActor(a), note: acknowledgedNote(ackActor(a), a.deviceId) })
+  }
   return h
 }
 
@@ -324,6 +349,15 @@ function ingestSession(ds: Dataset, s: RecoverySession, ctx: IngestContext): { o
     })),
   })
   if (!existing) {
+    // Records that arrived before their session must belong to the same subject, whatever the order.
+    const crossed =
+      Object.values(ds.readings).some((r) => r.sessionId === s.sessionId && r.subjectId !== s.subjectId) ||
+      Object.values(ds.events).some((e) => e.sessionId === s.sessionId && e.subjectId !== s.subjectId)
+    if (crossed)
+      return {
+        outcome: 'REJECTED',
+        detail: `session ${s.sessionId} is for ${s.subjectId}, but stored readings or events already link to it under a different subject`,
+      }
     ds.sessions[s.sessionId] = normalize(() => ctx.now)
     ds.fingerprints[key] = fp
     return { outcome: 'CREATED', detail: null }
@@ -343,6 +377,10 @@ function ingestSession(ds: Dataset, s: RecoverySession, ctx: IngestContext): { o
     ds.fingerprints[key] = fp
     return { outcome: 'UPDATED', detail: 'in-progress session extended' }
   }
+  // A retry of an earlier in-progress copy, arriving after a newer copy: its readings are all stored.
+  const storedIds = new Set(existing.measurements.map((m) => m.measurementId))
+  if (sameIdentity && s.endReason === 'IN_PROGRESS' && s.measurements.every((m) => storedIds.has(m.measurementId)))
+    return { outcome: 'STALE_IGNORED', detail: 'an older in-progress copy of this session; the newer stored copy was kept' }
   const differing = (Object.keys(s) as (keyof RecoverySession)[]).filter(
     (k) => k !== 'provenance' && stableStringify((s as Record<string, unknown>)[k]) !== stableStringify(k === 'measurements' ? existing.measurements.map((m) => ({ ...m, receivedAt: null, provenance: undefined })) : (existing as Record<string, unknown>)[k]),
   )
@@ -393,9 +431,19 @@ const DELIVERY_RANK: Record<StoredEvent['delivery']['state'], number> = {
   PRESENTED: 3,
 }
 
-function ingestEvent(ds: Dataset, e: ReviewEvent, ctx: IngestContext): { outcome: Outcome; detail: string | null } {
+/** Delivery and acknowledgement as reported, without the reporting device (kept from the first report). */
+const reportedState = (x: { delivery: StoredEvent['delivery']; acknowledgement: StoredEvent['acknowledgement'] }) =>
+  stableStringify([{ ...x.delivery, confirmedByDeviceId: undefined }, x.acknowledgement ? { ...x.acknowledgement, deviceId: undefined } : null])
+
+const ONLY_THE_WATCH_REPORTS = 'delivery and acknowledgement of a stored event can only be reported by the watch over the device API'
+
+function ingestEvent(ds: Dataset, raw: ReviewEvent, ctx: IngestContext): { outcome: Outcome; detail: string | null } {
+  const e = withReportingDevice(raw)
   const existing = own(ds.events, e.eventId)
   if (!existing) {
+    const linked = e.sessionId ? own(ds.sessions, e.sessionId) : undefined
+    if (linked && linked.subjectId !== e.subjectId)
+      return { outcome: 'REJECTED', detail: `event ${e.eventId} names session ${e.sessionId}, which belongs to a different subject` }
     const stored: StoredEvent = {
       ...e,
       provenance: stamp(e.provenance, ctx),
@@ -409,24 +457,31 @@ function ingestEvent(ds: Dataset, e: ReviewEvent, ctx: IngestContext): { outcome
   const changed = IMMUTABLE_EVENT_KEYS.filter((k) => stableStringify(existing[k]) !== stableStringify(e[k]))
   if (changed.length)
     return { outcome: 'CONFLICT', detail: `event ${e.eventId} already exists with different ${changed.join(', ')}; the stored copy was kept` }
-  if (stableStringify([existing.delivery, existing.acknowledgement]) === stableStringify([e.delivery, e.acknowledgement]))
-    return { outcome: 'DUPLICATE', detail: 'identical event already stored' }
+  if (reportedState(existing) === reportedState(e)) {
+    const sameCopy =
+      stableStringify(blankIngest(existing.provenance)) === stableStringify(blankIngest(e.provenance)) &&
+      stableStringify(existing.extensions) === stableStringify(e.extensions)
+    return { outcome: 'DUPLICATE', detail: sameCopy ? 'identical event already stored' : 'already stored; provenance and extensions are kept from the first copy' }
+  }
   const dIn = DELIVERY_RANK[e.delivery.state]
   const dEx = DELIVERY_RANK[existing.delivery.state]
   const aIn = e.acknowledgement ? 1 : 0
   const aEx = existing.acknowledgement ? 1 : 0
   if (dIn >= dEx && aIn >= aEx && (dIn > dEx || aIn > aEx)) {
+    // Only the watch reports what happened on the watch: a file cannot advance a stored event.
+    if (ctx.path === 'FILE_IMPORT' || ctx.path === 'MANUAL_ENTRY') return { outcome: 'CONFLICT', detail: ONLY_THE_WATCH_REPORTS }
+    const reporter = e.provenance.deviceId
+    const bound = ctx.path === 'LIVE_SYNC' && reporter ? own(ds.devices, reporter) : undefined
+    if (bound?.subjectId && bound.subjectId !== existing.subjectId)
+      return { outcome: 'CONFLICT', detail: `device ${reporter} is bound to a different subject, so it cannot report on event ${e.eventId}` }
     const history = [...existing.statusHistory]
-    if (dIn > dEx && e.delivery.state === 'PRESENTED' && e.delivery.presentedAt)
-      history.push({ status: 'DELIVERED', at: e.delivery.presentedAt, actor: e.delivery.confirmedBy === 'SIMULATION' ? 'SIMULATION' : 'WATCH', note: 'presented on the watch' })
-    if (aIn > aEx && e.acknowledgement)
-      history.push({
-        status: 'ACKNOWLEDGED',
-        at: e.acknowledgement.acknowledgedAt,
-        actor: e.acknowledgement.via === 'SIMULATED_WATCH' ? 'SIMULATION' : 'WATCH',
-        note: 'acknowledged on the watch',
-      })
-    const updated: StoredEvent = { ...existing, delivery: e.delivery, acknowledgement: e.acknowledgement ?? existing.acknowledgement, statusHistory: history }
+    const delivery = dIn > dEx ? e.delivery : existing.delivery
+    const acknowledgement = aIn > aEx ? e.acknowledgement : existing.acknowledgement
+    if (dIn > dEx && delivery.state === 'PRESENTED' && delivery.presentedAt)
+      history.push({ status: 'DELIVERED', at: delivery.presentedAt, actor: deliveryActor(delivery), note: presentedNote(deliveryActor(delivery), delivery.confirmedByDeviceId) })
+    if (aIn > aEx && acknowledgement)
+      history.push({ status: 'ACKNOWLEDGED', at: acknowledgement.acknowledgedAt, actor: ackActor(acknowledgement), note: acknowledgedNote(ackActor(acknowledgement), acknowledgement.deviceId) })
+    const updated: StoredEvent = { ...existing, delivery, acknowledgement, statusHistory: history }
     updated.status = deriveEventStatus(updated)
     ds.events[e.eventId] = updated
     return { outcome: 'UPDATED', detail: 'delivery or acknowledgement advanced' }
@@ -502,12 +557,13 @@ export function ingestRecords(ds: Datasets, raws: unknown[], ctx: IngestContext)
 
 export type LinkState = 'VERIFIED' | 'WATCH_UNREACHABLE' | 'NOT_PAIRED' | 'SIMULATED'
 
-export function applyHeartbeat(ds: Dataset, hb: Heartbeat, now: string): DeviceRecord {
+/** Apply a heartbeat to the dataset it belongs to: a simulated one goes to the demo dataset. */
+export function applyHeartbeat(ds: Dataset, hb: Omit<Heartbeat, 'isSimulated'> & { isSimulated?: boolean }, now: string): DeviceRecord {
   const prev = own(ds.devices, hb.deviceId)
   const device: DeviceRecord = {
     deviceId: hb.deviceId,
     subjectId: hb.subjectId ?? prev?.subjectId ?? null,
-    isSimulated: false,
+    isSimulated: hb.isSimulated ?? false,
     firstSeenAt: prev?.firstSeenAt ?? now,
     lastSeenAt: now,
     lastSyncAt: prev?.lastSyncAt ?? null,
@@ -556,11 +612,27 @@ export function recordSourceMode(record: { isSimulated: boolean; provenance: { i
 
 const withStatus = (e: StoredEvent): StoredEvent => ({ ...e, status: deriveEventStatus(e) })
 
+/** A watch bound to one crew member cannot report on another crew member's alert. */
+function checkBinding(event: StoredEvent, reportingDevice: DeviceRecord | null | undefined, what: string) {
+  if (reportingDevice?.subjectId && reportingDevice.subjectId !== event.subjectId)
+    throw new ActionError(
+      'DEVICE_SUBJECT_MISMATCH',
+      409,
+      `Device ${reportingDevice.deviceId} is bound to a different crew member, so it cannot ${what} this alert.`,
+    )
+}
+
+/**
+ * Record an acknowledgement. `reportingDevice` is the stored record of req.deviceId, if this computer
+ * knows that watch: a watch bound to another subject is refused.
+ */
 export function applyAck(
   event: StoredEvent,
-  req: { acknowledgedAt: string; via: 'WATCH' | 'SIMULATED_WATCH' },
+  req: { acknowledgedAt: string; via: 'WATCH' | 'SIMULATED_WATCH'; deviceId?: string | null },
   actor: 'DEVICE' | 'LOCAL_USER',
+  reportingDevice?: DeviceRecord | null,
 ): StoredEvent {
+  checkBinding(event, reportingDevice, 'acknowledge')
   if (event.acknowledgement) {
     if (event.acknowledgement.acknowledgedAt === req.acknowledgedAt && event.acknowledgement.via === req.via) return event
     throw new ActionError('ALREADY_ACKNOWLEDGED', 409, 'This alert was already acknowledged.')
@@ -575,25 +647,28 @@ export function applyAck(
   }
   if (event.delivery.presentedAt && t(req.acknowledgedAt) < t(event.delivery.presentedAt))
     throw new ActionError('ACK_BEFORE_PRESENTED', 422, 'acknowledgedAt is earlier than the time the alert was presented.')
+  const deviceId = req.deviceId ?? null
   return withStatus({
     ...event,
-    acknowledgement: { acknowledgedAt: req.acknowledgedAt, via: req.via },
+    acknowledgement: { acknowledgedAt: req.acknowledgedAt, via: req.via, deviceId },
     statusHistory: [
       ...event.statusHistory,
       {
         status: 'ACKNOWLEDGED',
         at: req.acknowledgedAt,
         actor: req.via === 'WATCH' ? 'WATCH' : 'SIMULATION',
-        note: req.via === 'WATCH' ? 'acknowledged on the watch' : 'simulated acknowledgement (demo)',
+        note: req.via === 'WATCH' ? acknowledgedNote('WATCH', deviceId) : 'simulated acknowledgement (demo)',
       },
     ],
   })
 }
 
+/** Record that the watch displayed an alert. `reportingDevice` as for applyAck. */
 export function applyDeliveryReport(
   event: StoredEvent,
-  req: { presentedAt: string; hapticRequested: boolean | null },
+  req: { presentedAt: string; hapticRequested: boolean | null; deviceId?: string | null },
   actor: 'DEVICE' | 'LOCAL_USER',
+  reportingDevice?: DeviceRecord | null,
 ): StoredEvent {
   if (actor !== 'DEVICE')
     throw new ActionError(
@@ -602,11 +677,28 @@ export function applyDeliveryReport(
       'Only the watch app can confirm that it displayed an alert. A successful send is not proof of delivery.',
     )
   if (event.isSimulated) throw new ActionError('SIMULATED_EVENT', 409, 'A real watch cannot confirm a simulated alert.')
+  checkBinding(event, reportingDevice, 'report on')
   if (event.delivery.state === 'PRESENTED') return event
+  const deviceId = req.deviceId ?? null
   return withStatus({
     ...event,
-    delivery: { ...event.delivery, state: 'PRESENTED', presentedAt: req.presentedAt, hapticRequested: req.hapticRequested, confirmedBy: 'WATCH_APP' },
-    statusHistory: [...event.statusHistory, { status: 'DELIVERED', at: req.presentedAt, actor: 'WATCH', note: 'watch app confirmed it displayed the alert' }],
+    delivery: {
+      ...event.delivery,
+      state: 'PRESENTED',
+      presentedAt: req.presentedAt,
+      hapticRequested: req.hapticRequested,
+      confirmedBy: 'WATCH_APP',
+      confirmedByDeviceId: deviceId,
+    },
+    statusHistory: [
+      ...event.statusHistory,
+      {
+        status: 'DELIVERED',
+        at: req.presentedAt,
+        actor: 'WATCH',
+        note: deviceId ? `watch app confirmed it displayed the alert (device ${deviceId})` : 'watch app confirmed it displayed the alert',
+      },
+    ],
   })
 }
 
@@ -700,7 +792,9 @@ const UNSENT_NOTE: Record<LinkState, string> = {
 export function runDataChecks(ds: Dataset, now: string): string[] {
   const cited = new Set<string>()
   for (const e of Object.values(ds.events))
-    if (e.origin.kind === 'MISSION_COMPUTER_CHECK') for (const ev of e.evidence) if (ev.kind === 'MEASUREMENT' && ev.refId) cited.add(ev.refId)
+    // Only checks this computer created count; a producer cannot suppress a check by citing a reading.
+    if (e.origin.kind === 'MISSION_COMPUTER_CHECK' && e.provenance.origin === 'MISSION_COMPUTER')
+      for (const ev of e.evidence) if (ev.kind === 'MEASUREMENT' && ev.refId) cited.add(ev.refId)
   const groups = new Map<string, { sessionId: string | null; subjectId: string; isSimulated: boolean; first: string; findings: QualityFinding[] }>()
   for (const reading of Object.values(ds.readings).sort((a, b) => a.measurementId.localeCompare(b.measurementId))) {
     if (cited.has(reading.measurementId)) continue
@@ -746,6 +840,7 @@ export function runDataChecks(ds: Dataset, now: string): string[] {
         hapticRequested: null,
         lastAttemptAt: now,
         confirmedBy: null,
+        confirmedByDeviceId: null,
       },
       acknowledgement: null,
       review: { ...DEFAULT_REVIEW },

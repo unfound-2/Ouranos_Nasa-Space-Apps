@@ -168,3 +168,40 @@ describe('changes', () => {
     expect(JSON.parse(text)).toMatchObject({ workspace: 'demo', formatVersion: 1 })
   })
 })
+
+describe('changes that cannot be stored', () => {
+  it('refuses a change it cannot serialize, before it is served, and keeps working afterwards', async () => {
+    const dir = tempDir()
+    const store = openStore({ dataDir: dir, seedDemo: noSeed })
+    const before = readFileSync(path.join(dir, 'mission.json'), 'utf8')
+    await expect(
+      store.mutate((d) => {
+        const loop: Record<string, unknown> = {}
+        loop.self = loop
+        ;(d.mission.devices as Record<string, unknown>).bad = loop
+      }),
+    ).rejects.toMatchObject({ status: 500, code: 'UNSTORABLE_CHANGE' })
+    expect(store.datasets.mission.devices).toEqual({})
+    expect(readFileSync(path.join(dir, 'mission.json'), 'utf8')).toBe(before)
+    await store.mutate((d) => void (d.mission.devices.w = device('w')))
+    expect(Object.keys(missionFile(dir).devices)).toEqual(['w'])
+  })
+
+  it('a record nested too deeply for structuredClone does not break later changes or a restart', async () => {
+    const dir = tempDir()
+    const store = openStore({ dataDir: dir, seedDemo: noSeed })
+    const deep: Record<string, unknown> = {}
+    let o = deep
+    for (let i = 0; i < 5000; i++) {
+      const next: Record<string, unknown> = {}
+      o.a = next
+      o = next
+    }
+    await store.mutate((d) => void (d.mission.log as unknown[]).push(deep))
+    await store.mutate((d) => void (d.mission.devices.w = device('w')))
+    expect(Object.keys(store.datasets.mission.devices)).toEqual(['w'])
+    const reopened = openStore({ dataDir: dir, seedDemo: noSeed })
+    await reopened.mutate((d) => void (d.mission.devices.x = device('x')))
+    expect(Object.keys(missionFile(dir).devices).sort()).toEqual(['w', 'x'])
+  })
+})

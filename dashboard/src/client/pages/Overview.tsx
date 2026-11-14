@@ -2,9 +2,9 @@ import { Check, CheckCircle2, FileUp, FlaskConical, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { comparePhases, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
-import { linkedReadings, REVIEW_CHECKLIST, subjectDevice, type Dataset } from '../../shared/dataset'
+import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type Dataset, type LinkState } from '../../shared/dataset'
 import { ringMetrics, timelineFor } from '../../shared/explain'
-import { ago, listJoin, SYMPTOM_LABEL, SYMPTOM_NOUN, utcDateTime, utcStamp } from '../../shared/format'
+import { ago, listJoin, SYMPTOM_NOUN, utcDateTime, utcStamp } from '../../shared/format'
 import { Astronaut } from '../components/Astronaut'
 import { ackLabel, EventRow, Timeline } from '../components/Events'
 import { Ring } from '../components/Ring'
@@ -17,11 +17,14 @@ import {
   isOpen,
   LINK_META,
   ORIGIN_LABEL,
+  recoveryCheckState,
   regionsFor,
+  reportedByText,
   REVIEW_META,
   sessionsOf,
   sortEvents,
   subjectLabel,
+  symptomCheckText,
   type Region,
   type RegionInfo,
   type Tone,
@@ -33,7 +36,7 @@ export function headlineFor(e: StoredEvent, ds: Dataset): string {
     const names = [...new Set((s?.symptoms ?? []).map((x) => SYMPTOM_NOUN[x.code]))]
     return names.length ? `Gravity recovery assessment — ${listJoin(names)} reported` : 'Gravity recovery assessment — symptom reported'
   }
-  if (e.category === 'VERIFY_SOURCE') return 'An imported reading needs its source verified'
+  if (e.category === 'VERIFY_SOURCE') return 'A measurement needs its source verified'
   return 'Recovery check recorded without enough data'
 }
 
@@ -114,11 +117,10 @@ function MeasurementStrip({ ds, subjectId, session, links, nowMs }: { ds: Datase
   const valid = c ? c.rest.valid.length + c.recovery.valid.length : 0
   const device = subjectId ? subjectDevice(ds, subjectId) : null
   const link = device ? ((links[device.deviceId] as keyof typeof LINK_META) ?? 'NOT_PAIRED') : 'NOT_PAIRED'
-  const open = session?.phases.find((p) => !p.endedAt)
-  const phaseValue = !session ? '--' : session.endedAt ? 'Completed' : open ? `${open.phase} · live` : 'In progress'
-  const phaseSub = !session ? 'No check recorded' : session.endedAt ? `Ended ${utcStamp(session.endedAt)}` : 'Waiting for the watch'
+  const sessionLink = session?.provenance.deviceId ? ((links[session.provenance.deviceId] as LinkState | undefined) ?? 'NOT_PAIRED') : 'NOT_PAIRED'
+  const check = recoveryCheckState(session, session ? recordSourceMode(session, sessionLink) : null)
   const st = session?.symptomCheck.status
-  const symptomValue = !session ? '--' : st === 'REPORTED' ? session.symptoms.map((s) => SYMPTOM_LABEL[s.code]).join(', ') : st === 'NONE_REPORTED' ? 'None reported' : 'Not answered'
+  const symptomValue = session ? symptomCheckText(session) : '--'
   return (
     <section className="panel grid grid-cols-2 divide-hair md:grid-cols-3 xl:grid-cols-6 xl:divide-x" aria-label="Latest measurements" data-testid="measurement-strip">
       <StripCell
@@ -129,8 +131,8 @@ function MeasurementStrip({ ds, subjectId, session, links, nowMs }: { ds: Datase
         tone={latest && !recent ? 'muted' : undefined}
       />
       <StripCell label="Valid HR samples" value={session ? `${valid} / ${recorded}` : '--'} sub={session ? 'Valid of recorded, this check' : 'No check recorded'} />
-      <StripCell label="Recovery check" value={phaseValue} sub={phaseSub} />
-      <StripCell label="Reported symptoms" value={symptomValue} sub={st === 'REPORTED' ? 'Self-reported on the watch' : session ? 'From the symptom check' : 'No check recorded'} tone={st === 'REPORTED' ? 'coral' : undefined} />
+      <StripCell label="Recovery check" value={check.value} sub={check.sub} testId="strip-check" />
+      <StripCell label="Reported symptoms" value={symptomValue} sub={st === 'REPORTED' && session ? reportedByText(session) : session ? 'From the symptom check' : 'No check recorded'} tone={st === 'REPORTED' ? 'coral' : undefined} />
       <StripCell label="Watch connection" value={LINK_META[link].label} sub={device ? `Last contact ${ago(device.lastSeenAt, nowMs)}` : 'No device has checked in'} tone={LINK_META[link].tone} />
       <StripCell label="Last successful sync" value={device?.lastSyncAt ? `${utcStamp(device.lastSyncAt).slice(11)}` : '--'} sub={device?.lastSyncAt ? `${utcStamp(device.lastSyncAt).slice(0, 10)} · ${ago(device.lastSyncAt, nowMs)}` : 'Nothing received over live sync'} />
     </section>

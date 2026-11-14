@@ -70,7 +70,7 @@ const SCHEMAS: { name: string; schema: z.ZodType; title: string; description: st
     name: 'heartbeat',
     schema: HeartbeatSchema,
     title: 'GRAVITYGUARD watch heartbeat (v1)',
-    description: `"This watch app is open and can reach the computer." POST /api/v1/device/heartbeat about every 20 s while the app is open. ${RULES_NOTE}`,
+    description: `"This watch app is open and can reach the computer." POST /api/v1/device/heartbeat about every 20 s while the app is open. A test or demo client sends isSimulated: true, and the device then appears only in the simulated demo workspace. ${RULES_NOTE}`,
   },
   {
     name: 'ack',
@@ -108,7 +108,8 @@ type JsonObject = Record<string, unknown>
 /**
  * The producer rules for events that JSON Schema can express: review and statusHistory belong to
  * the mission computer (with additionalProperties false, removing them means "must be left out"),
- * and only a reviewer can make an event REVIEWED or CLOSED.
+ * only a reviewer can make an event REVIEWED or CLOSED, and only this computer creates
+ * MISSION_COMPUTER_CHECK events.
  */
 function producerOnly(event: JsonObject) {
   const props = event.properties as JsonObject
@@ -116,6 +117,9 @@ function producerOnly(event: JsonObject) {
   delete props.statusHistory
   const status = props.status as { enum: string[] }
   props.status = { ...status, enum: status.enum.filter((s) => s !== 'REVIEWED' && s !== 'CLOSED') }
+  const origin = props.origin as { properties: JsonObject }
+  const kind = origin.properties.kind as { enum: string[] }
+  props.origin = { ...origin, properties: { ...origin.properties, kind: { ...kind, enum: kind.enum.filter((k) => k !== 'MISSION_COMPUTER_CHECK') } } }
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +187,8 @@ function exampleSession() {
       },
     ],
     summary: { status: 'REVIEW_SUGGESTED', restMedianBpm: 71, recoveryMedianBpm: 88, deltaBpm: 17, restValidSamples: 3, recoveryValidSamples: 5 },
+    // Simulated values never came from HealthKit, so the app's permission state does not apply.
+    heartRateAccess: null,
     provenance: SIM_PROVENANCE,
   }
 }
@@ -208,6 +214,7 @@ function exampleEvent() {
       hapticRequested: true,
       lastAttemptAt: '2026-11-14T19:31:57Z',
       confirmedBy: 'SIMULATION',
+      confirmedByDeviceId: DEVICE_ID,
     },
     acknowledgement: null,
     isSimulated: true,
@@ -228,7 +235,16 @@ export function buildExamples(): Record<string, unknown> {
       sessions: [session],
       events: [event],
     },
-    'heartbeat.json': { deviceId: DEVICE_ID, subjectId: SUBJECT_ID, sentAt: '2026-11-14T19:40:00Z', appVersion: '0.1.0', deviceModel: 'Apple Watch', pendingRecords: 0 },
+    // Flagged simulated, so sending it as it is never makes a fake watch look verified in mission records.
+    'heartbeat.json': {
+      deviceId: DEVICE_ID,
+      subjectId: SUBJECT_ID,
+      sentAt: '2026-11-14T19:40:00Z',
+      appVersion: '0.1.0',
+      deviceModel: 'Simulated watch',
+      pendingRecords: 0,
+      isSimulated: true,
+    },
     'ack.json': { deviceId: DEVICE_ID, acknowledgedAt: '2026-11-14T19:32:30Z' },
     'delivery.json': { deviceId: DEVICE_ID, presentedAt: '2026-11-14T19:40:04Z', hapticRequested: true },
   }

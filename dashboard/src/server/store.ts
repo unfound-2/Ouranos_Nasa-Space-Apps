@@ -7,6 +7,9 @@
  * - A change is made on a copy. The copy replaces what the API serves only after its file was
  *   written, so a failed write changes neither the file nor the served data, and nobody reads a
  *   change before it is on disk.
+ * - The copy is parsed from the stored JSON text rather than made with structuredClone, which fails
+ *   on deeply nested data. A change whose result cannot be serialized and read back is refused
+ *   before it is served, so one bad change can never block the ones after it.
  * - At startup, a file that is not valid JSON or not the expected dataset stops the server with an
  *   error naming the file. That file is never overwritten.
  */
@@ -216,17 +219,31 @@ export class Store {
   }
 
   private async apply<T>(fn: (draft: Datasets) => T, opts: { only?: readonly Workspace[] }): Promise<T> {
-    const draft: Datasets = { mission: structuredClone(this.live.mission), demo: structuredClone(this.live.demo) }
+    // JSON.parse copies any nesting the writer can produce, so the copy itself can never fail.
+    const draft: Datasets = { mission: JSON.parse(this.saved.mission) as Dataset, demo: JSON.parse(this.saved.demo) as Dataset }
     const result = fn(draft)
-    const changed: { ws: Workspace; text: string }[] = []
+    const changed: { ws: Workspace; text: string; next: Dataset }[] = []
     for (const ws of WORKSPACES) {
-      const text = serializeDataset(draft[ws])
-      if (text !== this.saved[ws]) changed.push({ ws, text })
+      let text: string
+      let next: Dataset
+      try {
+        text = serializeDataset(draft[ws])
+        if (text === this.saved[ws]) continue
+        // What the next change and the next start will read back.
+        next = JSON.parse(text) as Dataset
+      } catch (e) {
+        throw new HttpError(
+          500,
+          'UNSTORABLE_CHANGE',
+          `This change could not be stored (${(e as Error).message}). Nothing was stored, and later changes are not affected.`,
+        )
+      }
+      changed.push({ ws, text, next })
     }
     const outside = changed.filter((c) => opts.only && !opts.only.includes(c.ws))
     if (outside.length)
       throw new Error(`internal error: a change limited to ${opts.only?.join('/')} also changed ${outside.map((c) => c.ws).join('/')}; nothing was saved`)
-    for (const { ws, text } of changed) {
+    for (const { ws, text, next } of changed) {
       try {
         await this.write(this.files[ws], text)
       } catch (e) {
@@ -238,7 +255,7 @@ export class Store {
           `The mission computer could not save ${DATA_FILE[ws]} (${reason}). This change was not stored; send it again later.`,
         )
       }
-      this.live = { ...this.live, [ws]: draft[ws] }
+      this.live = { ...this.live, [ws]: next }
       this.saved[ws] = text
     }
     if (changed.length) this.lastWriteError = null

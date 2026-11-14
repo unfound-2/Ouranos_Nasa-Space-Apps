@@ -45,7 +45,25 @@ describe('contracts/v1 for the watch app', () => {
       expect(e.properties).not.toHaveProperty('review')
       expect(e.properties).not.toHaveProperty('statusHistory')
       expect(e.properties.status.enum).toEqual(['CREATED', 'QUEUED', 'DELIVERED', 'ACKNOWLEDGED', 'DELIVERY_UNCONFIRMED', 'WATCH_UNREACHABLE'])
+      expect(e.properties.origin.properties.kind.enum).toEqual(['WATCH_RULES', 'DEMO_TRIGGER', 'DEMO_FIXTURE'])
     }
+  })
+
+  it('the schemas carry the fields added after review, none of them required', () => {
+    const schema = (name: string) => JSON.parse(committed(`${name}.schema.json`))
+    const optionalIn = (obj: { properties: Record<string, unknown>; required?: string[] }, key: string) => {
+      expect(obj.properties).toHaveProperty(key)
+      expect(obj.required ?? []).not.toContain(key)
+      return obj.properties[key]
+    }
+    const nullableId = { anyOf: [expect.objectContaining({ type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$' }), { type: 'null' }] }
+    const session = schema('session')
+    expect(optionalIn(session, 'heartRateAccess')).toEqual({ anyOf: [{ type: 'string', enum: ['AUTHORIZED', 'DENIED', 'NOT_DETERMINED', 'UNAVAILABLE'] }, { type: 'null' }] })
+    const event = schema('event')
+    expect(optionalIn(event.properties.delivery, 'confirmedByDeviceId')).toEqual(nullableId)
+    expect(optionalIn(event.properties.acknowledgement.anyOf[0], 'deviceId')).toEqual(nullableId)
+    expect(optionalIn(schema('heartbeat'), 'isSimulated')).toEqual({ type: 'boolean', default: false })
+    expect(session.properties.extensions.description).toMatch(/8 levels.*8192 bytes/)
   })
 
   it('every example parses with the shared parser', () => {
@@ -67,6 +85,10 @@ describe('contracts/v1 for the watch app', () => {
     for (const m of session.measurements) expect(m).toMatchObject({ isSimulated: true, source: { kind: 'SIMULATOR' } })
     const event = example('event.json')
     expect(event).toMatchObject({ isSimulated: true, provenance: { origin: 'DEMO_FIXTURE' }, origin: { kind: 'DEMO_FIXTURE' }, delivery: { channel: 'SIMULATED_WATCH', confirmedBy: 'SIMULATION' } })
+    // A heartbeat sent as-is must not make a fake watch look verified in the mission records.
+    expect(example('heartbeat.json').isSimulated).toBe(true)
+    const hb = parseHeartbeat(example('heartbeat.json'))
+    expect(hb.ok && hb.value.isSimulated).toBe(true)
 
     const ds: Datasets = { mission: emptyDataset('mission'), demo: emptyDataset('demo') }
     const { records } = expandPayload(example('bundle.json'))

@@ -191,8 +191,9 @@ describe('6. watch acknowledgement', () => {
     advance(20)
     const res = await asDevice.post(app, '/api/v1/alerts/evt-1/ack', { deviceId: 'watch-1', acknowledgedAt: '2026-11-14T19:32:30Z' }).expect(200)
     expect(res.body.event.status).toBe('ACKNOWLEDGED')
-    expect(res.body.event.acknowledgement).toEqual({ acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH' })
-    expect(res.body.event.review.state).toBe('NOT_STARTED')
+    expect(res.body.event.acknowledgement).toEqual({ acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-1' })
+    // The watch gets the delivery and acknowledgement state back, never the review.
+    expect(res.body.event).not.toHaveProperty('review')
     const devices = await asLocal.get(app, '/api/v1/devices').expect(200)
     expect(devices.body.devices[0]).toMatchObject({ deviceId: 'watch-1', lastSeenAt: '2026-11-14T19:40:20.000Z', linkState: 'VERIFIED' })
     // Sending the same acknowledgement again is fine; a different one is not.
@@ -248,7 +249,7 @@ describe('7. review on the dashboard', () => {
       .post(app, '/api/v1/alerts/evt-1/review', { action: 'MARK_REVIEWED', reviewer: 'Crew medical officer', checkedItems: ALL_ITEMS, notes: 'Discussed.' })
       .expect(200)
     expect(reviewed.body.event.status).toBe('REVIEWED')
-    expect(reviewed.body.event.acknowledgement).toEqual({ acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH' })
+    expect(reviewed.body.event.acknowledgement).toEqual({ acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH', deviceId: 'watch-1' })
     expect(reviewed.body.event.review).toMatchObject({ state: 'REVIEWED', reviewer: 'Crew medical officer', reviewedAt: '2026-11-14T19:41:00.000Z' })
 
     const closed = await asLocal.post(app, '/api/v1/alerts/evt-1/review', { action: 'CLOSE', reviewer: 'Crew medical officer', notes: null }).expect(200)
@@ -492,8 +493,18 @@ describe('alerts sent by the computer to the watch', () => {
 
     const outbox = await asDevice.get(app, '/api/v1/device/outbox?deviceId=watch-1').expect(200)
     expect(outbox.body).toMatchObject({ deviceId: 'watch-1', deviceKnown: true, subjectId: 'crew-a' })
-    expect(outbox.body.events.map((e: { eventId: string; status: string }) => [e.eventId, e.status])).toEqual([['dq-cuff-1', 'QUEUED']])
-    expect(outbox.body.events[0].watchMessage).toEqual({ title: 'VERIFY SOURCE', body: 'CHECK MISSION COMPUTER' })
+    expect(outbox.body.events).toEqual([
+      {
+        eventId: 'dq-cuff-1',
+        subjectId: 'crew-a',
+        createdAt: '2026-11-14T19:40:00.000Z',
+        category: 'VERIFY_SOURCE',
+        severity: 'NOTICE',
+        reasonCodes: ['SOURCE_REVIEW_REQUIRED'],
+        watchMessage: { title: 'VERIFY SOURCE', body: 'CHECK MISSION COMPUTER' },
+        delivery: { channel: 'COMPUTER_TO_WATCH', state: 'QUEUED' },
+      },
+    ])
 
     advance(5)
     const shown = await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/delivery', { deviceId: 'watch-1', presentedAt: '2026-11-14T19:40:04Z', hapticRequested: true }).expect(200)
@@ -633,5 +644,123 @@ describe('built dashboard', () => {
     const { app } = start()
     const res = await request(app).get('/').expect(404)
     expect(res.body.error.message).toMatch(/Vite/)
+  })
+})
+
+describe('review fixes: what the device may send and see', () => {
+  const nested = (levels: number) => {
+    const root: Record<string, unknown> = {}
+    let o = root
+    for (let i = 1; i < levels; i++) {
+      const next: Record<string, unknown> = {}
+      o.a = next
+      o = next
+    }
+    return root
+  }
+  const queuedCuffAlert = async (app: App) => {
+    await asDevice.post(app, '/api/v1/device/heartbeat', heartbeat()).expect(200)
+    await asLocal.post(app, '/api/v1/measurements', { measurements: [cuffReading()] }).expect(201)
+    await asLocal
+      .post(app, '/api/v1/alerts/dq-cuff-1/review', { action: 'SAVE_PROGRESS', reviewer: 'Crew medical officer', checkedItems: [], notes: 'Private note: discussed with the flight surgeon' })
+      .expect(200)
+  }
+
+  it('refuses deeply nested extensions with 422 and keeps accepting records afterwards', async () => {
+    const { app } = start()
+    // Serialized here: the test client's own serializer is recursive and cannot write 10,000 levels.
+    const body = JSON.stringify(watchEvent({ extensions: nested(10_000) }))
+    const res = await request(app).post('/api/v1/alerts').set('Authorization', AUTH).set('Content-Type', 'application/json').send(body).expect(422)
+    expect(res.body.error.details.join('\n')).toMatch(/^extensions: /m)
+    await asDevice.post(app, '/api/v1/sessions', watchSession()).expect(201)
+    await asDevice.post(app, '/api/v1/alerts', watchEvent()).expect(201)
+    const health = await request(app).get('/api/v1/health').expect(200)
+    expect(health.body).toMatchObject({ ok: true, workspaces: { mission: { sessions: 1, events: 1 } } })
+  })
+
+  it('gives the watch only the alert fields it needs from its outbox, never review notes', async () => {
+    const { app } = start()
+    await queuedCuffAlert(app)
+    const outbox = await asDevice.get(app, '/api/v1/device/outbox?deviceId=watch-1').expect(200)
+    expect(Object.keys(outbox.body.events[0]).sort()).toEqual(['category', 'createdAt', 'delivery', 'eventId', 'reasonCodes', 'severity', 'subjectId', 'watchMessage'])
+    expect(outbox.body.events[0].delivery).toEqual({ channel: 'COMPUTER_TO_WATCH', state: 'QUEUED' })
+    expect(JSON.stringify(outbox.body)).not.toMatch(/flight surgeon|Crew medical officer/)
+  })
+
+  it('answers delivery and acknowledgement reports with the alert state only, and records the reporting device', async () => {
+    const { app } = start()
+    await queuedCuffAlert(app)
+    const shown = await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/delivery', { deviceId: 'watch-1', presentedAt: '2026-11-14T19:40:04Z', hapticRequested: true }).expect(200)
+    expect(shown.body).toEqual({
+      event: {
+        eventId: 'dq-cuff-1',
+        subjectId: 'crew-a',
+        createdAt: '2026-11-14T19:40:00.000Z',
+        category: 'VERIFY_SOURCE',
+        severity: 'NOTICE',
+        reasonCodes: ['SOURCE_REVIEW_REQUIRED'],
+        watchMessage: { title: 'VERIFY SOURCE', body: 'CHECK MISSION COMPUTER' },
+        status: 'DELIVERED',
+        delivery: {
+          channel: 'COMPUTER_TO_WATCH',
+          state: 'PRESENTED',
+          presentedAt: '2026-11-14T19:40:04Z',
+          hapticRequested: true,
+          confirmedBy: 'WATCH_APP',
+          confirmedByDeviceId: 'watch-1',
+        },
+        acknowledgement: null,
+      },
+    })
+    const acked = await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/ack', { deviceId: 'watch-1', acknowledgedAt: '2026-11-14T19:40:09Z' }).expect(200)
+    expect(acked.body.event).toMatchObject({ status: 'ACKNOWLEDGED', acknowledgement: { acknowledgedAt: '2026-11-14T19:40:09Z', via: 'WATCH', deviceId: 'watch-1' } })
+    expect(JSON.stringify([shown.body, acked.body])).not.toMatch(/flight surgeon|Crew medical officer|statusHistory|evidence|provenance/)
+    const stored = (await asLocal.get(app, '/api/v1/alerts/dq-cuff-1').expect(200)).body.event
+    const notes = stored.statusHistory.filter((h: { status: string }) => h.status === 'DELIVERED' || h.status === 'ACKNOWLEDGED').map((h: { note: string }) => h.note)
+    expect(notes).toHaveLength(2)
+    for (const n of notes) expect(n).toMatch(/watch-1/)
+  })
+
+  it('refuses delivery and acknowledgement reports from a watch bound to another crew member', async () => {
+    const { app } = start()
+    await queuedCuffAlert(app)
+    await asDevice.post(app, '/api/v1/device/heartbeat', heartbeat({ deviceId: 'watch-2', subjectId: 'crew-b' })).expect(200)
+    const wrongDelivery = await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/delivery', { deviceId: 'watch-2', presentedAt: iso(), hapticRequested: true }).expect(409)
+    expect(wrongDelivery.body.error.code).toBe('DEVICE_SUBJECT_MISMATCH')
+    await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/delivery', { deviceId: 'watch-1', presentedAt: iso(), hapticRequested: true }).expect(200)
+    const wrongAck = await asDevice.post(app, '/api/v1/alerts/dq-cuff-1/ack', { deviceId: 'watch-2', acknowledgedAt: iso() }).expect(409)
+    expect(wrongAck.body.error.code).toBe('DEVICE_SUBJECT_MISMATCH')
+    expect((await asLocal.get(app, '/api/v1/alerts/dq-cuff-1').expect(200)).body.event.acknowledgement).toBeNull()
+  })
+
+  it('applies a heartbeat flagged isSimulated to the demo workspace only', async () => {
+    const { app } = start()
+    const res = await asDevice.post(app, '/api/v1/device/heartbeat', heartbeat({ isSimulated: true })).expect(200)
+    expect(res.body).toMatchObject({ linkState: 'SIMULATED', device: { deviceId: 'watch-1', isSimulated: true } })
+    expect((await asLocal.get(app, '/api/v1/devices').expect(200)).body.devices).toEqual([])
+    const demo = (await asLocal.get(app, '/api/v1/devices?workspace=demo').expect(200)).body.devices
+    expect(demo.find((d: { deviceId: string }) => d.deviceId === 'watch-1')).toMatchObject({ isSimulated: true, linkState: 'SIMULATED' })
+  })
+
+  it('does not let a dashboard file import report delivery or acknowledgement for the watch', async () => {
+    const { app } = start()
+    await asDevice.post(app, '/api/v1/alerts', watchEvent()).expect(201)
+    const acked = watchEvent({ status: 'ACKNOWLEDGED', acknowledgement: { acknowledgedAt: '2026-11-14T19:32:30Z', via: 'WATCH' } })
+    const res = await asLocal.post(app, '/api/v1/import', { fileName: 'watch-export.json', content: watchBundle([], [acked]) }).expect(409)
+    expect(res.body.results[0]).toMatchObject({
+      outcome: 'CONFLICT',
+      detail: 'delivery and acknowledgement of a stored event can only be reported by the watch over the device API',
+    })
+    expect((await asLocal.get(app, '/api/v1/alerts/evt-1').expect(200)).body.event.acknowledgement).toBeNull()
+  })
+
+  it('refuses events that claim to be computer checks or link to another subject\'s session', async () => {
+    const { app } = start()
+    const forged = await asDevice.post(app, '/api/v1/alerts', watchEvent({ origin: { kind: 'MISSION_COMPUTER_CHECK', ruleSet: null, deviceId: null } })).expect(422)
+    expect(forged.body.error.details.join('\n')).toMatch(/^origin\.kind: /m)
+    await asDevice.post(app, '/api/v1/sessions', watchSession()).expect(201)
+    const crossed = await asDevice.post(app, '/api/v1/alerts', watchEvent({ subjectId: 'crew-b' })).expect(422)
+    expect(crossed.body.result.outcome).toBe('REJECTED')
+    expect(crossed.body.error.message).toMatch(/different subject/)
   })
 })

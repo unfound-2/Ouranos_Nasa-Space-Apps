@@ -179,6 +179,39 @@ function publicDataset(ds: Dataset) {
   }
 }
 
+/** What the watch sees of an alert in its outbox: no evidence, review, history or provenance. */
+function outboxItem(e: StoredEvent) {
+  return {
+    eventId: e.eventId,
+    subjectId: e.subjectId,
+    createdAt: e.createdAt,
+    category: e.category,
+    severity: e.severity,
+    reasonCodes: e.reasonCodes,
+    watchMessage: e.watchMessage,
+    delivery: { channel: e.delivery.channel, state: e.delivery.state },
+  }
+}
+
+/** The answer to a watch's delivery or acknowledgement report: the alert's state, nothing from its review. */
+function reportView(e: StoredEvent) {
+  const d = e.delivery
+  const a = e.acknowledgement
+  return {
+    ...outboxItem(e),
+    status: e.status,
+    delivery: {
+      channel: d.channel,
+      state: d.state,
+      presentedAt: d.presentedAt,
+      hapticRequested: d.hapticRequested,
+      confirmedBy: d.confirmedBy,
+      confirmedByDeviceId: d.confirmedByDeviceId ?? null,
+    },
+    acknowledgement: a ? { acknowledgedAt: a.acknowledgedAt, via: a.via, deviceId: a.deviceId ?? null } : null,
+  }
+}
+
 function counts(ds: Dataset) {
   return {
     sessions: Object.keys(ds.sessions).length,
@@ -461,14 +494,15 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
         const event = await store.mutate(
           (draft) => {
             const e = missionEvent(draft, id)
-            const updated = applyAck(e, { acknowledgedAt: ack.acknowledgedAt, via: 'WATCH' }, 'DEVICE')
+            const reporting = own(draft.mission.devices, ack.deviceId)
+            const updated = applyAck(e, { acknowledgedAt: ack.acknowledgedAt, via: 'WATCH', deviceId: ack.deviceId }, 'DEVICE', reporting)
             draft.mission.events[id] = updated
             markDeviceSeen(draft.mission, ack.deviceId, e.subjectId, nowIso)
             return updated
           },
           { only: ['mission'] },
         )
-        return { status: 200, body: { event } }
+        return { status: 200, body: { event: reportView(event) } }
       },
     },
     {
@@ -482,14 +516,20 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
         const event = await store.mutate(
           (draft) => {
             const e = missionEvent(draft, id)
-            const updated = applyDeliveryReport(e, { presentedAt: report.presentedAt, hapticRequested: report.hapticRequested }, 'DEVICE')
+            const reporting = own(draft.mission.devices, report.deviceId)
+            const updated = applyDeliveryReport(
+              e,
+              { presentedAt: report.presentedAt, hapticRequested: report.hapticRequested, deviceId: report.deviceId },
+              'DEVICE',
+              reporting,
+            )
             draft.mission.events[id] = updated
             markDeviceSeen(draft.mission, report.deviceId, e.subjectId, nowIso)
             return updated
           },
           { only: ['mission'] },
         )
-        return { status: 200, body: { event } }
+        return { status: 200, body: { event: reportView(event) } }
       },
     },
     {
@@ -548,10 +588,12 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
       method: 'POST',
       path: '/device/heartbeat',
       actor: 'DEVICE',
-      purpose: 'Watch app: "I am reachable" (about every 20 s while the app is open). Keeps the link VERIFIED for 60 s.',
+      purpose:
+        'Watch app: "I am reachable" (about every 20 s while the app is open). Keeps the link VERIFIED for 60 s. With isSimulated: true it only touches the demo workspace.',
       handle: async ({ req, nowIso }) => {
         const hb = parseOr422(HeartbeatSchema, req.body, 'heartbeat')
-        const device = await store.mutate((draft) => applyHeartbeat(draft.mission, hb, nowIso), { only: ['mission'] })
+        const ws: Workspace = hb.isSimulated ? 'demo' : 'mission'
+        const device = await store.mutate((draft) => applyHeartbeat(draft[ws], hb, nowIso), { only: [ws] })
         return { status: 200, body: { device, linkState: linkState(device, nowIso), serverTime: nowIso } }
       },
     },
@@ -567,7 +609,7 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
         const deviceId = parsed.data
         const ds = store.datasets.mission
         const device = own(ds.devices, deviceId) ?? null
-        const events = [...outboxFor(ds, deviceId)].sort((a, b) => ms(a.createdAt) - ms(b.createdAt) || cmp(a.eventId, b.eventId))
+        const events = [...outboxFor(ds, deviceId)].sort((a, b) => ms(a.createdAt) - ms(b.createdAt) || cmp(a.eventId, b.eventId)).map(outboxItem)
         return { status: 200, body: { deviceId, deviceKnown: device !== null, subjectId: device?.subjectId ?? null, serverTime: nowIso, events } }
       },
     },

@@ -224,6 +224,7 @@
     "restValidSamples": 3,
     "recoveryValidSamples": 5
   },
+  "heartRateAccess": null,
   "provenance": {
     "origin": "DEMO_FIXTURE",
     "appVersion": "0.1.0",

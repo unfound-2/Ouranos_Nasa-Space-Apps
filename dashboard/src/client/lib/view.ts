@@ -15,7 +15,7 @@ import type {
 } from '../../shared/contract'
 import { recordSourceMode, type Dataset, type LinkState, type SourceMode } from '../../shared/dataset'
 import { DEMO_SUBJECT_LABELS } from '../../shared/demo'
-import { plural, SYMPTOM_LABEL, utcTime } from '../../shared/format'
+import { plural, SYMPTOM_LABEL, utcStamp, utcTime } from '../../shared/format'
 
 export type Tone = 'mint' | 'cyan' | 'violet' | 'coral' | 'amber' | 'neutral' | 'muted'
 
@@ -114,7 +114,9 @@ export function focusFor(ds: Dataset, subjectId: string | null): { event: Stored
   const events = eventsOf(ds, subjectId)
   const event = events.find(isOpen) ?? null
   const latestEvent = [...events].sort((a, b) => t(b.createdAt) - t(a.createdAt))[0] ?? null
-  const fromEvent = event?.sessionId ? (ds.sessions[event.sessionId] ?? null) : null
+  const sid = event?.sessionId ?? null
+  const linked = sid !== null && Object.hasOwn(ds.sessions, sid) ? ds.sessions[sid] : null
+  const fromEvent = linked && linked.subjectId === event?.subjectId ? linked : null
   return { event, session: fromEvent ?? sessionsOf(ds, subjectId)[0] ?? null, latestEvent }
 }
 
@@ -127,13 +129,46 @@ export function defaultSubject(ds: Dataset): string | null {
 /** The data-source label for the header. The demo workspace is always SIMULATED DEMO. */
 export function bannerSourceMode(ds: Dataset, links: Record<string, LinkState>, subjectId: string | null): SourceMode {
   if (ds.workspace === 'demo') return 'SIMULATED DEMO'
-  const sessions = sessionsOf(ds, subjectId)
-  const events = eventsOf(ds, subjectId)
-  const record = sessions[0] ?? events[0] ?? sessionsOf(ds, null)[0] ?? eventsOf(ds, null)[0]
+  // Computer-created events have no ingest path of their own, so they never name the source.
+  const producerEvents = (id: string | null) => eventsOf(ds, id).filter((e) => e.origin.kind !== 'MISSION_COMPUTER_CHECK')
+  const record = sessionsOf(ds, subjectId)[0] ?? producerEvents(subjectId)[0] ?? sessionsOf(ds, null)[0] ?? producerEvents(null)[0]
   if (!record) return 'UNAVAILABLE'
   const deviceId = record.provenance.deviceId
   const link: LinkState = (deviceId && links[deviceId]) || 'NOT_PAIRED'
   return recordSourceMode(record, link)
+}
+
+/** The "Recovery check" readout. "live" only when the session's data is LIVE DEVICE right now. */
+export function recoveryCheckState(session: StoredSession | null, mode: SourceMode | null): { value: string; sub: string } {
+  if (!session) return { value: '--', sub: 'No check recorded' }
+  if (session.endedAt)
+    return { value: session.endReason === 'COMPLETED' ? 'Completed' : 'Ended early', sub: `Ended ${utcStamp(session.endedAt)}` }
+  const phase = session.phases.find((p) => !p.endedAt)?.phase ?? 'CHECK'
+  if (mode === 'LIVE DEVICE') return { value: `${phase} · live`, sub: 'Receiving over a verified watch link' }
+  const received = session.provenance.receivedAt
+  return { value: `${phase} · no end time yet`, sub: received ? `Last received ${utcStamp(received)}` : 'Not a live connection' }
+}
+
+/** How a symptom check is described when it holds no reported symptom. */
+export function symptomCheckText(session: StoredSession): string {
+  switch (session.symptomCheck.status) {
+    case 'REPORTED':
+      return session.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ')
+    case 'NONE_REPORTED':
+      return 'None reported'
+    case 'NO_RESPONSE':
+      return 'No response'
+    default:
+      return session.endedAt ? 'Not asked' : 'Not asked yet'
+  }
+}
+
+/** "Self-reported on the watch", "Reported by a crew observer" or "Reported" for mixed sources. */
+export function reportedByText(session: StoredSession): string {
+  const s = session.symptoms
+  if (s.length && s.every((x) => x.reportedBy === 'SELF_REPORTED')) return 'Self-reported on the watch'
+  if (s.length && s.every((x) => x.reportedBy === 'CREW_OBSERVED')) return 'Reported by a crew observer'
+  return 'Reported'
 }
 
 // ---------------------------------------------------------------------------

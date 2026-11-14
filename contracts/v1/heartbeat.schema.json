@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:gravityguard:contracts:v1:heartbeat",
   "title": "GRAVITYGUARD watch heartbeat (v1)",
-  "description": "\"This watch app is open and can reach the computer.\" POST /api/v1/device/heartbeat about every 20 s while the app is open. Rules that JSON Schema cannot express (for example cross-field rules) are listed in docs/WATCH_INTEGRATION.md and enforced by the mission computer. Generated from dashboard/src/shared/contract.ts by npm run contracts; do not edit by hand.",
+  "description": "\"This watch app is open and can reach the computer.\" POST /api/v1/device/heartbeat about every 20 s while the app is open. A test or demo client sends isSimulated: true, and the device then appears only in the simulated demo workspace. Rules that JSON Schema cannot express (for example cross-field rules) are listed in docs/WATCH_INTEGRATION.md and enforced by the mission computer. Generated from dashboard/src/shared/contract.ts by npm run contracts; do not edit by hand.",
   "type": "object",
   "properties": {
     "deviceId": {
@@ -62,6 +62,10 @@
           "type": "null"
         }
       ]
+    },
+    "isSimulated": {
+      "default": false,
+      "type": "boolean"
     }
   },
   "required": [

@@ -89,7 +89,8 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
     const values = session.measurements.filter((m) => m.indicator === 'HEART_RATE' && m.value !== null).map((m) => m.value as number)
     const lo = values.length ? Math.max(0, Math.floor((Math.min(...values) - 8) / 5) * 5) : 50
     const hi = values.length ? Math.ceil((Math.max(...values) + 6) / 5) * 5 : 120
-    const pts = points(session, comparison, lo + 1)
+    const band = Math.max(4, Math.round((hi - lo) * 0.14))
+    const pts = points(session, comparison, lo - band / 2)
     const x0 = Date.parse(session.startedAt)
     const lastT = Math.max(x0 + 60_000, ...pts.map((p) => p.t), session.endedAt ? Date.parse(session.endedAt) : 0)
     const span = lastT - x0
@@ -99,7 +100,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
     const ystep = hi - lo <= 40 ? 10 : 20
     const yticks: number[] = []
     for (let v = Math.ceil(lo / ystep) * ystep; v <= hi; v += ystep) yticks.push(v)
-    return { lo, hi, pts, x0, x1: lastT, ticks, yticks }
+    return { lo, hi, band, pts, x0, x1: lastT, ticks, yticks }
   }, [session, comparison])
 
   const phases = session.phases.map((p) => ({ ...p, a: Date.parse(p.startedAt), b: p.endedAt ? Date.parse(p.endedAt) : model.x1 }))
@@ -185,7 +186,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
               <YAxis
                 type="number"
                 dataKey="v"
-                domain={[model.lo, model.hi]}
+                domain={[model.lo - model.band, model.hi]}
                 ticks={model.yticks}
                 interval={0}
                 stroke={C.line}
@@ -195,6 +196,16 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                 unit=""
                 label={{ value: 'BPM', angle: 0, position: 'insideTopLeft', dy: -22, dx: 8, fill: C.ink3, fontSize: 10, letterSpacing: 1.5 }}
               />
+              {model.pts.some((p) => p.kind === 'missing') && (
+                <ReferenceArea
+                  y1={model.lo - model.band}
+                  y2={model.lo}
+                  fill="#0a0b12"
+                  fillOpacity={0.55}
+                  ifOverflow="hidden"
+                  label={{ value: 'NO VALUE', position: 'insideLeft', fill: C.ink3, fontSize: 9, letterSpacing: 1.2 }}
+                />
+              )}
               {medians.map(({ s, ph }) => (
                 <ReferenceLine key={s.phase} segment={[{ x: ph!.a, y: s.median! }, { x: ph!.b, y: s.median! }]} stroke={C.ink} strokeOpacity={0.75} strokeWidth={1.5} ifOverflow="hidden" />
               ))}
@@ -207,7 +218,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                   ifOverflow="extendDomain"
                   label={(props: { viewBox?: { x?: number; y?: number } }) => (
                     <text x={(props.viewBox?.x ?? 0) - 6} y={(props.viewBox?.y ?? 0) + 12} textAnchor="end" fill={C.coral} fontSize={10} fontWeight={700} letterSpacing={1}>
-                      {SYMPTOM_LABEL[s.code]} · SELF-REPORTED
+                      {SYMPTOM_LABEL[s.code]} · {s.reportedBy === 'SELF_REPORTED' ? 'SELF-REPORTED' : 'CREW-OBSERVED'}
                     </text>
                   )}
                 />

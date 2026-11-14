@@ -24,6 +24,8 @@ export const RULES = {
   recentReadingSeconds: 600,
   /** An external reading this far from the session window is called stale. */
   externalReadingMaxGapSeconds: 1800,
+  /** A phase window longer than this cannot be a real phase (for example a reset watch clock). */
+  maxPhaseSeconds: 3600,
 } as const
 
 const t = (iso: string) => Date.parse(iso)
@@ -146,6 +148,8 @@ export interface Coverage {
   totalIntervals: number
   fraction: number | null
   intervalSeconds: number
+  /** Phases left out because their recorded window is implausibly long. */
+  implausiblePhases: PhaseT[]
 }
 
 /** Share of fixed-width intervals in the rest and recovery phases that contain a valid reading. */
@@ -153,23 +157,30 @@ export function hrCoverage(session: StoredSession): Coverage {
   const width = RULES.coverageIntervalSeconds * 1000
   let covered = 0
   let total = 0
+  const implausiblePhases: PhaseT[] = []
   for (const phase of ['REST', 'RECOVERY'] as const) {
     const s = summarizePhase(session, phase)
     if (!s.startedAt || !s.endedAt) continue
     const start = t(s.startedAt)
     const end = t(s.endedAt)
-    const bins = Math.ceil((end - start) / width)
-    const times = s.valid.map((m) => t(m.measuredAt))
-    for (let i = 0; i < bins; i++) {
-      const lo = start + i * width
-      const hi = Math.min(start + (i + 1) * width, end)
-      const last = i === bins - 1
-      if (times.some((x) => x >= lo && (last ? x <= hi : x < hi))) covered += 1
+    if (end - start > RULES.maxPhaseSeconds * 1000) {
+      implausiblePhases.push(phase)
+      continue
     }
+    const bins = Math.ceil((end - start) / width)
+    // One pass over the readings: each lands in exactly one interval (the last one is closed).
+    const hit = new Set<number>()
+    for (const m of s.valid) {
+      const x = t(m.measuredAt)
+      if (x < start || x > end) continue
+      hit.add(Math.min(bins - 1, Math.floor((x - start) / width)))
+    }
+    covered += hit.size
     total += bins
   }
-  if (total === 0) return { status: 'NOT_AVAILABLE', coveredIntervals: 0, totalIntervals: 0, fraction: null, intervalSeconds: RULES.coverageIntervalSeconds }
-  return { status: 'CALCULATED', coveredIntervals: covered, totalIntervals: total, fraction: covered / total, intervalSeconds: RULES.coverageIntervalSeconds }
+  const base = { intervalSeconds: RULES.coverageIntervalSeconds, implausiblePhases }
+  if (total === 0) return { status: 'NOT_AVAILABLE', coveredIntervals: 0, totalIntervals: 0, fraction: null, ...base }
+  return { status: 'CALCULATED', coveredIntervals: covered, totalIntervals: total, fraction: covered / total, ...base }
 }
 
 export interface CompletenessStep {
@@ -283,7 +294,8 @@ export function externalReadingFindings(session: StoredSession | null, readings:
     if (session) {
       const at = t(r.measuredAt)
       const start = t(session.startedAt)
-      const end = session.endedAt ? t(session.endedAt) : start
+      // An unfinished session has no end yet, so only a reading before its start can be judged.
+      const end = session.endedAt ? t(session.endedAt) : Number.POSITIVE_INFINITY
       const gap = at < start ? (start - at) / 1000 : at > end ? (at - end) / 1000 : 0
       if (gap > RULES.externalReadingMaxGapSeconds)
         out.push({
@@ -305,10 +317,17 @@ export function latestValidHeartRate(sessions: StoredSession[]): StoredMeasureme
   return best
 }
 
-/** How old the newest valid heart rate in a session was at a given moment. */
+/**
+ * How old the newest valid heart rate taken at or before a moment was at that moment.
+ * Readings taken after it are counted separately and never used for its age.
+ */
 export function freshnessAt(session: StoredSession, atIso: string) {
-  const latest = latestValidHeartRate([session])
-  if (!latest) return { latestValidAt: null, ageSeconds: null, fresh: null as boolean | null }
+  const at = t(atIso)
+  const valid = heartRateReadings(session).filter((m) => m.value !== null && m.quality === 'VALID')
+  const before = valid.filter((m) => t(m.measuredAt) <= at).sort((a, b) => t(a.measuredAt) - t(b.measuredAt))
+  const laterValidReadings = valid.length - before.length
+  const latest = before[before.length - 1]
+  if (!latest) return { latestValidAt: null, ageSeconds: null, fresh: null as boolean | null, laterValidReadings }
   const age = seconds(latest.measuredAt, atIso)
-  return { latestValidAt: latest.measuredAt, ageSeconds: age, fresh: age <= RULES.eventFreshnessSeconds }
+  return { latestValidAt: latest.measuredAt, ageSeconds: age, fresh: age <= RULES.eventFreshnessSeconds, laterValidReadings }
 }

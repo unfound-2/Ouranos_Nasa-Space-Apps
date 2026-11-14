@@ -39,7 +39,48 @@ function nullable<T extends z.ZodType>(schema: T) {
   return schema.nullish().transform((v): z.output<T> | null => (v ?? null) as z.output<T> | null)
 }
 
+/**
+ * A nullable field added after v1 was first published. Parsing treats it exactly like nullable()
+ * (left out or null, both become null). Its TypeScript key is optional because records stored
+ * before the field existed do not have it.
+ */
+function added<T extends z.ZodType>(schema: T) {
+  return nullable(schema) as unknown as z.ZodOptional<z.ZodNullable<T>>
+}
+
 const text = (max: number) => z.string().max(max)
+
+export const EXTENSIONS_MAX_DEPTH = 8
+export const EXTENSIONS_MAX_BYTES = 8192
+
+/**
+ * Why a JSON value is nested too deeply or is too big, or null when it is within the limits.
+ * Depth counts objects and arrays, the value itself included. The walk uses an explicit stack, so a
+ * value nested thousands of levels deep is refused instead of overflowing the call stack, and the
+ * size is only measured once the depth is known to be small.
+ */
+export function jsonLimitProblem(value: unknown, maxDepth: number, maxBytes: number): string | null {
+  const stack: { v: unknown; depth: number }[] = [{ v: value, depth: 1 }]
+  while (stack.length > 0) {
+    const { v, depth } = stack.pop() as { v: unknown; depth: number }
+    if (v === null || typeof v !== 'object') continue
+    if (depth > maxDepth) return `nested more than ${maxDepth} levels deep (the limit is ${maxDepth} levels of objects and arrays)`
+    for (const child of Array.isArray(v) ? v : Object.values(v)) if (child !== null && typeof child === 'object') stack.push({ v: child, depth: depth + 1 })
+  }
+  const bytes = new TextEncoder().encode(JSON.stringify(value)).length
+  return bytes > maxBytes ? `${bytes} bytes as JSON (the limit is ${maxBytes} bytes)` : null
+}
+
+/** Free-form producer data, kept as sent and never interpreted. Bounded so it cannot exhaust the store. */
+const Extensions = z
+  .record(z.string(), z.unknown())
+  .superRefine((v, ctx) => {
+    const problem = jsonLimitProblem(v, EXTENSIONS_MAX_DEPTH, EXTENSIONS_MAX_BYTES)
+    if (problem) ctx.addIssue({ code: 'custom', message: `extensions is ${problem}` })
+  })
+  .describe(
+    `Free-form producer data, kept as sent. At most ${EXTENSIONS_MAX_DEPTH} levels of objects and arrays (counting extensions itself) and ${EXTENSIONS_MAX_BYTES} bytes as JSON.`,
+  )
 
 export const Id = z
   .string()
@@ -82,6 +123,8 @@ export const IngestPath = z.enum([
 export const SymptomCode = z.enum(['DIZZY', 'WEAK', 'NAUSEATED', 'OTHER'])
 export const BodyRegion = z.enum(['HEAD', 'CHEST', 'ARMS', 'LEGS'])
 export const SessionMode = z.enum(['DEVICE_RECORDING', 'MANUAL_ENTRY', 'SIMULATED_DEMO'])
+/** Whether the watch app could read heart rate during the check, as the app knows it. */
+export const HeartRateAccess = z.enum(['AUTHORIZED', 'DENIED', 'NOT_DETERMINED', 'UNAVAILABLE'])
 export const EndReason = z.enum(['COMPLETED', 'STOPPED_BY_WEARER', 'STOPPED_UNWELL', 'INTERRUPTED', 'IN_PROGRESS'])
 export const EventCategory = z.enum(['REVIEW_SUGGESTED', 'VERIFY_SOURCE', 'RECORDING_INCOMPLETE'])
 /** How soon the creating rule asks a person to look. Not a diagnosis or a clinical grade. */
@@ -223,8 +266,9 @@ const SessionObject = z.strictObject({
   symptomCheck: SymptomCheckSchema,
   symptoms: z.array(SymptomSchema).max(50),
   summary: nullable(WatchSummarySchema),
+  heartRateAccess: added(HeartRateAccess),
   provenance: ProvenanceSchema,
-  extensions: z.record(z.string(), z.unknown()).optional(),
+  extensions: Extensions.optional(),
 })
 
 export const SessionSchema = SessionObject.superRefine((s, ctx) => {
@@ -298,11 +342,15 @@ export const DeliverySchema = z.strictObject({
   hapticRequested: nullable(z.boolean()),
   lastAttemptAt: nullable(UtcTimestamp),
   confirmedBy: nullable(z.enum(['WATCH_APP', 'SIMULATION'])),
+  /** The watch that reported it displayed the alert. Filled from provenance.deviceId when left out. */
+  confirmedByDeviceId: added(Id),
 })
 
 export const AcknowledgementSchema = z.strictObject({
   acknowledgedAt: UtcTimestamp,
   via: z.enum(['WATCH', 'SIMULATED_WATCH']),
+  /** The watch the wearer acknowledged on. Filled from provenance.deviceId when left out. */
+  deviceId: added(Id),
 })
 
 export const ReviewRecordSchema = z.strictObject({
@@ -345,7 +393,7 @@ const EventObject = z.strictObject({
   statusHistory: z.array(StatusChangeSchema).max(200).optional(),
   isSimulated: z.boolean(),
   provenance: ProvenanceSchema,
-  extensions: z.record(z.string(), z.unknown()).optional(),
+  extensions: Extensions.optional(),
 })
 
 type EventOut = z.output<typeof EventObject>
@@ -382,6 +430,15 @@ function eventIssues(e: EventOut, producer: boolean): Issue[] {
       issues.push({ path: ['statusHistory'], message: 'statusHistory is kept by the mission computer; leave it out' })
     if (e.status === 'REVIEWED' || e.status === 'CLOSED')
       issues.push({ path: ['status'], message: `${e.status} can only be set by a reviewer on the mission computer` })
+    if (e.origin.kind === 'MISSION_COMPUTER_CHECK')
+      issues.push({ path: ['origin', 'kind'], message: 'MISSION_COMPUTER_CHECK is reserved for events this mission computer creates' })
+    if (e.delivery.channel === 'WATCH_LOCAL') {
+      // createdAt, presentedAt and acknowledgedAt of a watch-shown alert all come from the watch clock.
+      if (e.delivery.presentedAt && ms(e.delivery.presentedAt) < ms(e.createdAt) - 1000)
+        issues.push({ path: ['delivery', 'presentedAt'], message: 'a watch-shown alert cannot be presented more than 1 s before it was created' })
+      if (e.acknowledgement && ms(e.acknowledgement.acknowledgedAt) < ms(e.createdAt))
+        issues.push({ path: ['acknowledgement', 'acknowledgedAt'], message: 'a watch-shown alert cannot be acknowledged before it was created' })
+    }
   }
   const derived = deriveEventStatus(e)
   if (e.status !== derived)
@@ -444,6 +501,8 @@ export const HeartbeatSchema = z.strictObject({
   appVersion: nullable(text(40)),
   deviceModel: nullable(text(80)),
   pendingRecords: nullable(z.number().int().min(0).max(100000)),
+  /** A test or demo client says true; the device then appears only in the simulated demo workspace. */
+  isSimulated: z.boolean().default(false),
 })
 
 export const AckRequestSchema = z.strictObject({ deviceId: Id, acknowledgedAt: UtcTimestamp })

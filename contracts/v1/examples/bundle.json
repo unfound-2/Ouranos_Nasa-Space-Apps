@@ -234,6 +234,7 @@
         "restValidSamples": 3,
         "recoveryValidSamples": 5
       },
+      "heartRateAccess": null,
       "provenance": {
         "origin": "DEMO_FIXTURE",
         "appVersion": "0.1.0",
@@ -277,7 +278,8 @@
         "presentedAt": "2026-11-14T19:31:57Z",
         "hapticRequested": true,
         "lastAttemptAt": "2026-11-14T19:31:57Z",
-        "confirmedBy": "SIMULATION"
+        "confirmedBy": "SIMULATION",
+        "confirmedByDeviceId": "example-watch-01"
       },
       "acknowledgement": null,
       "isSimulated": true,
