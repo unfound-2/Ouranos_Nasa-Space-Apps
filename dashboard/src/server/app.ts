@@ -57,6 +57,7 @@ import { buildTriggeredDemo, DEMO_DEVICES, loadDemo } from '../shared/demo'
 import { errorBody, HttpError } from './errors'
 import { allowedHostnames, isHostAllowed, isJsonContentType, lanIPv4Addresses, resolveActor, type ActorKind } from './security'
 import { openStore, WORKSPACES, type Store, type WriteFile } from './store'
+import { createWatchLink } from './watch-link'
 import { resolveDeviceToken, tokenPrefix, type DeviceToken } from './token'
 
 export const SERVICE = 'gravityguard-mission-computer'
@@ -788,6 +789,44 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
     next()
   })
   app.use('/api/v1', router)
+  app.use('/api', createWatchLink({
+    now,
+    localUser: actorGuard('LOCAL_USER'),
+    onHeartbeat: (deviceId, nowIso) => store.mutate((draft) => applyHeartbeat(
+      draft.mission,
+      { deviceId, subjectId: 'crew-a', sentAt: nowIso, appVersion: null, deviceModel: 'Apple Watch', pendingRecords: null },
+      nowIso,
+    ), { only: ['mission'] }),
+    onSignal: (signal, deviceId, nowIso) => {
+      const createdAt = new Date(signal.createdAt * 1000).toISOString()
+      const simulated = signal.frame.simulated
+      const reason = 'WATCH_TELEMETRY_FLAG'
+      const readings = signal.frame.readings.filter((r) => signal.evidence.includes(r.metric))
+      return ingestOne({
+        schemaVersion: EVENT_SCHEMA,
+        eventId: signal.id,
+        subjectId: 'crew-a',
+        createdAt,
+        origin: { kind: 'WATCH_RULES', ruleSet: 'Telemetry review', deviceId },
+        category: 'VERIFY_SOURCE',
+        severity: readings.some((r) => r.status === 'priority') ? 'PRIORITY_REVIEW' : 'REVIEW',
+        reasonCodes: [reason],
+        evidence: readings.map((r) => ({
+          reasonCode: reason, kind: 'DEVICE', refId: deviceId,
+          note: `${signal.frame.source} · ${r.metric} ${r.value} ${r.unit} · ${r.status}`.slice(0, 280),
+        })),
+        watchMessage: { title: 'Review signal', body: signal.action.slice(0, 120) },
+        status: 'DELIVERED',
+        delivery: {
+          channel: simulated ? 'SIMULATED_WATCH' : 'WATCH_LOCAL', state: 'PRESENTED',
+          presentedAt: createdAt, hapticRequested: true, confirmedBy: simulated ? 'SIMULATION' : 'WATCH_APP',
+        },
+        isSimulated: simulated,
+        provenance: { origin: simulated ? 'DEMO_FIXTURE' : 'WATCH_APP', deviceId },
+        extensions: { watchReviewAction: signal.action },
+      }, EVENT_SCHEMA, 'POST /api/signals', nowIso)
+    },
+  }))
   app.use('/api', (req, _res, next) => next(new HttpError(404, 'NOT_FOUND', `No API endpoint ${req.method} ${req.originalUrl.split('?')[0].slice(0, 200)}.`)))
 
   if (opts.staticDir) {

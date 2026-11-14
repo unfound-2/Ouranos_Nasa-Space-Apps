@@ -18,10 +18,10 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, prefix = '/api/v1'): Promise<T> {
   let res: Response
   try {
-    res = await fetch(`/api/v1${path}`, {
+    res = await fetch(`${prefix}${path}`, {
       method,
       headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
       body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,

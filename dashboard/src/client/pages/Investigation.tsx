@@ -16,6 +16,9 @@ import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SOURCE_META, STATUS_META, sub
 import { CrewReport, headlineFor } from './Overview'
 
 function EvidenceItem({ r }: { r: ResolvedEvidence }) {
+  if (r.ref.reasonCode === 'WATCH_TELEMETRY_FLAG' && r.ref.note) {
+    return <div className="text-[12.5px] text-ink-2">{r.ref.note}</div>
+  }
   if (!r.found)
     return (
       <div className="text-[12px] text-amber">
@@ -67,6 +70,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
 
 function WhyFlagged({ ctx }: { ctx: EventContext }) {
   const sentences = explainEvent(ctx)
+  const watchAction = ctx.event.extensions?.watchReviewAction
   return (
     <Panel title="Why this was flagged" meta={<span className="text-[11.5px] text-ink-3">From the event’s own reason codes</span>} className="lg:col-span-5">
       <div data-testid="explanation">
@@ -77,6 +81,7 @@ function WhyFlagged({ ctx }: { ctx: EventContext }) {
           ))}
         </div>
       </div>
+      {typeof watchAction === 'string' && <p className="mt-3 text-[12.5px] text-ink-2">{watchAction}</p>}
       <div className="mt-5 border-t border-hair pt-4">
         <div className="micro mb-3">Reason codes and the records behind them</div>
         <ul className="space-y-3" data-testid="reason-codes">

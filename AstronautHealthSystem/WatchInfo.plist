@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Connect to the onboard telemetry feed and send review signals to the crew dashboard.</string>
+    <key>GravityGuardGatewayURL</key>
+    <string>$(GRAVITYGUARD_GATEWAY_URL)</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Read available Apple Watch measurements to review alongside onboard instrument data.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Use wrist movement to give context to telemetry review signals.</string>
+</dict>
+</plist>
