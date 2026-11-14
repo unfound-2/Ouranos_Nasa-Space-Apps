@@ -1,0 +1,2608 @@
+{
+  "schemaVersion": "gravityguard.export-bundle.v1",
+  "exportedAt": "2026-11-13T16:00:00Z",
+  "producer": {
+    "app": "gravityguard-demo-fixtures",
+    "appVersion": "1.0",
+    "deviceId": null,
+    "deviceModel": "Simulated watch"
+  },
+  "sessions": [
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-a-20261109",
+      "subjectId": "sim-crew-a",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-09T14:00:00Z",
+      "endedAt": "2026-11-09T14:02:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-09T14:00:05Z",
+          "endedAt": "2026-11-09T14:00:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-09T14:01:05Z",
+          "endedAt": "2026-11-09T14:01:50Z",
+          "confirmedAt": "2026-11-09T14:01:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-a-20261109-r01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 68,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 69,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 69,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-r09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:00:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 77,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 78,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:14Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 79,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:18Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 80,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 79,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:28Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 80,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:34Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 78,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:38Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 79,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:44Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261109-v09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261109",
+          "indicator": "HEART_RATE",
+          "value": 79,
+          "unit": "bpm",
+          "measuredAt": "2026-11-09T14:01:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "NONE_REPORTED",
+        "answeredAt": "2026-11-09T14:01:55Z"
+      },
+      "symptoms": [],
+      "summary": {
+        "status": "RECORDED",
+        "restMedianBpm": 70,
+        "recoveryMedianBpm": 79,
+        "deltaBpm": 9,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-a"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-a-20261110",
+      "subjectId": "sim-crew-a",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-10T14:05:00Z",
+      "endedAt": "2026-11-10T14:07:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-10T14:05:05Z",
+          "endedAt": "2026-11-10T14:05:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-10T14:06:05Z",
+          "endedAt": "2026-11-10T14:06:50Z",
+          "confirmedAt": "2026-11-10T14:06:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-a-20261110-r01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-r09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:05:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 81,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:14Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 83,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:18Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 81,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:28Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:34Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 83,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:38Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:44Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261110-v09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261110",
+          "indicator": "HEART_RATE",
+          "value": 81,
+          "unit": "bpm",
+          "measuredAt": "2026-11-10T14:06:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "NONE_REPORTED",
+        "answeredAt": "2026-11-10T14:06:55Z"
+      },
+      "symptoms": [],
+      "summary": {
+        "status": "RECORDED",
+        "restMedianBpm": 71,
+        "recoveryMedianBpm": 82,
+        "deltaBpm": 11,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-a"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-a-20261111",
+      "subjectId": "sim-crew-a",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-11T14:02:00Z",
+      "endedAt": "2026-11-11T14:04:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-11T14:02:05Z",
+          "endedAt": "2026-11-11T14:02:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-11T14:03:05Z",
+          "endedAt": "2026-11-11T14:03:50Z",
+          "confirmedAt": "2026-11-11T14:03:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-a-20261111-r01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 69,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-r09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:02:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 80,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:14Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 83,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:18Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 81,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:28Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:34Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 83,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:38Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 82,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:44Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261111-v09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261111",
+          "indicator": "HEART_RATE",
+          "value": 84,
+          "unit": "bpm",
+          "measuredAt": "2026-11-11T14:03:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "NONE_REPORTED",
+        "answeredAt": "2026-11-11T14:03:55Z"
+      },
+      "symptoms": [],
+      "summary": {
+        "status": "RECORDED",
+        "restMedianBpm": 70,
+        "recoveryMedianBpm": 82,
+        "deltaBpm": 12,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-a"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-a-20261112",
+      "subjectId": "sim-crew-a",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-12T14:10:00Z",
+      "endedAt": "2026-11-12T14:12:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-12T14:10:05Z",
+          "endedAt": "2026-11-12T14:10:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-12T14:11:05Z",
+          "endedAt": "2026-11-12T14:11:50Z",
+          "confirmedAt": "2026-11-12T14:11:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-a-20261112-r01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 70,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 73,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 72,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-r09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 71,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:10:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v01",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 88,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v02",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 92,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:13Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v03",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:16Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        },
+        {
+          "measurementId": "sim-a-20261112-v04",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 95,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:21Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v05",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 97,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v06",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 96,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:29Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v07",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 131,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:32Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "QUESTIONABLE"
+        },
+        {
+          "measurementId": "sim-a-20261112-v08",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 94,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:37Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v09",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 93,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:40Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v10",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 95,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:45Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-a-20261112-v11",
+          "subjectId": "sim-crew-a",
+          "sessionId": "sim-a-20261112",
+          "indicator": "HEART_RATE",
+          "value": 94,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T14:11:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "REPORTED",
+        "answeredAt": "2026-11-12T14:11:55Z"
+      },
+      "symptoms": [
+        {
+          "symptomId": "sim-a-20261112-s1",
+          "code": "DIZZY",
+          "reportedAt": "2026-11-12T14:11:55Z",
+          "phase": "RECOVERY",
+          "bodyRegion": null,
+          "reportedBy": "SELF_REPORTED",
+          "note": null
+        }
+      ],
+      "summary": {
+        "status": "REVIEW_SUGGESTED",
+        "restMedianBpm": 71,
+        "recoveryMedianBpm": 94,
+        "deltaBpm": 23,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-a"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-b-20261112",
+      "subjectId": "sim-crew-b",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-12T16:20:00Z",
+      "endedAt": "2026-11-12T16:22:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-12T16:20:05Z",
+          "endedAt": "2026-11-12T16:20:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-12T16:21:05Z",
+          "endedAt": "2026-11-12T16:21:50Z",
+          "confirmedAt": "2026-11-12T16:21:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-b-20261112-r01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:20:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        },
+        {
+          "measurementId": "sim-b-20261112-r02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": 74,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:20:22Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261112-r03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:20:35Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        },
+        {
+          "measurementId": "sim-b-20261112-r04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": 0,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:20:49Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "INVALID"
+        },
+        {
+          "measurementId": "sim-b-20261112-v01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:21:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        },
+        {
+          "measurementId": "sim-b-20261112-v02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:21:22Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        },
+        {
+          "measurementId": "sim-b-20261112-v03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": 86,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:21:35Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261112-v04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261112",
+          "indicator": "HEART_RATE",
+          "value": null,
+          "unit": "bpm",
+          "measuredAt": "2026-11-12T16:21:49Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "MISSING"
+        }
+      ],
+      "symptomCheck": {
+        "status": "NONE_REPORTED",
+        "answeredAt": "2026-11-12T16:21:55Z"
+      },
+      "symptoms": [],
+      "summary": {
+        "status": "INCOMPLETE",
+        "restMedianBpm": null,
+        "recoveryMedianBpm": null,
+        "deltaBpm": null,
+        "restValidSamples": 1,
+        "recoveryValidSamples": 1
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-b"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-b-20261113a",
+      "subjectId": "sim-crew-b",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-13T09:30:00Z",
+      "endedAt": "2026-11-13T09:32:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-13T09:30:05Z",
+          "endedAt": "2026-11-13T09:30:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-13T09:31:05Z",
+          "endedAt": "2026-11-13T09:31:50Z",
+          "confirmedAt": "2026-11-13T09:31:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-b-20261113a-r01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 77,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 75,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r05",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 78,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r06",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 77,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r07",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r08",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 77,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-r09",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:30:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 90,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 93,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:14Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 95,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:18Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 94,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v05",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 96,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:28Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v06",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 95,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:34Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v07",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 94,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:38Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v08",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 93,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:44Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113a-v09",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113a",
+          "indicator": "HEART_RATE",
+          "value": 95,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T09:31:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "REPORTED",
+        "answeredAt": "2026-11-13T09:31:55Z"
+      },
+      "symptoms": [
+        {
+          "symptomId": "sim-b-20261113a-s1",
+          "code": "WEAK",
+          "reportedAt": "2026-11-13T09:31:55Z",
+          "phase": "RECOVERY",
+          "bodyRegion": "LEGS",
+          "reportedBy": "SELF_REPORTED",
+          "note": "Legs felt weak (simulated self-report)"
+        }
+      ],
+      "summary": {
+        "status": "REVIEW_SUGGESTED",
+        "restMedianBpm": 76,
+        "recoveryMedianBpm": 94,
+        "deltaBpm": 18,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-b"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.recovery-session.v1",
+      "sessionId": "sim-b-20261113b",
+      "subjectId": "sim-crew-b",
+      "protocol": {
+        "id": "GRAVITY_RECOVERY_CHECK",
+        "version": "1.0",
+        "plannedRestSeconds": 45,
+        "plannedRecoverySeconds": 45
+      },
+      "mode": "SIMULATED_DEMO",
+      "isSimulated": true,
+      "startedAt": "2026-11-13T15:45:00Z",
+      "endedAt": "2026-11-13T15:47:00Z",
+      "endReason": "COMPLETED",
+      "phases": [
+        {
+          "phase": "REST",
+          "startedAt": "2026-11-13T15:45:05Z",
+          "endedAt": "2026-11-13T15:45:50Z",
+          "confirmedAt": null,
+          "confirmedBy": null
+        },
+        {
+          "phase": "RECOVERY",
+          "startedAt": "2026-11-13T15:46:05Z",
+          "endedAt": "2026-11-13T15:46:50Z",
+          "confirmedAt": "2026-11-13T15:46:05Z",
+          "confirmedBy": "WEARER"
+        }
+      ],
+      "measurements": [
+        {
+          "measurementId": "sim-b-20261113b-r01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 74,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:08Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 75,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:14Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 75,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:18Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:24Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r05",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 74,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:28Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r06",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 75,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:34Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r07",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 76,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:38Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r08",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 75,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:44Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-r09",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 74,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:45:48Z",
+          "phase": "REST",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v01",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 86,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:08Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v02",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 88,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:14Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v03",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 87,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:18Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v04",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 89,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:24Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v05",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 88,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:28Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v06",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 87,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:34Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v07",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 88,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:38Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v08",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 89,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:44Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        },
+        {
+          "measurementId": "sim-b-20261113b-v09",
+          "subjectId": "sim-crew-b",
+          "sessionId": "sim-b-20261113b",
+          "indicator": "HEART_RATE",
+          "value": 87,
+          "unit": "bpm",
+          "measuredAt": "2026-11-13T15:46:48Z",
+          "phase": "RECOVERY",
+          "source": {
+            "kind": "SIMULATOR",
+            "device": "Simulated watch",
+            "sensor": "Simulated heart-rate values"
+          },
+          "isSimulated": true,
+          "quality": "VALID"
+        }
+      ],
+      "symptomCheck": {
+        "status": "NONE_REPORTED",
+        "answeredAt": "2026-11-13T15:46:55Z"
+      },
+      "symptoms": [],
+      "summary": {
+        "status": "RECORDED",
+        "restMedianBpm": 75,
+        "recoveryMedianBpm": 88,
+        "deltaBpm": 13,
+        "restValidSamples": 9,
+        "recoveryValidSamples": 9
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-b"
+      }
+    }
+  ],
+  "events": [
+    {
+      "schemaVersion": "gravityguard.review-event.v1",
+      "eventId": "sim-evt-20261112-a",
+      "subjectId": "sim-crew-a",
+      "sessionId": "sim-a-20261112",
+      "createdAt": "2026-11-12T14:11:56Z",
+      "origin": {
+        "kind": "DEMO_FIXTURE",
+        "ruleSet": "simulated watch rules 1.0",
+        "deviceId": "sim-watch-a"
+      },
+      "category": "REVIEW_SUGGESTED",
+      "severity": "REVIEW",
+      "reasonCodes": [
+        "SYMPTOM_REPORTED"
+      ],
+      "evidence": [
+        {
+          "reasonCode": "SYMPTOM_REPORTED",
+          "kind": "SYMPTOM",
+          "refId": "sim-a-20261112-s1",
+          "note": null
+        }
+      ],
+      "watchMessage": {
+        "title": "HEALTH REVIEW",
+        "body": "OPEN MISSION COMPUTER"
+      },
+      "status": "DELIVERED",
+      "delivery": {
+        "channel": "SIMULATED_WATCH",
+        "state": "PRESENTED",
+        "presentedAt": "2026-11-12T14:11:57Z",
+        "hapticRequested": true,
+        "lastAttemptAt": "2026-11-12T14:11:57Z",
+        "confirmedBy": "SIMULATION"
+      },
+      "acknowledgement": null,
+      "isSimulated": true,
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-a"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.review-event.v1",
+      "eventId": "sim-evt-20261112-b",
+      "subjectId": "sim-crew-b",
+      "sessionId": "sim-b-20261112",
+      "createdAt": "2026-11-12T16:21:56Z",
+      "origin": {
+        "kind": "DEMO_FIXTURE",
+        "ruleSet": "simulated watch rules 1.0",
+        "deviceId": "sim-watch-b"
+      },
+      "category": "RECORDING_INCOMPLETE",
+      "severity": "NOTICE",
+      "reasonCodes": [
+        "INSUFFICIENT_HR_SAMPLES",
+        "MISSING_BASELINE"
+      ],
+      "evidence": [
+        {
+          "reasonCode": "INSUFFICIENT_HR_SAMPLES",
+          "kind": "PHASE",
+          "refId": "REST",
+          "note": null
+        },
+        {
+          "reasonCode": "INSUFFICIENT_HR_SAMPLES",
+          "kind": "PHASE",
+          "refId": "RECOVERY",
+          "note": null
+        },
+        {
+          "reasonCode": "MISSING_BASELINE",
+          "kind": "SESSION",
+          "refId": "sim-b-20261112",
+          "note": null
+        }
+      ],
+      "watchMessage": {
+        "title": "CHECK INCOMPLETE",
+        "body": "OPEN MISSION COMPUTER"
+      },
+      "status": "DELIVERED",
+      "delivery": {
+        "channel": "SIMULATED_WATCH",
+        "state": "PRESENTED",
+        "presentedAt": "2026-11-12T16:21:57Z",
+        "hapticRequested": true,
+        "lastAttemptAt": "2026-11-12T16:21:57Z",
+        "confirmedBy": "SIMULATION"
+      },
+      "acknowledgement": null,
+      "isSimulated": true,
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-b"
+      }
+    },
+    {
+      "schemaVersion": "gravityguard.review-event.v1",
+      "eventId": "sim-evt-20261113-b",
+      "subjectId": "sim-crew-b",
+      "sessionId": "sim-b-20261113a",
+      "createdAt": "2026-11-13T09:31:56Z",
+      "origin": {
+        "kind": "DEMO_FIXTURE",
+        "ruleSet": "simulated watch rules 1.0",
+        "deviceId": "sim-watch-b"
+      },
+      "category": "REVIEW_SUGGESTED",
+      "severity": "REVIEW",
+      "reasonCodes": [
+        "SYMPTOM_REPORTED",
+        "MISSING_BASELINE"
+      ],
+      "evidence": [
+        {
+          "reasonCode": "SYMPTOM_REPORTED",
+          "kind": "SYMPTOM",
+          "refId": "sim-b-20261113a-s1",
+          "note": null
+        },
+        {
+          "reasonCode": "MISSING_BASELINE",
+          "kind": "SESSION",
+          "refId": "sim-b-20261113a",
+          "note": null
+        }
+      ],
+      "watchMessage": {
+        "title": "HEALTH REVIEW",
+        "body": "OPEN MISSION COMPUTER"
+      },
+      "status": "ACKNOWLEDGED",
+      "delivery": {
+        "channel": "SIMULATED_WATCH",
+        "state": "PRESENTED",
+        "presentedAt": "2026-11-13T09:31:57Z",
+        "hapticRequested": true,
+        "lastAttemptAt": "2026-11-13T09:31:57Z",
+        "confirmedBy": "SIMULATION"
+      },
+      "acknowledgement": {
+        "acknowledgedAt": "2026-11-13T09:32:39Z",
+        "via": "SIMULATED_WATCH"
+      },
+      "isSimulated": true,
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": "sim-watch-b"
+      }
+    }
+  ],
+  "measurements": [
+    {
+      "measurementId": "sim-cuff-20261113-sys",
+      "subjectId": "sim-crew-b",
+      "sessionId": "sim-b-20261113b",
+      "indicator": "BLOOD_PRESSURE_SYSTOLIC",
+      "value": 142,
+      "unit": "mmHg",
+      "measuredAt": "2026-11-13T09:05:00Z",
+      "phase": null,
+      "source": {
+        "kind": "EXTERNAL_INSTRUMENT",
+        "device": "Upper-arm cuff (simulated)",
+        "sensor": "Oscillometric cuff"
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": null
+      },
+      "isSimulated": true,
+      "quality": "QUESTIONABLE"
+    },
+    {
+      "measurementId": "sim-cuff-20261113-dia",
+      "subjectId": "sim-crew-b",
+      "sessionId": "sim-b-20261113b",
+      "indicator": "BLOOD_PRESSURE_DIASTOLIC",
+      "value": 91,
+      "unit": "mmHg",
+      "measuredAt": "2026-11-13T09:05:00Z",
+      "phase": null,
+      "source": {
+        "kind": "EXTERNAL_INSTRUMENT",
+        "device": "Upper-arm cuff (simulated)",
+        "sensor": "Oscillometric cuff"
+      },
+      "provenance": {
+        "origin": "DEMO_FIXTURE",
+        "appVersion": "demo-fixtures 1.0",
+        "deviceId": null
+      },
+      "isSimulated": true,
+      "quality": "QUESTIONABLE"
+    }
+  ]
+}
