@@ -145,6 +145,9 @@ export function emptyDataset(workspace: Workspace): Dataset {
 
 const t = (iso: string) => Date.parse(iso)
 
+/** Own-property lookup: ids such as "constructor" are valid and must not find Object.prototype members. */
+const own = <T>(map: Record<string, T>, key: string): T | undefined => (Object.hasOwn(map, key) ? map[key] : undefined)
+
 export function stableStringify(v: unknown): string {
   if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null'
   if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`
@@ -284,14 +287,14 @@ function idOf(c: Exclude<Classified, { kind: null }>): string {
 }
 
 function exists(ds: Dataset, kind: RecordKind, id: string): boolean {
-  if (kind === 'SESSION') return id in ds.sessions
-  if (kind === 'EVENT') return id in ds.events
-  return id in ds.readings
+  if (kind === 'SESSION') return Object.hasOwn(ds.sessions, id)
+  if (kind === 'EVENT') return Object.hasOwn(ds.events, id)
+  return Object.hasOwn(ds.readings, id)
 }
 
 function touchDevice(ds: Dataset, deviceId: string | null, subjectId: string, isSimulated: boolean, now: string, synced: boolean) {
   if (!deviceId) return
-  const prev = ds.devices[deviceId]
+  const prev = own(ds.devices, deviceId)
   ds.devices[deviceId] = {
     deviceId,
     subjectId: prev?.subjectId ?? subjectId,
@@ -308,7 +311,7 @@ function touchDevice(ds: Dataset, deviceId: string | null, subjectId: string, is
 function ingestSession(ds: Dataset, s: RecoverySession, ctx: IngestContext): { outcome: Outcome; detail: string | null } {
   const key = `session:${s.sessionId}`
   const fp = producerContent('SESSION', s)
-  const existing = ds.sessions[s.sessionId]
+  const existing = own(ds.sessions, s.sessionId)
   const provenance = stamp(s.provenance, ctx)
   const normalize = (receivedFor: (id: string) => string): StoredSession => ({
     ...s,
@@ -352,12 +355,12 @@ function ingestSession(ds: Dataset, s: RecoverySession, ctx: IngestContext): { o
 function ingestReading(ds: Dataset, m: Measurement, ctx: IngestContext): { outcome: Outcome; detail: string | null } {
   const key = `reading:${m.measurementId}`
   const fp = producerContent('MEASUREMENT', m)
-  if (ds.readings[m.measurementId]) {
+  if (own(ds.readings, m.measurementId)) {
     return ds.fingerprints[key] === fp
       ? { outcome: 'DUPLICATE', detail: 'identical reading already stored' }
       : { outcome: 'CONFLICT', detail: `reading ${m.measurementId} already exists with different content; the stored copy was kept` }
   }
-  const linked = m.sessionId ? ds.sessions[m.sessionId] : undefined
+  const linked = m.sessionId ? own(ds.sessions, m.sessionId) : undefined
   if (linked && linked.subjectId !== m.subjectId)
     return { outcome: 'REJECTED', detail: `reading ${m.measurementId} names session ${m.sessionId}, which belongs to a different subject` }
   const provenance = stamp(
@@ -391,7 +394,7 @@ const DELIVERY_RANK: Record<StoredEvent['delivery']['state'], number> = {
 }
 
 function ingestEvent(ds: Dataset, e: ReviewEvent, ctx: IngestContext): { outcome: Outcome; detail: string | null } {
-  const existing = ds.events[e.eventId]
+  const existing = own(ds.events, e.eventId)
   if (!existing) {
     const stored: StoredEvent = {
       ...e,
@@ -500,7 +503,7 @@ export function ingestRecords(ds: Datasets, raws: unknown[], ctx: IngestContext)
 export type LinkState = 'VERIFIED' | 'WATCH_UNREACHABLE' | 'NOT_PAIRED' | 'SIMULATED'
 
 export function applyHeartbeat(ds: Dataset, hb: Heartbeat, now: string): DeviceRecord {
-  const prev = ds.devices[hb.deviceId]
+  const prev = own(ds.devices, hb.deviceId)
   const device: DeviceRecord = {
     deviceId: hb.deviceId,
     subjectId: hb.subjectId ?? prev?.subjectId ?? null,
@@ -673,7 +676,7 @@ export function expireDeliveries(ds: Dataset, now: string): string[] {
 
 /** Alerts this computer created that a given watch should present. */
 export function outboxFor(ds: Dataset, deviceId: string): StoredEvent[] {
-  const device = ds.devices[deviceId]
+  const device = own(ds.devices, deviceId)
   if (!device?.subjectId) return []
   return Object.values(ds.events).filter(
     (e) => e.subjectId === device.subjectId && e.delivery.channel === 'COMPUTER_TO_WATCH' && e.delivery.state === 'QUEUED',
@@ -701,7 +704,7 @@ export function runDataChecks(ds: Dataset, now: string): string[] {
   const groups = new Map<string, { sessionId: string | null; subjectId: string; isSimulated: boolean; first: string; findings: QualityFinding[] }>()
   for (const reading of Object.values(ds.readings).sort((a, b) => a.measurementId.localeCompare(b.measurementId))) {
     if (cited.has(reading.measurementId)) continue
-    const session = reading.sessionId ? (ds.sessions[reading.sessionId] ?? null) : null
+    const session = reading.sessionId ? (own(ds.sessions, reading.sessionId) ?? null) : null
     const findings = externalReadingFindings(session, [reading])
     if (!findings.length) continue
     const key = reading.sessionId ? `s:${reading.sessionId}` : `m:${reading.measurementId}`
@@ -774,7 +777,7 @@ export type ResolvedEvidence =
 
 /** Look up every record an event cites. Missing records are reported, never invented. */
 export function resolveEvidence(event: ReviewEvent, ds: Dataset): ResolvedEvidence[] {
-  const session = event.sessionId ? ds.sessions[event.sessionId] : undefined
+  const session = event.sessionId ? own(ds.sessions, event.sessionId) : undefined
   const missing = (ref: ReviewEvent['evidence'][number]): ResolvedEvidence => ({
     ref,
     found: false,
@@ -790,7 +793,7 @@ export function resolveEvidence(event: ReviewEvent, ds: Dataset): ResolvedEviden
       case 'MEASUREMENT': {
         const inSession = session?.measurements.find((m) => m.measurementId === ref.refId)
         if (inSession) return { ref, found: true, kind: 'MEASUREMENT', measurement: inSession, standalone: false }
-        const standalone = ref.refId ? ds.readings[ref.refId] : undefined
+        const standalone = ref.refId ? own(ds.readings, ref.refId) : undefined
         return standalone ? { ref, found: true, kind: 'MEASUREMENT', measurement: standalone, standalone: true } : missing(ref)
       }
       case 'PHASE': {
@@ -798,11 +801,11 @@ export function resolveEvidence(event: ReviewEvent, ds: Dataset): ResolvedEviden
         return phase ? { ref, found: true, kind: 'PHASE', phase } : missing(ref)
       }
       case 'SESSION': {
-        const s = ds.sessions[ref.refId ?? event.sessionId ?? '']
+        const s = own(ds.sessions, ref.refId ?? event.sessionId ?? '')
         return s ? { ref, found: true, kind: 'SESSION', session: s } : missing(ref)
       }
       case 'DEVICE': {
-        const d = ref.refId ? ds.devices[ref.refId] : undefined
+        const d = ref.refId ? own(ds.devices, ref.refId) : undefined
         return d ? { ref, found: true, kind: 'DEVICE', device: d } : missing(ref)
       }
     }

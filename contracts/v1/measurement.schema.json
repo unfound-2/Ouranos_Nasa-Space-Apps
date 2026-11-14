@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gravityguard:contracts:v1:measurement",
+  "title": "GRAVITYGUARD measurement (v1)",
+  "description": "One reading. Inside a session it may leave out provenance. Stand-alone readings from other instruments go to POST /api/v1/measurements as { \"measurements\": [...] }. Rules that JSON Schema cannot express (for example cross-field rules) are listed in docs/WATCH_INTEGRATION.md and enforced by the mission computer. Generated from dashboard/src/shared/contract.ts by npm run contracts; do not edit by hand.",
+  "type": "object",
+  "properties": {
+    "measurementId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "subjectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sessionId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "indicator": {
+      "type": "string",
+      "enum": [
+        "HEART_RATE",
+        "BLOOD_PRESSURE_SYSTOLIC",
+        "BLOOD_PRESSURE_DIASTOLIC"
+      ]
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "bpm",
+        "mmHg"
+      ]
+    },
+    "measuredAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$",
+      "format": "date-time"
+    },
+    "receivedAt": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "phase": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "REST",
+            "RECOVERY"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "APPLE_WATCH",
+            "EXTERNAL_INSTRUMENT",
+            "MANUAL_ENTRY",
+            "SIMULATOR"
+          ]
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sensor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "enum": [
+            "WATCH_APP",
+            "MISSION_COMPUTER",
+            "EXTERNAL_SYSTEM",
+            "DEMO_FIXTURE"
+          ]
+        },
+        "appVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deviceId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ingestPath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "LIVE_SYNC",
+                "SAVED_DEVICE_FILE",
+                "FILE_IMPORT",
+                "MANUAL_ENTRY",
+                "DEMO_FIXTURE",
+                "DEMO_TRIGGER"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receivedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "importFileName": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "origin"
+      ],
+      "additionalProperties": false
+    },
+    "isSimulated": {
+      "type": "boolean"
+    },
+    "quality": {
+      "type": "string",
+      "enum": [
+        "VALID",
+        "QUESTIONABLE",
+        "INVALID",
+        "MISSING"
+      ]
+    }
+  },
+  "required": [
+    "measurementId",
+    "subjectId",
+    "indicator",
+    "unit",
+    "measuredAt",
+    "source",
+    "isSimulated",
+    "quality"
+  ],
+  "additionalProperties": false
+}

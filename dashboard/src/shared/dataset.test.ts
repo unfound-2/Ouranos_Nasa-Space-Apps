@@ -170,6 +170,20 @@ describe('ingest and deduplication', () => {
     expect(r.results[0].outcome).toBe('CONFLICT')
     expect(ds.mission.events['evt-1'].reasonCodes).toEqual(['SYMPTOM_REPORTED'])
   })
+
+  it('stores and finds records whose ids are also Object.prototype property names', () => {
+    // "constructor", "toString" and "valueOf" are valid ids under the contract.
+    const ds = fresh()
+    const session = watchSession(false, { sessionId: 'constructor', measurements: [] })
+    const reading = { ...hr('valueOf', 'REST', '2026-11-14T19:30:40Z', 71), sessionId: 'constructor', provenance: { origin: 'WATCH_APP', deviceId: 'watch-1' } }
+    const event = watchEvent({ eventId: 'toString', sessionId: 'constructor' })
+    const r = ingestRecords(ds, [session, reading, event], live)
+    expect(r.results.map((x) => x.outcome)).toEqual(['CREATED', 'CREATED', 'CREATED'])
+    const [ev] = resolveEvidence(ds.mission.events['toString'], ds.mission)
+    expect(ev.found && ev.kind === 'SYMPTOM' && ev.symptom.symptomId).toBe('sym-1')
+    const cites = buildEvent({ evidence: [{ reasonCode: 'SYMPTOM_REPORTED', kind: 'DEVICE', refId: 'constructor', note: null }] })
+    expect(resolveEvidence(cites, ds.mission)[0].found).toBe(false)
+  })
 })
 
 describe('event state machine', () => {

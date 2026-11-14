@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "gravityguard.review-event.v1",
+  "eventId": "example-evt-20261114-193156",
+  "subjectId": "example-crew-01",
+  "sessionId": "example-ses-20261114-193000",
+  "createdAt": "2026-11-14T19:31:56Z",
+  "origin": {
+    "kind": "DEMO_FIXTURE",
+    "ruleSet": "watch-rules 0.1",
+    "deviceId": "example-watch-01"
+  },
+  "category": "REVIEW_SUGGESTED",
+  "severity": "REVIEW",
+  "reasonCodes": [
+    "SYMPTOM_REPORTED"
+  ],
+  "evidence": [
+    {
+      "reasonCode": "SYMPTOM_REPORTED",
+      "kind": "SYMPTOM",
+      "refId": "example-ses-20261114-193000-sym1",
+      "note": null
+    }
+  ],
+  "watchMessage": {
+    "title": "HEALTH REVIEW",
+    "body": "OPEN MISSION COMPUTER"
+  },
+  "status": "DELIVERED",
+  "delivery": {
+    "channel": "SIMULATED_WATCH",
+    "state": "PRESENTED",
+    "presentedAt": "2026-11-14T19:31:57Z",
+    "hapticRequested": true,
+    "lastAttemptAt": "2026-11-14T19:31:57Z",
+    "confirmedBy": "SIMULATION"
+  },
+  "acknowledgement": null,
+  "isSimulated": true,
+  "provenance": {
+    "origin": "DEMO_FIXTURE",
+    "appVersion": "0.1.0",
+    "deviceId": "example-watch-01"
+  }
+}
