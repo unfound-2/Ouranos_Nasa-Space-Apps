@@ -3,7 +3,7 @@
 Dhruv’s Mission Dashboard connects to the GRAVITYGUARD watch app through the local mission computer.
 
 1. In `dashboard/`, run `npm ci`, `npm run build`, then `npm start`. Open http://127.0.0.1:4317 on that computer.
-2. Open `AstronautHealthSystem/AstronautHealthSystem.xcodeproj` in Xcode and run the watch app. The simulator uses port 4317 automatically. For a physical watch, start with `GG_LAN=1 npm start` and set `GRAVITYGUARD_GATEWAY_URL` in the watch target to the mission computer's LAN URL.
+2. Open `AstronautHealthSystem/AstronautHealthSystem.xcodeproj` in Xcode and run the watch app. The simulator uses port 4317 automatically. For a physical watch, choose your own signing team in Xcode and start the dashboard with `GG_LAN=1 npm start`. In the watch app, tap **Set console address** and enter the LAN URL shown under **Watch integration**. Keep the Mac and watch on the same network.
 3. On the watch, tap **Get pairing code**, then **Share pairing link**. Open the link on the computer running the dashboard, or enter the code under **System Status → Watch integration**. A pairing code expires after five minutes and is single-use.
 4. Tap **Run simulation** on the watch. Open the dashboard’s **Demo** workspace to see its readings under **Watch integration** and review alerts in **Event History**. Actual watch review events appear in **Mission**.
 

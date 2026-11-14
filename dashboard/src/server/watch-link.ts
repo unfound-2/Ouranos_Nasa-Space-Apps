@@ -53,7 +53,7 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
     return age >= -5 && age <= (frame.freshnessSeconds ?? 15)
   }
 
-  router.post('/pairing', (_req, res) => {
+  router.post('/pairing', (req, res) => {
     if (active().length >= 256) throw new HttpError(503, 'PAIRING_CAPACITY', 'Pairing capacity reached.')
     const time = now().getTime()
     const p: Pairing = {
@@ -63,13 +63,18 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
       lastSeen: null, watch: null, telemetry: new Map(),
     }
     pairings.add(p)
-    res.status(201).json({ code: p.code, watchToken: p.watchToken, codeExpiresAt: p.codeExpires / 1000 })
+    const port = req.socket.localPort
+    const consoleURL = port ? `http://127.0.0.1:${port}/` : undefined
+    res.status(201).json({ code: p.code, watchToken: p.watchToken, codeExpiresAt: p.codeExpires / 1000, consoleURL })
   })
 
   router.post('/pairing/redeem', localUser, json, (req, res) => {
     const code = typeof req.body?.code === 'string' ? req.body.code.toUpperCase().replace(/[\s-]/g, '') : ''
     const p = active().find((p) => p.code === code)
-    if (!p) throw new HttpError(404, 'PAIRING_CODE_INVALID', 'Invalid, expired, or already used pairing code.')
+    if (!p) {
+      throw new HttpError(404, 'PAIRING_CODE_INVALID',
+        'This console could not use that code. Check the console address on the watch and tap Get a new code.')
+    }
     p.code = null
     p.adapterToken = token()
     p.expires = now().getTime() + sessionLifetime

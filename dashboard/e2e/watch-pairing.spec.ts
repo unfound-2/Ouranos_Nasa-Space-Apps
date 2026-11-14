@@ -4,14 +4,15 @@ import { expect, test } from '@playwright/test'
 test('a watch link pairs, streams simulated readings, and creates one review event', async ({ page }) => {
   const created = await page.request.post('/api/pairing')
   expect(created.status()).toBe(201)
-  const { code, watchToken } = await created.json()
+  const { code, watchToken, consoleURL } = await created.json()
+  expect(consoleURL).toBe(new URL(created.url()).origin + "/")
   const headers = { Authorization: `Bearer ${watchToken}` }
   const frame = {
     version: 1, source: 'Pairing test simulator', observedAt: Date.now() / 1000,
     simulated: true, readings: [{ metric: 'Heart rate', value: 128, unit: 'bpm', quality: 'valid', status: 'review' }],
   }
   expect((await page.request.post('/api/watch', { headers, data: frame })).status()).toBe(401)
-  await page.goto('/#pair=' + code)
+  await page.goto(consoleURL + '#pair=' + code)
   await expect(page.getByRole('status').filter({ hasText: 'Watch paired' })).toBeVisible()
   expect(new URL(page.url()).hash).toBe('#/system')
   expect((await page.request.post('/api/pairing/redeem', { data: { code } })).status()).toBe(404)

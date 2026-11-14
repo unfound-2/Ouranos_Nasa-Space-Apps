@@ -94,7 +94,7 @@ export function WatchPairing({ workspace }: { workspace: Workspace }) {
         <button className="btn btn-ghost" disabled={busy || !code.trim()}>Pair watch</button>
       </form>
       <p className="text-[12px] text-ink-2" role="status">
-        {message || 'On the watch, tap Get pairing code. Open its link here or enter the code.'}
+        {message || 'Generate a code on the watch for this console, then enter it here or open the pairing link.'}
       </p>
       {adapterToken && (
         <details className="text-[12px] text-ink-2">

@@ -7,6 +7,9 @@ private let muted = Color(red: 0.68, green: 0.70, blue: 0.66)
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("missionConsoleAddress") private var consoleAddress = ""
+    @State private var addressDraft = ""
+    @State private var editingAddress = false
     @State private var pairing: Pairing?
     @State private var paired = false
     @State private var pairingBusy = false
@@ -36,6 +39,7 @@ struct ContentView: View {
         let code: String
         let watchToken: String
         let codeExpiresAt: TimeInterval
+        let consoleURL: URL?
 
         var formattedCode: String { code.prefix(5) + "-" + code.suffix(5) }
     }
@@ -48,7 +52,12 @@ struct ContentView: View {
         let status: Int
     }
 
+    private struct ConsoleHealth: Decodable {
+        let service: String
+    }
+
     private var gateway: URL? {
+        if let saved = gatewayURL(consoleAddress) { return saved }
         #if targetEnvironment(simulator)
         if let override = gatewayURL(ProcessInfo.processInfo.environment["GRAVITYGUARD_GATEWAY_URL"]) {
             return override
@@ -63,15 +72,19 @@ struct ContentView: View {
     }
 
     private func gatewayURL(_ value: String?) -> URL? {
-        guard let value, let url = URL(string: value), let host = url.host, !host.isEmpty,
-              url.scheme == "http" || url.scheme == "https" else { return nil }
-        return url
+        guard let value, let parts = URLComponents(string: value.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let host = parts.host, !host.isEmpty,
+              parts.scheme == "http" || parts.scheme == "https",
+              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
+              parts.path.isEmpty || parts.path == "/" else { return nil }
+        return parts.url
     }
 
     private func pairingLink(for pairing: Pairing) -> URL? {
-        guard let gateway, var components = URLComponents(url: gateway, resolvingAgainstBaseURL: false) else {
-            return nil
-        }
+        guard let origin = pairing.consoleURL ?? gateway,
+              var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) else { return nil }
+        // Older mission servers don't include their local browser address.
+        components.host = "127.0.0.1"
         components.fragment = "pair=\(pairing.code)"
         return components.url
     }
@@ -93,6 +106,31 @@ struct ContentView: View {
         .id(mode)
         .background(Color(red: 0.065, green: 0.075, blue: 0.065).ignoresSafeArea())
         .foregroundStyle(.white)
+        .sheet(isPresented: $editingAddress) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Console address").font(.headline)
+                    TextField("http://computer.local:4317", text: $addressDraft)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("Save address") {
+                        guard let url = gatewayURL(addressDraft) else { return }
+                        pairing = nil
+                        consoleAddress = url.absoluteString
+                        sessionMessage = ""
+                        editingAddress = false
+                    }
+                    .disabled(gatewayURL(addressDraft) == nil)
+                    Button("Use default address") {
+                        pairing = nil
+                        consoleAddress = ""
+                        sessionMessage = ""
+                        editingAddress = false
+                    }
+                }
+                .padding()
+            }
+        }
         .confirmationDialog("Share watch measurements with the paired crew console?", isPresented: $showSharing) {
             Button("Share with console") { shareReadings = true }
             Button("Cancel", role: .cancel) {}
@@ -145,13 +183,25 @@ struct ContentView: View {
                             .background(amber)
                     }
                     .buttonStyle(.plain)
-                    Text("Open the link on the console computer.").font(.footnote)
+                    Text("Open on the console computer: \(link.host ?? "localhost"):\(link.port ?? 80).").font(.footnote)
                 }
+                control("Get a new code") { Task { await createPairing() } }
+                    .disabled(pairingBusy)
             } else {
                 control(pairingBusy ? "Generating code…" : "Get pairing code", primary: true) {
                     Task { await createPairing() }
                 }
                 .disabled(pairingBusy)
+            }
+            if !paired {
+                control("Set console address") {
+                    addressDraft = gateway?.absoluteString ?? ""
+                    editingAddress = true
+                }
+                .disabled(pairingBusy)
+                if let gateway {
+                    Text(gateway.absoluteString).font(.caption2).foregroundStyle(muted)
+                }
             }
             if !sessionMessage.isEmpty {
                 Text(sessionMessage).font(.footnote).foregroundStyle(muted)
@@ -272,15 +322,22 @@ struct ContentView: View {
     private func createPairing() async {
         guard !pairingBusy else { return }
         guard let gateway else {
-            sessionMessage = "Crew Console address is missing. Ask your console operator."
+            sessionMessage = "Enter the address shown under Watch integration on the dashboard."
             return
         }
         pairingBusy = true
         sessionMessage = ""
         defer { pairingBusy = false }
         do {
-            if let pairing {
-                _ = try? await request("api/device", method: "DELETE", token: pairing.watchToken)
+            guard let healthData = try? await request("api/v1/health"),
+                  let health = try? JSONDecoder().decode(ConsoleHealth.self, from: healthData),
+                  health.service == "gravityguard-mission-computer" else {
+                sessionMessage = "Mission Dashboard unavailable at this address. Check the address and start the console."
+                return
+            }
+            if let previous = pairing {
+                pairing = nil
+                _ = try? await request("api/device", method: "DELETE", token: previous.watchToken)
             }
             let data = try await request("api/pairing", method: "POST")
             pairing = try JSONDecoder().decode(Pairing.self, from: data)
@@ -308,6 +365,7 @@ struct ContentView: View {
                 }
                 try await Task.sleep(for: .seconds(paired ? 8 : 2))
             } catch let error as GatewayError where error.status == 401 {
+                guard !Task.isCancelled, self.pairing?.watchToken == pairing.watchToken else { return }
                 self.pairing = nil
                 paired = false
                 shareReadings = false
