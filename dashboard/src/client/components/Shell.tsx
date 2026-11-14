@@ -59,14 +59,13 @@ export function TopBar({ route }: { route: Route }) {
           <div className="leading-tight">
             <div className="font-display text-[14px] tracking-[0.12em] text-ink">GRAVITYGUARD</div>
             <div className="micro mt-0.5">Mission health system</div>
+            <div className="micro mt-0.5 text-cyan/80" title="The active mission profile: the protocol this dashboard is configured for">
+              Profile · gravity recovery
+            </div>
           </div>
         </a>
-        <div className="hidden border-l border-line pl-5 leading-tight 2xl:block" title="The protocol this dashboard is configured for">
-          <div className="micro">Active profile</div>
-          <div className="mt-0.5 text-[12px] font-bold text-ink">Gravity recovery check</div>
-        </div>
 
-        <nav aria-label="Main" className="order-3 flex w-full gap-1 overflow-x-auto xl:order-none xl:w-auto xl:flex-1 xl:justify-center">
+        <nav aria-label="Main" className="order-3 flex w-full gap-1 overflow-x-auto min-[1360px]:order-none min-[1360px]:w-auto min-[1360px]:flex-1 min-[1360px]:justify-center">
           {NAV.map((n) => {
             const active = n.key.includes(route.name)
             return (
@@ -74,7 +73,7 @@ export function TopBar({ route }: { route: Route }) {
                 key={n.label}
                 href={n.to}
                 aria-current={active ? 'page' : undefined}
-                className={`relative rounded-lg px-3 py-2 text-[11.5px] font-bold whitespace-nowrap uppercase tracking-[0.14em] transition-colors ${
+                className={`relative rounded-lg px-2.5 py-2 text-[11.5px] font-bold whitespace-nowrap uppercase tracking-[0.12em] transition-colors ${
                   active ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
                 }`}
               >
@@ -87,7 +86,7 @@ export function TopBar({ route }: { route: Route }) {
 
         <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2">
           <label className="flex items-center gap-2.5">
-            <span className="micro hidden sm:inline">Astronaut</span>
+            <span className="micro hidden min-[1600px]:inline">Astronaut</span>
             <select
               className="field h-8 max-w-[200px] py-0 text-[12px] font-bold"
               value={subjectId ?? ''}
