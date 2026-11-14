@@ -29,6 +29,7 @@ import {
 import { listJoin, plural, signed, SYMPTOM_NOUN, utcDate, utcTime } from './format'
 
 export const REASON_CODES: Record<string, { label: string; meaning: string }> = {
+  WATCH_TELEMETRY_FLAG: { label: 'Watch telemetry flag', meaning: 'The watch reported flagged readings for verification.' },
   SYMPTOM_REPORTED: { label: 'Symptom reported', meaning: 'A symptom was reported during the check.' },
   SESSION_STOPPED_UNWELL: { label: 'Stopped: wearer unwell', meaning: "The wearer ended the check early with Stop / I'm unwell." },
   SESSION_STOPPED_BY_WEARER: { label: 'Check stopped by wearer', meaning: 'The wearer ended the check early.' },

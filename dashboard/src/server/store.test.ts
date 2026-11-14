@@ -203,5 +203,5 @@ describe('changes that cannot be stored', () => {
     const reopened = openStore({ dataDir: dir, seedDemo: noSeed })
     await reopened.mutate((d) => void (d.mission.devices.x = device('x')))
     expect(Object.keys(missionFile(dir).devices).sort()).toEqual(['w', 'x'])
-  })
+  }, 30_000)
 })

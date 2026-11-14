@@ -6,6 +6,7 @@ import { Code, Empty, KV, Panel, Pill } from '../components/ui'
 import { api, ApiError, type Integration } from '../lib/api'
 import { useData, useExternalRequests, useNavigatorOnline, useNow } from '../lib/data'
 import { LINK_META, sessionsOf, subjectLabel, subjectsOf, type Tone } from '../lib/view'
+import { WatchPairing } from '../components/WatchPairing'
 import { TriggerButton } from './Overview'
 
 const OUTCOME_TONE: Record<IngestResult['outcome'], Tone> = {
@@ -409,6 +410,7 @@ export function SystemStatus() {
           <ImportPanel />
         </Section>
         <Section icon={<Plug size={14} />} title="Watch integration">
+          <WatchPairing workspace={workspace} />
           <IntegrationPanel />
         </Section>
       </section>
