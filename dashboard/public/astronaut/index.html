@@ -7,109 +7,8 @@
   <title>Welcome · OURANOS</title>
   <link rel="stylesheet" href="/astronaut/welcome.css">
   <link rel="stylesheet" href="/ouranos/ouranos.css">
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-    }
-
-    /* Astronaut on the left, the OURANOS watch on the right over the ribbon. */
-    .astronaut-panel {
-      position: relative;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      align-items: center;
-      gap: clamp(16px, 3vw, 48px);
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 100vh;
-      min-height: 100dvh;
-      padding: clamp(32px, 7vh, 88px) clamp(16px, 5vw, 72px);
-    }
-
-    /* The ribbon fades in and out instead of starting with a hard edge. */
-    .ribbon-background {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 50%;
-      height: 100%;
-      pointer-events: none;
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
-      mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
-      opacity: .85;
-    }
-
-    .astronaut-panel figure {
-      position: relative;
-      margin: 0;
-    }
-
-    model-viewer {
-      display: block;
-      width: 100%;
-      height: min(74vh, 48vw);
-      height: min(74dvh, 48vw);
-      background: radial-gradient(ellipse 44% 47% at 50% 57%, #a7b8d435, #ced9eb22 52%, transparent 100%);
-      --progress-bar-height: 0;
-    }
-
-    figcaption {
-      margin: 10px auto 0;
-      max-width: 46ch;
-      color: #8f9bb0;
-      font: 11px/1.45 system-ui, sans-serif;
-      text-align: center;
-    }
-
-    figcaption a {
-      color: inherit;
-    }
-
-    .ouranos-showcase {
-      position: relative;
-      display: grid;
-      justify-items: center;
-      gap: 14px;
-      text-align: center;
-    }
-
-    .ouranos-showcase .ouranos-stage {
-      width: min(100%, 620px);
-    }
-
-    .ouranos-showcase p {
-      max-width: 40ch;
-      margin: 0;
-      color: #b7c3d6;
-      font: 15px/1.5 system-ui, -apple-system, sans-serif;
-    }
-
-    .ouranos-unavailable .ouranos-stage,
-    .ouranos-unavailable .ouranos-actions {
-      display: none;
-    }
-
-    @media (max-width: 760px) {
-      .astronaut-panel {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .ribbon-background {
-        width: 100%;
-        opacity: .5;
-      }
-
-      model-viewer {
-        height: min(64dvh, 110vw);
-      }
-    }
-  </style>
-  <script type="module" src="/astronaut/black-hole.js"></script>
+  <link rel="stylesheet" href="/ouranos/home.css">
   <script type="module" src="/astronaut/welcome.js"></script>
-  <script type="module" src="/astronaut/model-viewer-4.1.0.min.js"></script>
-  <script type="module" src="/astronaut/ribbon-background.js"></script>
   <script type="module" src="/ouranos/welcome-watch.js"></script>
   <link rel="stylesheet" href="/starfield.css">
   <link rel="stylesheet" href="/mission-nav.css">
@@ -126,38 +25,41 @@
       <div class="watch-entry">
         <a class="watch-cta" href="/#/pair"><span>Pair watch</span></a>
       </div>
-      <div class="black-hole" role="group" aria-label="Black hole visualization"></div>
       <p class="mission-statement">We help astronauts who aren’t doctors understand what’s happening in their bodies and know what actions to take, even when medical support from Earth is delayed.</p>
     </section>
-    <section class="astronaut-panel" aria-label="The astronaut and the OURANOS watch">
-      <canvas class="ribbon-background" aria-hidden="true"></canvas>
-      <figure>
-        <model-viewer
-          src="/astronaut/astronaut.glb"
-          alt="Astronaut in a white suit with blue accents and a NASA shoulder patch"
-          loading="lazy"
-          exposure="1.12"
-          camera-controls
-          camera-orbit="-28deg 82deg 112%"
-          max-camera-orbit="auto auto 112%"
-          disable-pan
-          disable-zoom
-          interaction-prompt="none"
-          touch-action="none"
-        ></model-viewer>
-        <figcaption>“Astronaut by Jungle Jim” by Jungle Jim, licensed under <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</figcaption>
-      </figure>
-      <div class="ouranos-showcase">
-        <h2 class="ouranos-wordmark">Ouranos</h2>
-        <p>The shroud, chain band and back plate we designed and 3D printed for the Apple Watch SE. Drag to turn it. Click it to take it apart.</p>
-        <div class="ouranos-stage">
-          <canvas class="ouranos-canvas" role="img" aria-label="3D model of the OURANOS watch built from our CAD files"></canvas>
-          <div class="ouranos-labels" aria-hidden="true"></div>
+    <section class="ouranos-product" aria-labelledby="ouranos-product-title">
+      <header class="ouranos-product-heading">
+        <h2 id="ouranos-product-title" class="faded-label">What is Ouranos?</h2>
+        <p>A watch, a custom shroud and chain band, and a clearer way to understand your health.</p>
+      </header>
+      <div class="ouranos-product-layout">
+        <div class="ouranos-showcase">
+          <div class="ouranos-stage">
+            <canvas class="ouranos-canvas" role="img" tabindex="0" aria-label="Interactive 3D Ouranos watch. Enter or Space changes the assembly view."></canvas>
+            <div class="ouranos-labels" aria-hidden="true"></div>
+          </div>
+          <p class="ouranos-model-fallback" role="status" hidden>The 3D preview is unavailable. Explore the watch’s features alongside it.</p>
         </div>
-        <div class="ouranos-actions">
-          <button class="ouranos-button" type="button" data-action="explode">Put it together</button>
-          <button class="ouranos-button" type="button" data-action="connect">Play connect animation</button>
-        </div>
+        <article class="ouranos-features" aria-labelledby="ouranos-features-title">
+          <h3 id="ouranos-features-title" class="faded-label">What do the features do?</h3>
+          <p>Ouranos brings watch readings into one health dashboard, so you can follow changes, review what stands out and find the relevant NASA guidance.</p>
+          <div class="ouranos-feature">
+            <h4>The shroud</h4>
+            <p>Our custom 3D-printed housing fits around the Apple Watch SE and gives the assembly its shape.</p>
+          </div>
+          <div class="ouranos-feature">
+            <h4>The chain band and back plate</h4>
+            <p>The linked band forms the strap around the wrist. The back plate completes the shroud assembly.</p>
+          </div>
+          <div class="ouranos-feature">
+            <h4>The watch and your readings</h4>
+            <p>The Apple Watch supplies the health readings it supports. Pair it with Ouranos to see trends and check the readings behind a flag.</p>
+          </div>
+          <div class="ouranos-feature">
+            <h4>Guidance when you need it</h4>
+            <p>Review changes in context, ask about your readings and open a linked NASA source. The dashboard supports a medical review rather than making a diagnosis.</p>
+          </div>
+        </article>
       </div>
     </section>
   </main>
