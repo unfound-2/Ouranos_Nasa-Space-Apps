@@ -46,3 +46,80 @@
   outline: 2px solid var(--color-cyan);
   outline-offset: 4px;
 }
+
+/* The OURANOS watch viewer (OuranosWatch3D.tsx); the welcome page uses public/ouranos/ouranos.css. */
+.ouranos-watch3d {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.ouranos-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  isolation: isolate;
+}
+
+.ouranos-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.ouranos-canvas:active { cursor: grabbing; }
+
+.ouranos-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ouranos-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ouranos-leaders line { stroke: #9fd3ff; stroke-opacity: 0.55; stroke-width: 1; }
+.ouranos-leaders circle { fill: #9fd3ff; }
+
+.ouranos-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  translate: -50% -50%;
+  padding: 4px 9px;
+  border: 1px solid #ffffff24;
+  border-radius: 999px;
+  background: #0a1120d9;
+  color: #dce7f8;
+  font: 500 11px/1.2 var(--font-sans);
+  white-space: nowrap;
+  opacity: 0;
+  backdrop-filter: blur(6px);
+}
+
+.ouranos-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  background: #0b1322b3;
+  color: var(--color-ink);
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.ouranos-button:hover { background: #142238d9; border-color: #7cc8ff80; }
+.ouranos-button:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 3px; }
+
+.ouranos-watch-card {
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px 16px;
+}

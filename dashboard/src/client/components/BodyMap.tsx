@@ -9,6 +9,8 @@ export interface BodyMapProps {
   label: string
   /** 'hero': the large figure on the Overview. 'compact': inside a narrower card. */
   size?: 'hero' | 'compact'
+  /** When set, the 3D figure flies the camera to this region and moves its parts apart (null = whole suit). */
+  focus?: Region | null
 }
 
 // three.js lives in its own chunk, loaded only when a body map is shown.
@@ -61,7 +63,7 @@ const BOX: Record<NonNullable<BodyMapProps['size']>, string> = {
  * gg.force2d is "1"). Both render one control per region with data-testid="region-<REGION>",
  * data-state, aria-pressed and role="button", and select through onSelect.
  */
-export function BodyMap({ regions, selected, onSelect, label, size = 'hero' }: BodyMapProps) {
+export function BodyMap({ regions, selected, onSelect, label, size = 'hero', focus }: BodyMapProps) {
   const [failed, setFailed] = useState(false)
   if (failed || forced2d() || !hasWebGL())
     return (
@@ -75,7 +77,7 @@ export function BodyMap({ regions, selected, onSelect, label, size = 'hero' }: B
     <div className={`relative w-full ${BOX[size]}`}>
       <Fallback onFail={() => setFailed(true)}>
         <Suspense fallback={<div className="grid h-full place-items-center text-[12px] text-ink-3">Loading the 3D model…</div>}>
-          <Astronaut3D regions={regions} selected={selected} onSelect={onSelect} label={label} size={size} onError={() => setFailed(true)} />
+          <Astronaut3D regions={regions} selected={selected} onSelect={onSelect} label={label} size={size} focus={focus} onError={() => setFailed(true)} />
         </Suspense>
       </Fallback>
     </div>

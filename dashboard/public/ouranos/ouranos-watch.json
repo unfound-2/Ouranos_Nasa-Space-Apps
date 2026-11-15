@@ -1,0 +1,393 @@
+{
+ "source": "hardware/band/band.py and chain.py (OURANOS shroud and chain band)",
+ "units": "mm",
+ "watch": {
+  "w": 34.0,
+  "h": 40.0,
+  "r": 9.5,
+  "d": 9.2,
+  "zFront": 9.2
+ },
+ "case": {
+  "zTop": 10.549999999999999,
+  "zBot": -1.9499999999999997,
+  "outW": 39.3,
+  "outH": 45.3
+ },
+ "band": {
+  "pitch": 12.0,
+  "hingeY": 25.45,
+  "hingeZ": 0.6500000000000004,
+  "linksA": 2,
+  "linksB": 8
+ },
+ "parts": [
+  {
+   "name": "shell",
+   "role": "shell",
+   "material": "pla-shell",
+   "pivot": null,
+   "explode": [
+    0,
+    0,
+    16
+   ],
+   "positions": [
+    0,
+    30132
+   ],
+   "indices": [
+    120528,
+    30768
+   ]
+  },
+  {
+   "name": "backplate",
+   "role": "backplate",
+   "material": "pla-plate",
+   "pivot": null,
+   "explode": [
+    0,
+    0,
+    -26
+   ],
+   "positions": [
+    243600,
+    3144
+   ],
+   "indices": [
+    256176,
+    2928
+   ]
+  },
+  {
+   "name": "watch",
+   "role": "watch",
+   "material": "aluminum",
+   "pivot": null,
+   "explode": [
+    0,
+    0,
+    38
+   ],
+   "positions": [
+    267888,
+    11379
+   ],
+   "indices": [
+    313404,
+    19290
+   ]
+  },
+  {
+   "name": "sensor",
+   "role": "sensor",
+   "material": "sensor-glass",
+   "pivot": null,
+   "explode": [
+    0,
+    0,
+    38
+   ],
+   "positions": [
+    390564,
+    1266
+   ],
+   "indices": [
+    395628,
+    1248
+   ]
+  },
+  {
+   "name": "pin_a",
+   "role": "pin",
+   "material": "filament",
+   "pivot": null,
+   "explode": [
+    38,
+    0,
+    0
+   ],
+   "positions": [
+    400620,
+    1266
+   ],
+   "indices": [
+    405684,
+    1248
+   ]
+  },
+  {
+   "name": "pin_b",
+   "role": "pin",
+   "material": "filament",
+   "pivot": null,
+   "explode": [
+    -38,
+    0,
+    0
+   ],
+   "positions": [
+    410676,
+    1266
+   ],
+   "indices": [
+    415740,
+    1248
+   ]
+  },
+  {
+   "name": "band_a_0",
+   "role": "band-a",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    25.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    10,
+    0
+   ],
+   "positions": [
+    420732,
+    8190
+   ],
+   "indices": [
+    453492,
+    9648
+   ]
+  },
+  {
+   "name": "band_a_1",
+   "role": "band-a",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    37.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    14,
+    0
+   ],
+   "positions": [
+    492084,
+    9372
+   ],
+   "indices": [
+    529572,
+    10824
+   ]
+  },
+  {
+   "name": "hook",
+   "role": "hook",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    49.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    18,
+    4
+   ],
+   "positions": [
+    572868,
+    3258
+   ],
+   "indices": [
+    585900,
+    3120
+   ]
+  },
+  {
+   "name": "band_b_0",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -25.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -10,
+    0
+   ],
+   "positions": [
+    598380,
+    8190
+   ],
+   "indices": [
+    631140,
+    9648
+   ]
+  },
+  {
+   "name": "band_b_1",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -37.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -13,
+    0
+   ],
+   "positions": [
+    669732,
+    11616
+   ],
+   "indices": [
+    716196,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_2",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -49.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -16,
+    0
+   ],
+   "positions": [
+    774660,
+    11616
+   ],
+   "indices": [
+    821124,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_3",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -61.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -19,
+    0
+   ],
+   "positions": [
+    879588,
+    11616
+   ],
+   "indices": [
+    926052,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_4",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -73.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -22,
+    0
+   ],
+   "positions": [
+    984516,
+    11616
+   ],
+   "indices": [
+    1030980,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_5",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -85.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -25,
+    0
+   ],
+   "positions": [
+    1089444,
+    11616
+   ],
+   "indices": [
+    1135908,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_6",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -97.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -28,
+    0
+   ],
+   "positions": [
+    1194372,
+    11616
+   ],
+   "indices": [
+    1240836,
+    14616
+   ]
+  },
+  {
+   "name": "band_b_7",
+   "role": "band-b",
+   "material": "pla-band",
+   "pivot": [
+    0,
+    -109.45,
+    0.6500000000000004
+   ],
+   "explode": [
+    0,
+    -31,
+    0
+   ],
+   "positions": [
+    1299300,
+    6384
+   ],
+   "indices": [
+    1324836,
+    7860
+   ]
+  }
+ ]
+}

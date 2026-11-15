@@ -9,6 +9,7 @@ import { plural, signed, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/fo
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
 import { EvidenceList, REGION_ORDER } from '../components/Astronaut'
 import { MissionAssistant } from '../components/MissionAssistant'
+import { OuranosWatch3D } from '../components/OuranosWatch3D'
 import { useCrewProfile } from '../lib/crew-profile'
 import { OnboardInstrumentTrends, useSimulatorSamples, WatchCharts } from '../components/WatchCharts'
 import { BodyMap } from '../components/BodyMap'
@@ -23,6 +24,7 @@ import {
   CATEGORY_META,
   focusFor,
   isOpen,
+  LINK_META,
   ORIGIN_LABEL,
   recoveryCheckState,
   regionsFor,
@@ -515,9 +517,10 @@ function Dashboard({
   serverTime: string
 }) {
   const profile = useCrewProfile()
-  const { health } = useData()
+  const { health, snapshot } = useData()
   const simulated = useSimulatorSamples()
   const pairedDevice = profile?.deviceId ?? (workspace === 'mission' ? watchSignIn()?.deviceId : undefined)
+  const watchLink: LinkState = pairedDevice ? (snapshot?.links[pairedDevice] ?? 'NOT_PAIRED') : 'NOT_PAIRED'
   const linkedSubject = pairedDevice ? ds.devices[pairedDevice]?.subjectId ?? null : null
   const scoped = workspace === 'mission' && (profile || pairedDevice)
   const crewData = scoped && !linkedSubject ? { ...ds, sessions: {}, events: {} } : ds
@@ -594,6 +597,13 @@ function Dashboard({
 
       <section className="mission-vitals" aria-label="Crew measurements">
         <div className="mission-vitals-right">
+          <section className="panel ouranos-watch-card" aria-label="OURANOS watch">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="faded-label text-base font-semibold">OURANOS watch</h2>
+              <span className="text-sm text-ink-2" title={LINK_META[watchLink].hint}>{LINK_META[watchLink].label}</span>
+            </div>
+            <OuranosWatch3D link={watchLink} />
+          </section>
           <WatchCharts recordedHeartRate={t.series} simulated={simulated} compact />
           <section className="panel flag-readings" aria-label="Readings that triggered the flag">
             <h2 className="faded-label text-base font-semibold">Readings that triggered the flag</h2>
@@ -611,7 +621,7 @@ function Dashboard({
           </section>
         </div>
         <div className="mission-vitals-body">
-          <BodyMap regions={regions} selected={selectedRegion} onSelect={(r) => r && setRegion(r)} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
+          <BodyMap regions={regions} selected={selectedRegion} focus={region} onSelect={(r) => setRegion(r)} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
         </div>
         <div className="mission-vitals-left">
           <AttentionSummary summary={attention} />

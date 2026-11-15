@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Region, RegionInfo } from '../lib/view'
 import { REGION_NO, REGION_ORDER } from './Astronaut'
 import type { BodyMapProps } from './BodyMap'
+import './astronaut3d.css'
 
 // The same updated Jungle Jim model used on the welcome page.
 const MODEL_URL = '/astronaut/astronaut.glb'
@@ -20,8 +21,18 @@ const PROBE: Record<Region, { x: number; y: number }> = {
   LEGS: { x: -0.14, y: 0.27 },
 }
 
+/** Camera framing for a focused region: height and side offset as fractions of the model, zoom as a
+ * fraction of the full-body distance, and how far the view turns so moving parts read clearly. */
+const FOCUS: Record<Region, { y: number; side: number; zoom: number; turn: number; back?: number }> = {
+  HEAD: { y: 0.855, side: 0, zoom: 0.5, turn: 0.55 },
+  CHEST: { y: 0.64, side: 0, zoom: 0.86, turn: 1.0, back: -0.13 },
+  ARMS: { y: 0.52, side: 0.3, zoom: 0.46, turn: 0.42 },
+  LEGS: { y: 0.27, side: 0, zoom: 0.6, turn: 0.25 },
+}
+
 interface Engine {
   render: () => void
+  focus: (region: Region | null) => void
   resize: (w: number, h: number) => void
   project: () => Record<Region, { x: number; y: number; facing: boolean }> | null
   applyStates: (regions: Record<Region, RegionInfo>, selected: Region | null) => void
@@ -96,6 +107,11 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
   }
   const meshes: THREE.Mesh[] = []
   let anchors: Record<Region, { p: THREE.Vector3; n: THREE.Vector2 }> | null = null
+  /** Parts that move apart when their region is in focus: offsets are in world units. */
+  const movable: { mesh: THREE.Mesh; region: Region; world: THREE.Vector3; offset: THREE.Vector3 }[] = []
+  const apart: Record<Region, number> = { HEAD: 0, CHEST: 0, ARMS: 0, LEGS: 0 }
+  let focused: Region | null = null
+  let modelWidth = 1
 
   const controls = new OrbitControls(camera, canvas)
   controls.target.copy(target)
@@ -178,8 +194,26 @@ uniform vec4 uBounds;`,
       scene.add(root)
       root.updateMatrixWorld(true)
       modelHeight = size.y
+      modelWidth = size.x
       target.set(0, size.y * 0.5, 0)
       controls.target.copy(target)
+
+      // The life-support pack is its own group behind the body; the visor and helmet lamps have
+      // their own materials. Found by position and material, since loaders rename nodes.
+      for (const m of meshes) {
+        const b = new THREE.Box3().setFromObject(m)
+        const matName = (Array.isArray(m.material) ? m.material[0] : m.material).name
+        let region: Region | null = null
+        let offset: THREE.Vector3 | null = null
+        if (b.max.z < -0.02 * size.y && b.min.y > size.y * 0.45) {
+          region = 'CHEST'
+          offset = new THREE.Vector3(0, 0.05, -0.42).multiplyScalar(size.y / 1.94)
+        } else if (/visor|helmet.?lamps/i.test(matName)) {
+          region = 'HEAD'
+          offset = new THREE.Vector3(0, 0.055, 0.09).multiplyScalar(size.y / 1.94)
+        }
+        if (region && offset) movable.push({ mesh: m, region, world: m.getWorldPosition(new THREE.Vector3()), offset })
+      }
 
       uniforms.uBounds.value.set(size.y * 0.81, size.y * 0.5, size.x * 0.25, 0)
 
@@ -247,13 +281,70 @@ uniform vec4 uBounds;`,
     return local.y > b.x ? 'HEAD' : local.y < b.y ? 'LEGS' : Math.abs(local.x - b.w) > b.z ? 'ARMS' : 'CHEST'
   }
 
+  // Focus: fly the camera to a region and move that region's parts apart.
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  const ease = (x: number) => x * x * (3 - 2 * x)
+  let flight: { start: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromD: number; toD: number; fromA: number; toA: number } | null = null
+  let flightFrame: number | null = null
+  const placeParts = () => {
+    for (const p of movable) {
+      const w = p.world.clone().addScaledVector(p.offset, ease(apart[p.region]))
+      p.mesh.position.copy(p.mesh.parent!.worldToLocal(w))
+    }
+  }
+  const step = (now: number) => {
+    flightFrame = null
+    if (disposed) return
+    let busy = false
+    for (const r of REGION_ORDER) {
+      const goal = focused === r ? 1 : 0
+      if (apart[r] === goal) continue
+      apart[r] = reducedMotion ? goal : apart[r] + Math.sign(goal - apart[r]) * Math.min(Math.abs(goal - apart[r]), 1 / 48)
+      busy = true
+    }
+    if (busy) placeParts()
+    if (flight) {
+      const k = reducedMotion ? 1 : Math.min(1, (now - flight.start) / 1100)
+      const e = ease(k)
+      target.lerpVectors(flight.fromT, flight.toT, e)
+      const d = flight.fromD + (flight.toD - flight.fromD) * e
+      const a = flight.fromA + (flight.toA - flight.fromA) * e
+      controls.target.copy(target)
+      camera.position.set(target.x + Math.sin(a) * d, target.y, target.z + Math.cos(a) * d)
+      camera.lookAt(target)
+      if (k >= 1) flight = null
+      busy = true
+    }
+    controls.update()
+    render()
+    if (busy) flightFrame = requestAnimationFrame(step)
+  }
+  const focusView = (region: Region | null) => {
+    const full = fitDistance()
+    if (!region) return { t: new THREE.Vector3(0, modelHeight * 0.5, 0), d: full, a: 0 }
+    const f = FOCUS[region]
+    const side = anchors ? Math.sign(anchors.ARMS.p.x) || 1 : 1
+    const t = new THREE.Vector3(region === 'ARMS' && anchors ? anchors.ARMS.p.x * 0.9 : f.side * modelWidth * side, f.y * modelHeight, (f.back ?? 0) * modelHeight)
+    return { t, d: full * f.zoom, a: f.turn * side }
+  }
+  const focus = (region: Region | null) => {
+    if (region === focused && !flight) return
+    focused = region
+    const to = focusView(region)
+    let fromA = Math.atan2(camera.position.x - target.x, camera.position.z - target.z)
+    while (fromA - to.a > Math.PI) fromA -= 2 * Math.PI
+    while (to.a - fromA > Math.PI) fromA += 2 * Math.PI
+    flight = { start: performance.now(), fromT: target.clone(), toT: to.t, fromD: camera.position.distanceTo(target), toD: to.d, fromA, toA: to.a }
+    if (flightFrame === null) flightFrame = requestAnimationFrame(step)
+  }
+
   const resize = (nw: number, nh: number) => {
     if (nw < 2 || nh < 2) return
     renderer.setSize(nw, nh, false)
     camera.aspect = nw / nh
     camera.updateProjectionMatrix()
     const a = Math.atan2(camera.position.x - target.x, camera.position.z - target.z)
-    const d = fitDistance()
+    const d = focused ? focusView(focused).d : fitDistance()
     camera.position.set(target.x + Math.sin(a) * d, target.y, target.z + Math.cos(a) * d)
     camera.lookAt(target)
     controls.update()
@@ -263,6 +354,7 @@ uniform vec4 uBounds;`,
   const dispose = () => {
     disposed = true
     if (motionFrame !== null) cancelAnimationFrame(motionFrame)
+    if (flightFrame !== null) cancelAnimationFrame(flightFrame)
     controls.dispose()
     scene.traverse((o) => {
       const m = o as THREE.Mesh
@@ -282,17 +374,17 @@ uniform vec4 uBounds;`,
     listeners.length = 0
   }
 
-  return { render, resize, project, applyStates, pick, dispose, onChange: (fn) => void listeners.push(fn) }
+  return { render, focus, resize, project, applyStates, pick, dispose, onChange: (fn) => void listeners.push(fn) }
 }
 
 /** The 3D body map. Loaded lazily by BodyMap, which falls back to the 2D drawing if WebGL fails. */
-export default function Astronaut3D({ regions, selected, onSelect, label, size = 'hero', onError }: BodyMapProps & { onError: () => void }) {
+export default function Astronaut3D({ regions, selected, onSelect, label, size = 'hero', focus, onError }: BodyMapProps & { onError: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<Engine | null>(null)
   const markerRefs = useRef<Partial<Record<Region, HTMLButtonElement | null>>>({})
-  const latest = useRef({ selected, onSelect, regions })
-  latest.current = { selected, onSelect, regions }
+  const latest = useRef({ selected, onSelect, regions, focus })
+  latest.current = { selected, onSelect, regions, focus }
   const [loaded, setLoaded] = useState(false)
 
   useLayoutEffect(() => {
@@ -308,6 +400,7 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
         () => {
           setLoaded(true)
           engine.applyStates(latest.current.regions, latest.current.selected)
+          engine.focus(latest.current.focus ?? null)
         },
         onError,
       )
@@ -343,7 +436,10 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
       if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return
       down = null
       const r = engine.pick(e.clientX, e.clientY)
-      if (r) latest.current.onSelect(latest.current.selected === r ? null : r)
+      if (r) {
+        const { selected: sel, focus: foc } = latest.current
+        latest.current.onSelect(sel === r && (foc === undefined || foc === r) ? null : r)
+      }
     }
     canvas.addEventListener('pointerdown', onDown)
     canvas.addEventListener('pointerup', onUp)
@@ -371,12 +467,21 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateKey, selected])
 
+  useEffect(() => {
+    if (loaded) engineRef.current?.focus(focus ?? null)
+  }, [focus, loaded])
+
   return (
     <div className="relative h-full w-full overflow-hidden select-none" role="group" aria-label={label}>
       <div ref={wrapRef} className="absolute inset-0">
         <canvas ref={canvasRef} className="block h-full w-full cursor-grab touch-pan-y" aria-hidden />
       </div>
       {!loaded && <div className="absolute inset-0 grid place-items-center text-[13px] text-ink-2">Loading the 3D model…</div>}
+      {loaded && focus && (
+        <button type="button" className="astro-whole" onClick={() => onSelect(null)}>
+          Whole suit
+        </button>
+      )}
       {REGION_ORDER.map((r) => {
         const info = regions[r]
         const isSel = selected === r
@@ -392,15 +497,24 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
             data-selected={isSel}
             aria-pressed={isSel}
             aria-label={`${info.name}: ${info.callout ?? 'no evidence recorded'}`}
-            onClick={() => onSelect(isSel ? null : r)}
-            className="group absolute top-0 left-0 z-10 -mt-3 -ml-3 grid h-6 w-6 place-items-center transition-opacity duration-150"
+            onClick={() => onSelect(isSel && (focus === undefined || focus === r) ? null : r)}
+            className={size === 'hero'
+              ? `astro-hotspot group absolute top-0 left-0 z-10 transition-opacity duration-150 ${focus && focus !== r ? 'is-dim' : ''}`
+              : 'group absolute top-0 left-0 z-10 -mt-3 -ml-3 grid h-6 w-6 place-items-center transition-opacity duration-150'}
             style={{ transform: 'translate(-9999px, -9999px)' }}
           >
-            <span
-              className={`grid h-[18px] w-[18px] place-items-center rounded-[4px] border font-mono text-[10px] font-semibold ${isSel ? 'border-ink bg-ink text-void' : 'border-line-strong bg-panel text-ink group-hover:border-ink-2'}`}
-            >
-              {size === 'hero' ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" /> : REGION_NO[r]}
-            </span>
+            {size === 'hero' ? (
+              <>
+                <span aria-hidden="true" className={`astro-ring astro-${info.state} ${isSel ? 'is-selected' : ''}`} />
+                <span aria-hidden="true" className="astro-name">{info.name}</span>
+              </>
+            ) : (
+              <span
+                className={`grid h-[18px] w-[18px] place-items-center rounded-[4px] border font-mono text-[10px] font-semibold ${isSel ? 'border-ink bg-ink text-void' : 'border-line-strong bg-panel text-ink group-hover:border-ink-2'}`}
+              >
+                {REGION_NO[r]}
+              </span>
+            )}
           </button>
         )
       })}

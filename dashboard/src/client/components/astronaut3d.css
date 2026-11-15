@@ -1,0 +1,87 @@
+/* Region hotspots on the 3D suit: a soft ring that pulses where there is evidence, with the region
+   name on hover or keyboard focus. Colour follows the region state, as before. */
+.astro-hotspot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+}
+
+.astro-hotspot.is-dim { opacity: 0.25 !important; }
+
+.astro-ring {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: rgb(6 10 18 / 0.45);
+  box-shadow: 0 0 10px -1px currentColor;
+  color: rgb(236 242 250 / 0.8);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.astro-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: astro-pulse 2.6s ease-out infinite;
+}
+
+.astro-neutral::after { animation: none; }
+.astro-data { color: #4fb2ff; }
+.astro-caution { color: #ffc53d; }
+.astro-symptom { color: #ff6b70; }
+.astro-ring.is-selected { background: currentColor; transform: scale(1.12); }
+.astro-hotspot:hover .astro-ring, .astro-hotspot:focus-visible .astro-ring { transform: scale(1.25); }
+.astro-hotspot:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+
+.astro-name {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  translate: -50% 0;
+  padding: 3px 8px;
+  border: 1px solid #ffffff24;
+  border-radius: 999px;
+  background: #0a1120e6;
+  color: var(--color-ink);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.astro-hotspot:hover .astro-name, .astro-hotspot:focus-visible .astro-name { opacity: 1; }
+
+.astro-whole {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  background: #0b1322cc;
+  color: var(--color-ink);
+  font-size: 13px;
+  backdrop-filter: blur(8px);
+}
+
+.astro-whole:hover { border-color: #7cc8ff80; }
+
+@keyframes astro-pulse {
+  0% { transform: scale(0.6); opacity: 0.85; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astro-ring::after { animation: none; }
+}
