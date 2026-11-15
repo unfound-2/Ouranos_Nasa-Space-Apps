@@ -5,6 +5,7 @@ import { crewGuides, guideCandidates } from '../shared/guide-library.js'
 import { assistantRequest, type AssistantReply } from '../shared/crew-assistant.js'
 
 const catalogShape = z.array(z.object({ entry: ChecklistSchema }))
+const completionBody = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) })
 const modelReply = z.object({ answer: z.string().trim().min(1).max(1600), guideId: z.string() })
 const knownGuides = new Set(crewGuides.map(({ id }) => id))
 
@@ -70,7 +71,7 @@ export function createCrewAssistant({
         }),
       })
       if (!response.ok) { res.json(fallback); return }
-      const body = await response.json()
+      const body = completionBody.parse(await response.json())
       const reply = modelReply.parse(JSON.parse(body.choices[0].message.content))
       const cited = candidates.find(({ id }) => id === reply.guideId)
       if (!cited) { res.json(fallback); return }
