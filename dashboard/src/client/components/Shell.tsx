@@ -216,10 +216,10 @@ export function Footer() {
           <a href="https://github.com/unfound-2/NASASPACEAPP26/tree/feat/dhruv-mission-ui-v2">Source code</a>
         </nav>
       </div>
+      <div className="ouranos-footer-wordmark" aria-label="Ouranos">Ouranos</div>
       <p className="ouranos-footer-credit">
         “Astronaut by Jungle Jim” by Jungle Jim is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.
       </p>
-      <div className="ouranos-footer-wordmark" aria-label="Ouranos">Ouranos</div>
     </footer>
   )
 }

@@ -5,5 +5,5 @@
 .ouranos-footer a { color: #becce0; text-decoration: none; }
 .ouranos-footer a:hover { color: #fff; text-decoration: underline; }
 .ouranos-footer a:focus-visible { outline: 2px solid #9dd8ff; outline-offset: 3px; }
-.ouranos-footer-credit { margin: 18px 0 0; font-size: 11px; color: #7e8da3; }
+.ouranos-footer-credit { margin: 6px auto 0; max-width: 70ch; text-align: center; font-size: 11px; color: #7e8da3; }
 .ouranos-footer-wordmark { margin: 36px 0 0; padding: 0 .08em; text-align: center; color: #f5f7ff; font: 400 clamp(76px, 17vw, 220px)/1.2 "Pinyon Script", "Snell Roundhand", cursive; letter-spacing: .01em; }
