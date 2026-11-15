@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { signInWithSimulator } from './helpers'
 
-test('Home presents the watch and features without the astronaut or background art', async ({ page }) => {
+test('Home presents the watch and features with the black hole and without the astronaut or ribbon art', async ({ page }) => {
   await page.goto('/astronaut/')
   await expect(page.getByRole('heading', { name: 'What is Ouranos?' })).toBeVisible()
-  await expect(page.locator('model-viewer, .ribbon-background, .black-hole')).toHaveCount(0)
+  await expect(page.locator('model-viewer, .ribbon-background')).toHaveCount(0)
+  await expect(page.locator('.black-hole')).toHaveCount(1)
   await expect(page.locator('.ouranos-actions, .ouranos-wordmark')).toHaveCount(0)
   await expect(page.getByText('Drag to turn it.', { exact: false })).toHaveCount(0)
   const feature = page.getByRole('heading', { name: 'What do the features do?' })
