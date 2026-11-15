@@ -17,6 +17,22 @@ interface Pairing {
   lastSeen: number | null
   watch: WatchFrame | null
   telemetry: Map<string, WatchFrame>
+  /** When the code was redeemed on the console. */
+  pairedAt: number | null
+}
+
+/** What the diagnostics may know about pairings: never a code or a token. */
+export interface WatchLinkStatus {
+  /** Codes issued and not yet entered on the console. */
+  pendingCodes: number
+  paired: {
+    deviceId: string
+    pairedAt: string | null
+    /** Last recorded contact (GET /api/device, recorded at most every 20 s). */
+    lastSeenAt: string | null
+    /** The latest frame the watch shared with POST /api/watch. */
+    frame: { observedAt: string; metrics: string[]; simulated: boolean } | null
+  }[]
 }
 
 interface Options {
@@ -60,7 +76,7 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
       code: randomBytes(5).toString('hex').toUpperCase(),
       watchToken: token(), adapterToken: null, codeExpires: time + codeLifetime,
       expires: time + codeLifetime + sessionLifetime, deviceId: 'watch-' + randomUUID(),
-      lastSeen: null, watch: null, telemetry: new Map(),
+      lastSeen: null, watch: null, telemetry: new Map(), pairedAt: null,
     }
     pairings.add(p)
     const port = req.socket.localPort
@@ -78,6 +94,7 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
     p.code = null
     p.adapterToken = token()
     p.expires = now().getTime() + sessionLifetime
+    p.pairedAt = now().getTime()
     res.json({ deviceId: p.deviceId, adapterToken: p.adapterToken })
   })
 
@@ -144,5 +161,26 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
     res.status(202).json({ accepted: true })
   })
 
-  return router
+  const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString())
+
+  /** Pairing state for diagnostics. Never includes a code or a token. */
+  function status(): WatchLinkStatus {
+    const list = active()
+    return {
+      pendingCodes: list.filter((p) => p.code !== null).length,
+      paired: list
+        .filter((p) => p.code === null)
+        .map((p) => ({
+          deviceId: p.deviceId,
+          pairedAt: iso(p.pairedAt),
+          lastSeenAt: iso(p.lastSeen),
+          frame: p.watch
+            ? { observedAt: new Date(p.watch.observedAt * 1000).toISOString(), metrics: p.watch.readings.map((r) => r.metric), simulated: p.watch.simulated }
+            : null,
+        })),
+    }
+  }
+
+  // Still usable as a router exactly as before; status() is an addition.
+  return Object.assign(router, { status })
 }

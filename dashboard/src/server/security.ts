@@ -79,11 +79,18 @@ export function hostnameOf(hostHeader: string | null | undefined): string | null
 
 export type Interfaces = NodeJS.Dict<NetworkInterfaceInfo[]>
 
+/** This machine's IPv4 addresses on the local network (loopback excluded), with their interface names. */
+export function lanIPv4Interfaces(interfaces: Interfaces): { interface: string; address: string }[] {
+  const out: { interface: string; address: string }[] = []
+  for (const [name, list] of Object.entries(interfaces))
+    for (const a of list ?? [])
+      if (a.family === 'IPv4' && !a.internal && !out.some((o) => o.address === a.address)) out.push({ interface: name, address: a.address })
+  return out
+}
+
 /** This machine's IPv4 addresses on the local network (loopback excluded). */
 export function lanIPv4Addresses(interfaces: Interfaces): string[] {
-  const out = new Set<string>()
-  for (const list of Object.values(interfaces)) for (const a of list ?? []) if (a.family === 'IPv4' && !a.internal) out.add(a.address)
-  return [...out]
+  return lanIPv4Interfaces(interfaces).map((a) => a.address)
 }
 
 /**

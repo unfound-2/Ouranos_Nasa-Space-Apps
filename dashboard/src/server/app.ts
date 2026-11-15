@@ -54,10 +54,11 @@ import {
   type Workspace,
 } from '../shared/dataset'
 import { buildTriggeredDemo, DEMO_DEVICES, loadDemo } from '../shared/demo'
+import { buildChecks, runSelftest } from './diagnostics'
 import { errorBody, HttpError } from './errors'
-import { allowedHostnames, isHostAllowed, isJsonContentType, lanIPv4Addresses, resolveActor, type ActorKind } from './security'
+import { allowedHostnames, isHostAllowed, isJsonContentType, lanIPv4Addresses, lanIPv4Interfaces, resolveActor, type ActorKind, type Interfaces } from './security'
 import { openStore, WORKSPACES, type Store, type WriteFile } from './store'
-import { createWatchLink } from './watch-link'
+import { createWatchLink, type WatchLinkStatus } from './watch-link'
 import { resolveDeviceToken, tokenPrefix, type DeviceToken } from './token'
 
 export const SERVICE = 'gravityguard-mission-computer'
@@ -88,6 +89,10 @@ export interface CreateAppOptions {
   maintenanceIntervalMs?: number
   /** Test hook: replaces the atomic file writer. */
   writeFile?: WriteFile
+  /** Test hook: this computer's network interfaces. Defaults to os.networkInterfaces. */
+  networkInterfaces?: () => Interfaces
+  /** Test hook: the HTTP client the diagnostics use to reach this server. Defaults to global fetch. */
+  fetch?: typeof fetch
 }
 
 export interface MissionComputer {
@@ -310,8 +315,27 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
   const tokenInfo = resolveDeviceToken({ dataDir, token: opts.token, env: process.env })
   const token = tokenInfo.token
 
+  const interfacesNow = (): Interfaces => (opts.networkInterfaces ?? os.networkInterfaces)()
+  const httpFetch: typeof fetch = opts.fetch ?? ((input, init) => fetch(input, init))
+
   const staticHosts = allowedHostnames({ lan: false })
-  const hostsNow = () => (lan ? allowedHostnames({ lan, interfaces: os.networkInterfaces(), hostname: os.hostname() }) : staticHosts)
+  const hostsNow = () => (lan ? allowedHostnames({ lan, interfaces: interfacesNow(), hostname: os.hostname() }) : staticHosts)
+
+  // Pairing state comes from the watch link, which is created after the routes below.
+  let watchLinkStatus: () => WatchLinkStatus = () => ({ pendingCodes: 0, paired: [] })
+  // Self-test pairings never count: their device ids, and anything paired while a self-test runs.
+  const selftestDevices = new Set<string>()
+  const runningSelftests = new Set<number>()
+  const realPairings = (): WatchLinkStatus => {
+    const s = watchLinkStatus()
+    const starts = [...runningSelftests]
+    return {
+      pendingCodes: s.pendingCodes,
+      paired: s.paired.filter(
+        (p) => !selftestDevices.has(p.deviceId) && !(p.pairedAt !== null && starts.some((t) => Date.parse(p.pairedAt as string) >= t)),
+      ),
+    }
+  }
 
   const storageWritable = () => {
     try {
@@ -634,7 +658,7 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
       purpose: 'Dashboard System Status page: the device token, URLs for the watch and this endpoint list.',
       handle: ({ req }) => {
         const port = req.socket.localPort ?? null
-        const lanIps = lan ? lanIPv4Addresses(os.networkInterfaces()) : []
+        const lanIps = lan ? lanIPv4Addresses(interfacesNow()) : []
         const urls = port === null ? [] : [`http://127.0.0.1:${port}`, ...lanIps.map((ip) => `http://${ip}:${port}`)]
         return {
           status: 200,
@@ -647,6 +671,61 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
             urls,
             endpoints: routes.map((r) => ({ method: r.method, path: `/api/v1${r.path}`, actor: ACTOR_LABEL[r.actor], purpose: r.purpose })),
           },
+        }
+      },
+    },
+    {
+      method: 'GET',
+      path: '/integration/checks',
+      actor: 'LOCAL_USER',
+      purpose:
+        'System Status: what this computer can tell about the watch connection, as nine PASS / FAIL / NOT_TESTED checks. Simulated and demo data never make a check pass.',
+      handle: async ({ req, nowIso }) => ({
+        status: 200,
+        body: await buildChecks({
+          nowIso,
+          version: VERSION,
+          uptimeSeconds: Math.max(0, Math.floor((ms(nowIso) - startedAtMs) / 1000)),
+          storageWritable: storageWritable(),
+          lan,
+          port: req.socket.localPort ?? null,
+          interfaces: lanIPv4Interfaces(interfacesNow()),
+          link: realPairings(),
+          mission: store.datasets.mission,
+          missionFile: store.fileFor('mission'),
+          fetch: httpFetch,
+        }),
+      }),
+    },
+    {
+      method: 'POST',
+      path: '/integration/selftest',
+      actor: 'LOCAL_USER',
+      purpose:
+        'Simulated self-test: real HTTP requests to this computer’s own pairing and signal endpoints, with a simulated signal stored in the demo workspace. Not proof that a watch can connect.',
+      handle: async ({ req, nowIso }) => {
+        const port = req.socket.localPort
+        if (port === undefined) throw new HttpError(500, 'NO_LOCAL_PORT', 'Cannot tell which port this server is listening on.')
+        const lanAddress = lan ? lanIPv4Interfaces(interfacesNow())[0]?.address : undefined
+        const startedAt = ms(nowIso)
+        runningSelftests.add(startedAt)
+        try {
+          const report = await runSelftest({
+            fetch: httpFetch,
+            nowIso,
+            nowSeconds: startedAt / 1000,
+            lan,
+            watchBase: lanAddress ? `http://${lanAddress}:${port}` : `http://127.0.0.1:${port}`,
+            consoleBase: `http://127.0.0.1:${port}`,
+            markDevice: (deviceId) => void selftestDevices.add(deviceId),
+            inWorkspace: (eventId) => ({
+              demo: Object.hasOwn(store.datasets.demo.events, eventId),
+              mission: Object.hasOwn(store.datasets.mission.events, eventId),
+            }),
+          })
+          return { status: 200, body: report }
+        } finally {
+          runningSelftests.delete(startedAt)
         }
       },
     },
@@ -831,12 +910,13 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
     next()
   })
   app.use('/api/v1', router)
-  app.use('/api', createWatchLink({
+  const watchLink = createWatchLink({
     now,
     localUser: actorGuard('LOCAL_USER'),
+    // A code-paired watch app, which may be running in the Xcode simulator: never claim hardware.
     onHeartbeat: (deviceId, nowIso) => store.mutate((draft) => applyHeartbeat(
       draft.mission,
-      { deviceId, subjectId: 'crew-a', sentAt: nowIso, appVersion: null, deviceModel: 'Apple Watch', pendingRecords: null },
+      { deviceId, subjectId: 'crew-a', sentAt: nowIso, appVersion: null, deviceModel: 'GRAVITYGUARD watch app (code-paired)', pendingRecords: null },
       nowIso,
     ), { only: ['mission'] }),
     onSignal: (signal, deviceId, nowIso) => {
@@ -868,7 +948,9 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
         extensions: { watchReviewAction: signal.action },
       }, EVENT_SCHEMA, 'POST /api/signals', nowIso)
     },
-  }))
+  })
+  watchLinkStatus = watchLink.status
+  app.use('/api', watchLink)
   app.use('/api', (req, _res, next) => next(new HttpError(404, 'NOT_FOUND', `No API endpoint ${req.method} ${req.originalUrl.split('?')[0].slice(0, 200)}.`)))
 
   if (opts.staticDir) {

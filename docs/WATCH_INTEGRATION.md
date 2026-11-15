@@ -7,6 +7,21 @@ What the system is not: it does not diagnose, predict fainting or clear anyone f
 watch does not measure blood pressure (blood-pressure readings only come from other instruments).
 A review event asks a person to look at a record. A completed review records that a person looked.
 
+> **Two ways to connect.**
+>
+> 1. **Code pairing and review signals.** This is what the current GRAVITYGUARD watch app does. The
+>    watch asks for a code (`POST /api/pairing`), the operator enters it on the dashboard, and the
+>    paired app then sends readings (`POST /api/watch`) and review signals (`POST /api/signals`)
+>    with its own pairing token. The computer turns each signal into a review event (reason
+>    `WATCH_TELEMETRY_FLAG`). That protocol lives in `dashboard/src/server/watch-link.ts`. How to
+>    test it on the watch: [WATCH_CONNECTION_TEST.md](WATCH_CONNECTION_TEST.md).
+> 2. **The v1 device-token contract** in this document: recovery sessions and review events sent
+>    with `Authorization: Bearer <device token>`, or exported as files. It is for exported files
+>    and a future recovery-check flow; the current watch app does not use it yet.
+>
+> Both end up in the same record store. The Integration checks on System Status count real records
+> from either; simulated ones never count.
+
 Machine-readable files, generated from the dashboard's shared contract:
 
 - `contracts/v1/*.schema.json`: JSON Schema (draft 2020-12) for `session`, `event`, `measurement`,
@@ -194,7 +209,7 @@ No response to the watch contains provenance (section 8), so the watch never has
 | Field | Value | Meaning |
 |---|---|---|
 | `result.outcome` | `CREATED`, `DUPLICATE`, `UPDATED`, `STALE_IGNORED`, `CONFLICT`, `REJECTED` | Section 8. |
-| `linkState` | `VERIFIED` | An authenticated contact from this watch within the last 60 s. |
+| `linkState` | `VERIFIED` | An authenticated contact from this paired watch app within the last 60 s. It does not show which hardware the app runs on. |
 | | `WATCH_UNREACHABLE` | Known watch, no contact for more than 60 s. |
 | | `NOT_PAIRED` | No watch has checked in for this subject. |
 | | `SIMULATED` | A simulated device. Never shown as live. |
