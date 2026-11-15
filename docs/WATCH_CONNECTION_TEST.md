@@ -13,7 +13,7 @@ step.
 
 What the checks can and cannot prove: a passed `pairing` means a watch app holds this computer's
 pairing (it could be the app in the Xcode simulator; the mission records call it
-"GRAVITYGUARD watch app (code-paired)"). A link shown as `VERIFIED` means only "authenticated
+"OURANOS watch app (code-paired)"). A link shown as `VERIFIED` means only "authenticated
 contact from a paired watch app in the last 60 s". `lan-reachable` proves the Mac answers on its
 own LAN address, not that the watch can reach it. None of it is a medical result.
 
@@ -56,7 +56,7 @@ not a VPN address. The console address for the watch is `http://<that address>:4
 
 ## 3. On the watch: set the console address
 
-Open GRAVITYGUARD. The home screen shows **GRAVITYGUARD**, **Crew telemetry** and the buttons
+Open OURANOS. The home screen shows **OURANOS**, **Crew telemetry** and the buttons
 **Get pairing code**, **Set console address**, **Connect onboard**, **Watch sensors**,
 **Run simulation** and **Enable health readings**.
 
@@ -99,7 +99,7 @@ sleep the app pauses and stops calling.
 
 Checks: `pairing` PASS (it names the device, `watch-…`, and the last contact). The checks' `watch`
 block shows `paired: true`, the device id and `lastSeenAt`. In the mission records the watch
-appears as "GRAVITYGUARD watch app (code-paired)".
+appears as "OURANOS watch app (code-paired)".
 
 ## 6. Optional: share watch readings, then run the simulation
 
@@ -203,7 +203,7 @@ directory. **No watch was involved**; curl stood in for the watch app.
 - Pairing by curl over `http://192.168.x.x:4391`: code issued, code redeemed on the Mac,
   `GET /api/device` answered `{"paired":true}`, and a simulated signal was accepted (202) and stored
   in Demo only. The mission records showed the device as
-  "GRAVITYGUARD watch app (code-paired)", `VERIFIED`. While paired, `pairing` was PASS and the
+  "OURANOS watch app (code-paired)", `VERIFIED`. While paired, `pairing` was PASS and the
   four record checks stayed `NOT_TESTED`. After `DELETE /api/device`, `pairing` was `NOT_TESTED`
   again. No token text appeared in the checks or in the server log.
 - Whether macOS showed a firewall prompt for node could not be observed from the command line.

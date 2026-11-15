@@ -34,7 +34,7 @@ export function SimWatchOverlay() {
       <div className="relative mx-auto mt-3 h-[180px] w-[150px]">
         <div className="absolute inset-0 rounded-[38px] border-[3px] border-[#3a3f46] bg-[#22262b] p-[9px]">
           <div className="flex h-full flex-col items-center justify-center rounded-[29px] bg-[#050506] text-center">
-            <span className="text-[8px] tracking-[0.06em] text-[#9aa1aa]">GRAVITYGUARD</span>
+            <span className="text-[8px] tracking-[0.06em] text-[#9aa1aa]">OURANOS</span>
             <span className="mt-3 px-2 text-[13px] leading-tight font-bold tracking-[0.06em] text-[#ff6b7c]">{label}</span>
             <span className="mt-2 px-3 text-[9.5px] leading-snug tracking-[0.04em] text-[#c9ced5]">OPEN MISSION COMPUTER</span>
           </div>

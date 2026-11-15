@@ -1,6 +1,6 @@
-# GRAVITYGUARD mission dashboard
+# OURANOS mission dashboard
 
-The onboard-computer side of GRAVITYGUARD: a local API that receives, checks and stores watch records, and a dashboard that turns a wrist alert into an evidence-backed health review. Everything runs on the laptop. No cloud, no external requests, no LLM.
+The onboard-computer side of OURANOS: a local API that receives, checks and stores watch records, and a dashboard that turns a wrist alert into an evidence-backed health review. Everything runs on the laptop. No cloud, no external requests, no LLM.
 
 It records and organises evidence for people to review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
 

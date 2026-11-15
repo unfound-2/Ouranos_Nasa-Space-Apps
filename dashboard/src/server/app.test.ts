@@ -461,7 +461,7 @@ describe('11. damaged data files', () => {
     const text = readFileSync(file, 'utf8')
     writeFileSync(file, text.replace('"formatVersion": 1', '"formatVersion": 2'))
     const before = readFileSync(file)
-    expect(() => createApp({ dataDir: dir, token: TOKEN, maintenanceIntervalMs: 0 })).toThrow(/demo\.json is not a GRAVITYGUARD "demo" dataset: formatVersion is 2/)
+    expect(() => createApp({ dataDir: dir, token: TOKEN, maintenanceIntervalMs: 0 })).toThrow(/demo\.json is not a OURANOS "demo" dataset: formatVersion is 2/)
     expect(readFileSync(file).equals(before)).toBe(true)
     writeFileSync(path.join(dir, 'mission.json'), JSON.stringify({ ...JSON.parse(text), formatVersion: 1 }))
     expect(() => createApp({ dataDir: dir, token: TOKEN, maintenanceIntervalMs: 0 })).toThrow(/mission\.json .*workspace is "demo", expected "mission"/)

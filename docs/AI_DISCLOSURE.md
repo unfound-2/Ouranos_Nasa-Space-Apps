@@ -1,6 +1,6 @@
 # AI use disclosure (dashboard, API and data contract)
 
-NASA Space Apps asks teams to disclose AI use. This file covers Dhruv's part of GRAVITYGUARD. Mustafa's watch app and Sriyan's hardware are not covered here.
+NASA Space Apps asks teams to disclose AI use. This file covers Dhruv's part of OURANOS. Mustafa's watch app and Sriyan's hardware are not covered here.
 
 ## What was AI-generated
 

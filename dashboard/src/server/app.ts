@@ -1,5 +1,5 @@
 /**
- * The GRAVITYGUARD mission-computer API: a thin HTTP layer over src/shared.
+ * The OURANOS mission-computer API: a thin HTTP layer over src/shared.
  *
  * It receives records from the watch app, validates them with the shared v1 contract, stores them
  * (src/server/store.ts) and serves them to the dashboard. It runs offline on this computer: no
@@ -916,7 +916,7 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
     // A code-paired watch app, which may be running in the Xcode simulator: never claim hardware.
     onHeartbeat: (deviceId, nowIso) => store.mutate((draft) => applyHeartbeat(
       draft.mission,
-      { deviceId, subjectId: 'crew-a', sentAt: nowIso, appVersion: null, deviceModel: 'GRAVITYGUARD watch app (code-paired)', pendingRecords: null },
+      { deviceId, subjectId: 'crew-a', sentAt: nowIso, appVersion: null, deviceModel: 'OURANOS watch app (code-paired)', pendingRecords: null },
       nowIso,
     ), { only: ['mission'] }),
     onSignal: (signal, deviceId, nowIso) => {

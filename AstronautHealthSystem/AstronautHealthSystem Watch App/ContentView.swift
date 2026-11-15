@@ -220,9 +220,16 @@ struct ContentView: View {
 
     private var onboarding: some View {
         VStack(spacing: 9) {
-            Text("GravityGuard")
-                .font(.system(.headline, design: .rounded))
-                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 2) {
+                Text("OURANOS")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .tracking(3)
+                    .accessibilityLabel("Ouranos")
+                    .accessibilityAddTraits(.isHeader)
+                Text("Crew health")
+                    .font(.caption2)
+                    .foregroundStyle(muted)
+            }
             if let pairing, Date.now.timeIntervalSince1970 < pairing.codeExpiresAt {
                 Text(pairing.formattedCode)
                     .font(.system(.headline, design: .monospaced, weight: .semibold))

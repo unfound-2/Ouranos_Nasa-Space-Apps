@@ -1,6 +1,6 @@
 # Credits and asset provenance
 
-Original GravityGuard contributions are covered by the repository [license](../LICENSE). The assets and references below retain their own terms.
+Original Ouranos contributions are covered by the repository [license](../LICENSE). The assets and references below retain their own terms.
 
 ## Astronaut on the welcome and mission pages
 - [Astronaut by Jungle Jim](https://sketchfab.com/3d-models/astronaut-by-jungle-jim-c775a977606a4e4e990afe783c6bc845) by [Jungle Jim](https://sketchfab.com/jungle_jim), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Suit colors and the shoulder patch were modified.
@@ -29,6 +29,7 @@ Original GravityGuard contributions are covered by the repository [license](../L
 The interface follows published systems; it was not invented for this project:
 - **Vercel Geist** (https://vercel.com/geist): layout, buttons, inputs, tabs, tables, and the grey roles (background, border, secondary and primary text).
 - **Geist Sans and Geist Mono** fonts (SIL Open Font License 1.1), via `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`.
+- **Pinyon Script** font for the Ouranos logo (SIL Open Font License 1.1, The PinyonScript Project Authors, https://github.com/SorkinType/Pinyon), via `@fontsource/pinyon-script`.
 - **Radix Colors** dark scales (https://www.radix-ui.com/colors, MIT): grey steps 1–12 for surfaces and text, and step 9 of red, amber, green, blue and violet for status marks.
 - **Tremor** (https://tremor.so, Apache-2.0): the KPI card, spark area chart, bar chart and progress bar, drawn with Recharts.
 

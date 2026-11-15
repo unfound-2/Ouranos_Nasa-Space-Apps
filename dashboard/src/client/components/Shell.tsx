@@ -208,7 +208,7 @@ export function Footer() {
     <footer className={`${CONTAINER} pb-10`}>
       <div className="rule flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-6 text-[13px] text-ink-2">
         <span className="max-w-[90ch]">
-          GRAVITYGUARD organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
+          OURANOS organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
         </span>
         <span className="font-mono text-[12px]">Contract v1 · UTC · offline</span>
       </div>

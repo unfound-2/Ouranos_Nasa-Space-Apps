@@ -5,7 +5,10 @@ import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { rememberSimulator, rememberWatch, takeWatchPairingCode, watchSignIn } from '../lib/watch-pairing'
 import { currentCrew, saveCrew, type CrewProfile } from '../lib/crew-profile'
+import { OuranosMark } from '../components/OuranosMark'
 import './pair-watch.css'
+
+const TAGLINE = 'Crew health watch and mission dashboard'
 
 export function PairWatch() {
   const { workspace, setWorkspace, refresh, health } = useData()
@@ -83,6 +86,7 @@ export function PairWatch() {
 
   if (setup) return (
     <main className="pair-page">
+      <OuranosMark size="lg" tagline={TAGLINE} />
       <section className="pair-card crew-setup" aria-labelledby="setup-title">
         <h1 id="setup-title" className="faded-label">Crew setup</h1>
         <form onSubmit={(event) => { event.preventDefault(); finishSetup({ history, limitations, notes }) }}>
@@ -110,6 +114,7 @@ export function PairWatch() {
 
   return (
     <main className="pair-page">
+      <OuranosMark size="lg" tagline={TAGLINE} />
       <section className="pair-card" aria-labelledby="pair-title">
         <img className="pair-card-image" src={earth} alt="" />
         <img className="pair-card-image pair-card-image-blur" src={earth} alt="" />

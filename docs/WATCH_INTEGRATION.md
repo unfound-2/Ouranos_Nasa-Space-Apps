@@ -1,7 +1,7 @@
-# GRAVITYGUARD watch integration (contract v1)
+# OURANOS watch integration (contract v1)
 
 This is everything the watch app needs to send records to the mission computer: the laptop
-running the GRAVITYGUARD API and dashboard. It runs offline; nothing goes to a cloud.
+running the OURANOS API and dashboard. It runs offline; nothing goes to a cloud.
 
 What the system is not: it does not diagnose, predict fainting or clear anyone for duty, and the
 watch does not measure blood pressure (blood-pressure readings only come from other instruments).
@@ -9,7 +9,7 @@ A review event asks a person to look at a record. A completed review records tha
 
 > **Two ways to connect.**
 >
-> 1. **Code pairing and review signals.** This is what the current GRAVITYGUARD watch app does. The
+> 1. **Code pairing and review signals.** This is what the current OURANOS watch app does. The
 >    watch asks for a code (`POST /api/pairing`), the operator enters it on the dashboard, and the
 >    paired app then sends readings (`POST /api/watch`) and review signals (`POST /api/signals`)
 >    with its own pairing token. The computer turns each signal into a review event (reason

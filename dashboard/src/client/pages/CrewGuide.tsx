@@ -76,7 +76,7 @@ export function CrewGuide({ topic }: { topic?: string }) {
               <li key={url}><a className="text-sm underline" href={url} target="_blank" rel="noreferrer">{title}</a></li>
             )}</ul>
           </section>
-          {selected.kind === 'workflow' && <p className="text-xs text-ink-2">GravityGuard checklist based on NASA references. Follow your mission’s approved procedures for medical decisions.</p>}
+          {selected.kind === 'workflow' && <p className="text-xs text-ink-2">Ouranos checklist based on NASA references. Follow your mission’s approved procedures for medical decisions.</p>}
         </article>
       </div>
     </main>

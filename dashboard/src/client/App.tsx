@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { DashboardOptions, CONTAINER, Footer } from './components/Shell'
+import { OuranosMark } from './components/OuranosMark'
 import { WarningInbox } from './components/WarningInbox'
 import { CrewGuide } from './pages/CrewGuide'
 import { Empty } from './components/ui'
@@ -79,13 +80,18 @@ function Shell() {
     if (needsPairing) navigate(href.pair)
   }, [needsPairing, route.name])
   useEffect(() => {
-    document.title = `${TITLES[route.name] ?? 'GRAVITYGUARD'}${workspace === 'demo' ? ' · SIMULATED' : ''} · GRAVITYGUARD`
+    document.title = `${TITLES[route.name] ?? 'OURANOS'}${workspace === 'demo' ? ' · SIMULATED' : ''} · OURANOS`
   }, [route.name, workspace])
   if (route.name === 'pair') return <PairWatch key={pairMode} />
   if (needsPairing) return null
 
   return (
     <div className="gg-backdrop relative min-h-screen">
+      <header className={`relative ${CONTAINER} ouranos-bar`}>
+        <a href={href.overview} aria-label="Ouranos, mission health">
+          <OuranosMark />
+        </a>
+      </header>
       <main className={`relative ${CONTAINER} dashboard-main pt-9 pb-16`}>
         <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
           <Page route={route} />

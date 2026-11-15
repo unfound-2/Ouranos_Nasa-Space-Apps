@@ -1,5 +1,5 @@
 /**
- * GRAVITYGUARD shared data contract, version 1.
+ * OURANOS shared data contract, version 1.
  *
  * This file is the single source of truth for the records exchanged between the
  * watch app, the mission-computer API and the dashboard. The JSON Schema files in

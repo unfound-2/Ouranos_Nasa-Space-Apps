@@ -119,7 +119,7 @@ describe('a paired watch app is recorded honestly', () => {
     expect((await request(app).get('/api/device').set('Authorization', w.bearer).expect(200)).body).toEqual({ paired: true })
     const devices = (await request(app).get('/api/v1/devices').expect(200)).body.devices
     expect(devices).toHaveLength(1)
-    expect(devices[0]).toMatchObject({ deviceId: w.deviceId, deviceModel: 'GRAVITYGUARD watch app (code-paired)', isSimulated: false, linkState: 'VERIFIED' })
+    expect(devices[0]).toMatchObject({ deviceId: w.deviceId, deviceModel: 'OURANOS watch app (code-paired)', isSimulated: false, linkState: 'VERIFIED' })
     const snapshot = JSON.stringify((await request(app).get('/api/v1/snapshot').expect(200)).body)
     expect(snapshot).not.toContain('Apple Watch')
   })

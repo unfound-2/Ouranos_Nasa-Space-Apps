@@ -41,7 +41,7 @@ let mc: MissionComputer
 try {
   mc = createApp({ dataDir, lan, staticDir, log: (line) => console.log(line) })
 } catch (e) {
-  console.error(`GRAVITYGUARD mission computer did not start.\n${(e as Error).message}`)
+  console.error(`OURANOS mission computer did not start.\n${(e as Error).message}`)
   process.exit(1)
 }
 
@@ -55,7 +55,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 
 server.listen(port, bind, () => {
   const lines = [
-    'GRAVITYGUARD mission computer API (offline: no cloud, no outgoing requests)',
+    'OURANOS mission computer API (offline: no cloud, no outgoing requests)',
     `  Local:        http://127.0.0.1:${port}/api/v1/health`,
   ]
   if (lan) {

@@ -1,4 +1,4 @@
-# GravityGuard deployment
+# Ouranos deployment
 
 ## Crew guide
 

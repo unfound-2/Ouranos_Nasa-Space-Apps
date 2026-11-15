@@ -1,6 +1,6 @@
-# GRAVITYGUARD
+# OURANOS
 
-Dhruv’s Mission Dashboard connects to the GRAVITYGUARD watch app through the local mission computer.
+Dhruv’s Mission Dashboard connects to the OURANOS watch app through the local mission computer.
 
 1. In `dashboard/`, run `npm ci`, `npm run build`, then `npm start`. Open http://127.0.0.1:4317 on that computer.
 2. Open `AstronautHealthSystem/AstronautHealthSystem.xcodeproj` in Xcode and run the watch app. The simulator uses port 4317 automatically. For a physical watch, choose your own signing team in Xcode and start the dashboard with `GG_LAN=1 npm start`. In the watch app, tap **Set console address** and enter the LAN URL shown under **Watch connection**. Keep the Mac and watch on the same network.
@@ -26,4 +26,4 @@ See [dashboard setup](dashboard/README.md) and the [native v1 watch contract](do
 
 See the [website and watch setup](dashboard/HOSTING.md) for Vercel deployment and HTTPS pairing.
 
-Original GravityGuard contributions are licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) and [asset credits](docs/CREDITS.md) for third-party terms and sources.
+Original Ouranos contributions are licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) and [asset credits](docs/CREDITS.md) for third-party terms and sources.

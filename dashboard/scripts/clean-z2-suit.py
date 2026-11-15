@@ -91,7 +91,7 @@ m.pop('extensions', None); m.pop('normalTexture', None)
 m['pbrMetallicRoughness'] = {'baseColorTexture': {'index': 0}, 'metallicRoughnessTexture': {'index': 1}, 'metallicFactor': 1.0, 'roughnessFactor': 1.0}
 j['extensionsUsed'] = ['KHR_draco_mesh_compression', 'EXT_texture_webp']
 j['extensionsRequired'] = ['KHR_draco_mesh_compression', 'EXT_texture_webp']
-j.setdefault('asset', {})['copyright'] = 'NASA 3D Resources (free and without copyright): Z2 Spacesuit. Cleaned for GRAVITYGUARD: grime lifted, insignia removed.'
+j.setdefault('asset', {})['copyright'] = 'NASA 3D Resources (free and without copyright): Z2 Spacesuit. Cleaned for OURANOS: grime lifted, insignia removed.'
 bin_all = b''.join(chunks)
 j['buffers'] = [{'byteLength': len(bin_all)}]
 js = json.dumps(j, separators=(',', ':')).encode()

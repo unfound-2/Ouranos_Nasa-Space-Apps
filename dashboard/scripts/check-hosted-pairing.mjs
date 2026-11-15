@@ -27,7 +27,7 @@ async function call(path, { method = 'GET', body, token, cookie, expected = 200 
 }
 
 const health = await call('/api/v1/health').then((response) => response.json())
-assert.equal(health.service, 'gravityguard-mission-computer', 'This address does not serve GravityGuard.')
+assert.equal(health.service, 'gravityguard-mission-computer', 'This address does not serve Ouranos.')
 assert.equal(health.network.bind, 'HTTPS', 'This address does not serve the hosted API.')
 assert.equal(health.storage.writable, true, 'Set SUPABASE_SECRET_KEY in Vercel and redeploy.')
 

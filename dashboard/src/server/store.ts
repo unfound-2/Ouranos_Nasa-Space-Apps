@@ -132,7 +132,7 @@ export function readDatasetFile(file: string, workspace: Workspace): Dataset | n
     throw new DataFileError(file, `${file} is not valid JSON (${(e as Error).message}). ${UNTOUCHED}`)
   }
   const problem = datasetShapeProblem(parsed, workspace)
-  if (problem) throw new DataFileError(file, `${file} is not a GRAVITYGUARD "${workspace}" dataset: ${problem}. ${UNTOUCHED}`)
+  if (problem) throw new DataFileError(file, `${file} is not a OURANOS "${workspace}" dataset: ${problem}. ${UNTOUCHED}`)
   return parsed as Dataset
 }
 
