@@ -6,16 +6,15 @@ import { href } from '../lib/router'
 import { isOpen, SEVERITY_META, sortEvents } from '../lib/view'
 
 export function WarningInbox() {
-  const { snapshot, workspace } = useData()
+  const { snapshot } = useData()
   const warnings = snapshot ? sortEvents(Object.values(snapshot.dataset.events)).filter(isOpen) : []
   return (
     <details className="fixed top-[64px] right-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl bg-[#17191e]">
       <summary className="flex cursor-pointer list-none items-center justify-end gap-2 px-3 py-2 text-[13px]">
         <Bell size={16} aria-hidden />
         <span role="status" aria-atomic="true">
-          {warnings.length ? `${warnings.length} ${workspace === 'demo' ? 'simulated ' : ''}${warnings.length === 1 ? 'warning' : 'warnings'}` : 'Warnings'}
+          {warnings.length ? `${warnings.length} ${warnings.length === 1 ? 'warning' : 'warnings'}` : 'Warnings'}
         </span>
-        {warnings.length > 0 && <span className="size-2 rounded-full bg-coral" aria-hidden />}
       </summary>
       <div className="w-[320px] max-w-full px-3 pb-3">
         {!snapshot ? <p className="text-ink-2">Warning status unavailable.</p> : warnings.length === 0 ? <p className="text-ink-2">No warnings awaiting review.</p> : (
@@ -27,7 +26,7 @@ export function WarningInbox() {
                   if (inbox) inbox.open = false
                 }}>
                   <span className="block">{eventTitle(buildEventContext(event, snapshot.dataset, snapshot.serverTime))}</span>
-                  <span className="block text-[12px] text-ink-2">{SEVERITY_META[event.severity].label} · {utcStamp(event.createdAt)}</span>
+                  <span className="block text-[12px] text-ink-2">{SEVERITY_META[event.severity].label}<span className="ml-2">{utcStamp(event.createdAt)}</span></span>
                 </a>
               </li>
             ))}

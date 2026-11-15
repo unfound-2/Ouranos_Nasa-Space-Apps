@@ -578,3 +578,197 @@
 .dashboard-disclosure-content { padding: 0 clamp(12px, 2vw, 22px) 20px; }
 
 .dashboard-main .panel { background-color: #101114; }
+
+.mission-health { position: relative; isolation: isolate; }
+.mission-horizon {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  inset: 0 calc(50% - 50vw) auto;
+  height: 780px;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 75%, transparent);
+}
+.mission-horizon::before,
+.mission-horizon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 180%;
+  height: 78%;
+  translate: -50% 0;
+  border-radius: 50% 50% 0 0;
+}
+.mission-horizon::before {
+  border-top: 3px solid #8cceff;
+  background: linear-gradient(#214d88, #0a1730 30%, #03060c 68%);
+  box-shadow: 0 -12px 70px #397de899, inset 0 16px 36px #5899ee77;
+}
+.mission-horizon::after {
+  background: radial-gradient(ellipse at 42% 0%, #6fb6ff88, transparent 24%), radial-gradient(ellipse at 64% 2%, #3889fa88, transparent 25%);
+  animation: horizon-glow 8s ease-in-out infinite alternate;
+}
+@keyframes horizon-glow { from { opacity: .24; } to { opacity: .85; transform: translateX(3%); } }
+
+.mission-vitals { display: grid; gap: 14px; align-items: start; }
+.mission-vitals-left,
+.mission-vitals-right { display: grid; min-width: 0; gap: 12px; }
+.mission-vitals-body { grid-row: 1; min-width: 0; }
+.mission-vitals .panel { background-color: #0c1729; border-radius: 18px; }
+.mission-assistant-logo {
+  display: block;
+  margin: 0 auto 12px;
+  filter: invert(1) drop-shadow(0 0 10px #72b5ff);
+  animation: assistant-spin 11s linear infinite;
+}
+@keyframes assistant-spin { to { transform: perspective(350px) rotateY(1turn); } }
+@media (min-width: 900px) {
+  .mission-vitals { grid-template-columns: minmax(210px, 1fr) minmax(300px, 1.55fr) minmax(240px, 1fr); }
+  .mission-vitals-body { grid-area: 1 / 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-assistant-logo, .mission-horizon::after { animation: none; }
+}
+
+.gg-backdrop { overflow-x: clip; }
+
+.mission-assistant {
+  min-height: 325px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.mission-assistant-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .36;
+  filter: grayscale(1) sepia(.2) hue-rotate(175deg);
+  mask-image: linear-gradient(#000 10%, transparent 82%);
+}
+.mission-assistant-stage {
+  display: grid;
+  min-height: 140px;
+  place-items: center;
+  perspective: 420px;
+}
+.mission-assistant-logo {
+  position: relative;
+  width: 90px;
+  height: 94px;
+  margin: 0;
+  filter: none;
+  transform-style: preserve-3d;
+}
+.mission-assistant-logo img { position: absolute; inset: 0; filter: invert(.58); }
+.mission-assistant-logo img:first-child,
+.mission-assistant-logo img:last-child { filter: invert(1) drop-shadow(0 0 8px #6bb3ff); }
+@keyframes assistant-spin {
+  from { transform: rotateX(-12deg) rotateY(0turn); }
+  to { transform: rotateX(-12deg) rotateY(1turn); }
+}
+.mission-coverage { width: 100%; height: 7px; accent-color: #77b6ff; }
+.dashboard-main .mission-trend { background: #101a2b; border-radius: 18px; }
+.mission-chart-enter { animation: mission-chart-enter .72s ease-out both; }
+@keyframes mission-chart-enter {
+  from { opacity: 0; transform: translateY(7px); clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; transform: translateY(0); clip-path: inset(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-chart-enter { animation: none; }
+}
+
+.mission-vitals-assistant { min-width: 0; }
+.attention-card { min-height: 240px; }
+.watch-charts-compact { align-content: start; }
+.watch-charts-compact .mission-chart-enter { height: 138px; }
+.mission-assistant { min-height: 420px; padding: clamp(20px, 3vw, 35px); }
+.mission-assistant-stage { min-height: 205px; }
+.mission-logo-canvas { width: 168px; height: 168px; }
+.mission-logo-fallback { filter: invert(1); }
+.mission-assistant-chat { max-width: 560px; margin: 18px auto 0; }
+.mission-assistant-background { opacity: .50; object-position: center 30%; }
+@media (min-width: 900px) {
+  .mission-vitals-assistant { grid-column: 2 / -1; }
+}
+
+.mission-vitals .attention-card { min-height: 0; padding: 16px; }
+.mission-vitals .mission-assistant { min-height: 365px; padding: 16px; }
+.mission-vitals .mission-assistant-stage { min-height: 176px; }
+.mission-assistant-chat { margin-top: 8px; }
+@media (min-width: 900px) {
+  .mission-vitals-left { grid-area: 1 / 1; }
+  .mission-vitals-right { grid-area: 1 / 3; }
+  .mission-vitals-body { align-self: center; }
+}
+
+.onboard-mosaic {
+  display: grid;
+  gap: 14px;
+}
+.onboard-mosaic > section { min-width: 0; padding: clamp(16px, 2.5vw, 26px); }
+.onboard-mosaic h3 { font-size: 1rem; font-weight: 600; }
+.onboard-value {
+  margin-top: 9px;
+  color: #eff6ff;
+  font-size: clamp(1.9rem, 4vw, 2.65rem);
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.onboard-value span, .onboard-oxygen-ring strong span { font-size: .82rem; color: #b4c0d5; }
+.onboard-pressure { display: flex; flex-direction: column; }
+.onboard-pressure-history { display: grid; flex: 1; align-content: space-evenly; gap: 10px; margin-top: 14px; }
+.onboard-pressure-row { display: grid; grid-template-columns: max-content minmax(0, 1fr) 3.4rem; align-items: center; gap: 10px; }
+.onboard-pressure-row time, .onboard-pressure-axis, .onboard-temperature-axis {
+  font-size: .68rem;
+  color: #a9b6cc;
+  font-variant-numeric: tabular-nums;
+}
+.onboard-pressure-legend { display: flex; gap: 16px; margin-top: 18px; color: #adc4e8; font-size: .74rem; }
+.onboard-pressure-legend span:last-child { color: #a0e6fb; }
+.onboard-pressure-reading { text-align: right; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.onboard-pressure-track { position: relative; height: 11px; border-radius: 5px; background: #1a2940; }
+.onboard-pressure-track span { position: absolute; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #758cff, #8be9ff); }
+.onboard-pressure-axis { margin-top: 12px; }
+.onboard-pressure-axis > span:first-child { width: 4.75rem; }
+.onboard-pressure-axis div, .onboard-temperature-axis { display: flex; justify-content: space-between; }
+.onboard-oxygen { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.onboard-oxygen-ring { flex: none; display: grid; place-items: center; width: 112px; height: 112px; border-radius: 50%; }
+.onboard-oxygen-ring strong {
+  display: grid;
+  grid-auto-flow: column;
+  align-items: baseline;
+  align-content: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #101a2b;
+  font-size: 1.55rem;
+  font-variant-numeric: tabular-nums;
+}
+.onboard-temperature-history { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 2px; margin-top: 16px; }
+.onboard-temperature-history span { height: 30px; border-radius: 3px; }
+.onboard-temperature-axis { gap: 8px; margin-top: 7px; }
+@media (min-width: 760px) {
+  .onboard-mosaic { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .onboard-pressure { grid-row: span 2; }
+}
+
+.watch-charts-compact .mission-respiratory .mission-chart-enter { height: 235px; }
+.mission-respiratory .recharts-bar-rectangles {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: respiratory-fill .85s cubic-bezier(.2,.7,.3,1) both;
+}
+@keyframes respiratory-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (min-width: 900px) {
+  .mission-vitals { grid-template-columns: minmax(210px, 1fr) minmax(300px, 1.37fr) minmax(260px, 1.18fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-respiratory .recharts-bar-rectangles { animation: none; }
+}

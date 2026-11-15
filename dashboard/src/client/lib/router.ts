@@ -13,7 +13,7 @@ export type Route =
   | { name: 'missing'; path: string }
 
 export function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#/, '').replace(/\/+$/, '') || '/'
+  const path = hash.split('?')[0].replace(/^#/, '').replace(/\/+$/, '') || '/'
   const parts = path.split('/').filter(Boolean)
   if (parts.length === 0) return { name: 'overview' }
   if (parts[0] === 'pair' && parts.length === 1) return { name: 'pair' }

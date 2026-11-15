@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { DashboardOptions, CONTAINER, Footer } from './components/Shell'
 import { WarningInbox } from './components/WarningInbox'
 import { CrewGuide } from './pages/CrewGuide'
@@ -64,8 +64,14 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   guide: 'Crew Guide',
 }
 
+function subscribeToHash(listener: () => void) {
+  window.addEventListener('hashchange', listener)
+  return () => window.removeEventListener('hashchange', listener)
+}
+
 function Shell() {
   const route = useRoute()
+  const pairMode = useSyncExternalStore(subscribeToHash, () => location.hash)
   const { workspace } = useData()
   const hasAccess = watchSignIn() || (workspace === 'demo' && hasSimulatorSignIn())
   const needsPairing = route.name !== 'pair' && !hasAccess
@@ -75,18 +81,18 @@ function Shell() {
   useEffect(() => {
     document.title = `${TITLES[route.name] ?? 'GRAVITYGUARD'}${workspace === 'demo' ? ' · SIMULATED' : ''} · GRAVITYGUARD`
   }, [route.name, workspace])
-  if (route.name === 'pair') return <PairWatch />
+  if (route.name === 'pair') return <PairWatch key={pairMode} />
   if (needsPairing) return null
 
   return (
     <div className="gg-backdrop relative min-h-screen">
       <main className={`relative ${CONTAINER} dashboard-main pt-9 pb-16`}>
-        {workspace === 'demo' && <p className="mb-6 text-center text-[12px] text-ink-2" role="status">Simulated demo · No astronaut data</p>}
         <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
           <Page route={route} />
         </div>
         <DashboardOptions />
       </main>
+      {workspace === 'demo' && <p className="mb-4 text-center text-sm text-ink-2"><span>Simulated demo</span><span className="ml-3">No astronaut data</span></p>}
       <Footer />
       <WarningInbox />
     </div>

@@ -15,6 +15,7 @@ container.innerHTML = `
       <a href="/astronaut/">Home</a>
     </nav>
   </details>
+  <details class="crew-nav"><summary>Crew</summary><div></div></details>
   <a class="mission-nav-shortcut" href="/#/pair"><span>Pair watch</span></a>
 `
 
@@ -85,3 +86,44 @@ window.addEventListener('hashchange', () => {
   updateCurrentLink()
 })
 updateCurrentLink()
+
+const crewNav = container.querySelector('.crew-nav')
+function updateCrewMenu() {
+  let crew
+  let signedIn
+  try {
+    crew = JSON.parse(sessionStorage.getItem('gg.crew-profiles') || 'null')
+    signedIn = JSON.parse(sessionStorage.getItem('gg.watch-sign-in') || 'null')
+  } catch {
+    // Pairing remains available without storage.
+  }
+  const profile = crew?.profiles.find(({ id }) => id === crew.activeId)
+  crewNav.hidden = !profile && !signedIn
+  container.classList.toggle('has-crew', !crewNav.hidden)
+  crewNav.querySelector('summary').textContent = profile?.name || signedIn?.name || 'Crew'
+  const actions = crewNav.querySelector('div')
+  actions.replaceChildren()
+  for (const item of crew?.profiles ?? []) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = item.name
+    button.setAttribute('aria-pressed', String(item.id === crew.activeId))
+    button.addEventListener('click', () => {
+      sessionStorage.setItem('gg.crew-profiles', JSON.stringify({ ...crew, activeId: item.id }))
+      crewNav.open = false
+      window.dispatchEvent(new Event('gg:crew-change'))
+      if (location.pathname === '/astronaut/') location.reload()
+    })
+    actions.append(button)
+  }
+  for (const [label, mode] of [['Add another astronaut', 'add'], ['Sync watch', 'sync']]) {
+    const link = document.createElement('a')
+    link.textContent = label
+    link.href = '/#/pair?mode=' + mode
+    link.addEventListener('click', () => { crewNav.open = false })
+    actions.append(link)
+  }
+}
+window.addEventListener('gg:crew-change', updateCrewMenu)
+window.addEventListener('hashchange', updateCrewMenu)
+updateCrewMenu()

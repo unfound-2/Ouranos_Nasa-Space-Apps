@@ -92,7 +92,7 @@ export function Spark({ data, tone = 'cyan', height = 44, ariaLabel }: { data: {
           </defs>
           <XAxis dataKey="x" type="number" domain={['dataMin', 'dataMax']} hide />
           <YAxis domain={['dataMin - 4', 'dataMax + 4']} hide />
-          <Area type="linear" dataKey="y" stroke={color} strokeWidth={1.5} fill={`url(#${id}-fill)`} isAnimationActive={false} dot={false} />
+          <Area type="linear" dataKey="y" stroke={color} strokeWidth={1.5} fill={`url(#${id}-fill)`} isAnimationActive={false} dot={false} activeDot={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

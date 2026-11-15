@@ -103,8 +103,9 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
   controls.target.copy(target)
   controls.enableZoom = false
   controls.enablePan = false
-  controls.enableDamping = false
-  controls.rotateSpeed = 0.55
+  controls.enableDamping = true
+  controls.dampingFactor = 0.22
+  controls.rotateSpeed = 0.27
   controls.update()
   const polar = controls.getPolarAngle()
   controls.minPolarAngle = polar
@@ -117,7 +118,16 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
     renderer.render(scene, camera)
     for (const fn of listeners) fn()
   }
-  controls.addEventListener('change', render)
+  let motionFrame: number | null = null
+  function renderMotion() {
+    render()
+    if (motionFrame !== null) return
+    motionFrame = requestAnimationFrame(() => {
+      motionFrame = null
+      controls.update()
+    })
+  }
+  controls.addEventListener('change', renderMotion)
 
   const loader = new GLTFLoader()
   loader.load(
@@ -254,6 +264,7 @@ uniform vec4 uBounds;`,
 
   const dispose = () => {
     disposed = true
+    if (motionFrame !== null) cancelAnimationFrame(motionFrame)
     controls.dispose()
     scene.traverse((o) => {
       const m = o as THREE.Mesh
@@ -412,7 +423,6 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
           </button>
         )
       })}
-      <p className="pointer-events-none absolute right-3 bottom-2 text-[12px] text-ink-3">Drag to rotate</p>
     </div>
   )
 }
