@@ -1,8 +1,9 @@
 import { ArrowLeft } from 'lucide-react'
 import { comparePhases, externalReadingFindings, formatDuration, personalBaseline } from '../../shared/analysis'
+import type { StoredSession } from '../../shared/contract'
 import { linkedReadings, REVIEW_CHECKLIST } from '../../shared/dataset'
 import { ringMetrics, timelineFor } from '../../shared/explain'
-import { SYMPTOM_LABEL, utcStamp } from '../../shared/format'
+import { plural, SYMPTOM_LABEL, utcStamp } from '../../shared/format'
 import { EventRow, Timeline } from '../components/Events'
 import { Meter } from '../components/Ring'
 import { Empty, KV, Panel, RealTag, SimTag } from '../components/ui'
@@ -11,6 +12,54 @@ import { href } from '../lib/router'
 import { sortEvents, subjectLabel } from '../lib/view'
 import { HistoryPanel, RecoveryPanel } from './Investigation'
 import { CrewReport } from './Overview'
+import './tabs.css'
+
+const QUALITY_KEYS = ['VALID', 'QUESTIONABLE', 'INVALID', 'MISSING'] as const
+const QUALITY_LABEL = { VALID: 'Valid', QUESTIONABLE: 'Questionable', INVALID: 'Invalid', MISSING: 'No value' } as const
+const QUALITY_BG = { VALID: 'bg-mint', QUESTIONABLE: 'bg-amber', INVALID: 'bg-coral', MISSING: 'bg-ink-3' } as const
+
+/** What the record holds: heart-rate readings by quality, the symptom answer and the events it raised. */
+function SessionStats({ s, events }: { s: StoredSession; events: number }) {
+  const hr = s.measurements.filter((m) => m.indicator === 'HEART_RATE')
+  const counts = QUALITY_KEYS.map((q) => ({ q, n: hr.filter((m) => m.quality === q).length }))
+  const symptom = s.symptomCheck.status === 'REPORTED' ? `${s.symptoms.length}` : s.symptomCheck.status === 'NONE_REPORTED' ? 'None' : s.symptomCheck.status === 'NO_RESPONSE' ? 'No answer' : 'Not asked'
+  return (
+    <div className="tab-stats mt-6">
+      <div className="tab-card tab-stat tab-stat-wide">
+        <span className="tab-stat-label">Heart-rate readings</span>
+        <span className="tab-stat-value">{hr.length}</span>
+        {hr.length > 0 && (
+          <>
+            <div className="tab-strip mt-1" role="img" aria-label={counts.map((x) => `${x.n} ${QUALITY_LABEL[x.q].toLowerCase()}`).join(', ')}>
+              {counts.filter((x) => x.n).map((x) => (
+                <span key={x.q} className={QUALITY_BG[x.q]} style={{ flexGrow: x.n }} title={`${QUALITY_LABEL[x.q]}: ${x.n}`} />
+              ))}
+            </div>
+            <div className="tab-legend mt-1">
+              {counts.map((x) => (
+                <span key={x.q}>
+                  <span className={`status-mark ${QUALITY_BG[x.q]}`} aria-hidden />
+                  {QUALITY_LABEL[x.q]} <b>{x.n}</b>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+        <span className="tab-stat-note">{s.measurements[0]?.source.device ?? s.provenance.deviceId ?? 'Device not recorded'}{s.isSimulated ? ', simulated' : ''}</span>
+      </div>
+      <div className="tab-card tab-stat">
+        <span className="tab-stat-label">Symptoms reported</span>
+        <span className="tab-stat-value">{symptom}</span>
+        <span className="tab-stat-note">{s.symptomCheck.status === 'REPORTED' ? s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ') : 'From the symptom check'}</span>
+      </div>
+      <div className="tab-card tab-stat">
+        <span className="tab-stat-label">Review events</span>
+        <span className="tab-stat-value">{events}</span>
+        <span className="tab-stat-note">Raised for this session</span>
+      </div>
+    </div>
+  )
+}
 
 export function SessionReport({ id }: { id: string }) {
   const { snapshot, workspace } = useData()
@@ -19,7 +68,8 @@ export function SessionReport({ id }: { id: string }) {
   const s = Object.hasOwn(ds.sessions, id) ? ds.sessions[id] : undefined
   if (!s)
     return (
-      <div className="mx-auto max-w-2xl py-10">
+      <div className="tab-page mx-auto max-w-2xl py-10">
+        <div className="mission-horizon" aria-hidden="true" />
         <Empty title="Session not found" action={<a className="btn btn-ghost" href={href.crew}>Recovery history</a>}>
           No session <span className="font-mono">{id}</span> in {workspace === 'demo' ? 'the simulated demo' : 'mission records'}.
         </Empty>
@@ -32,21 +82,26 @@ export function SessionReport({ id }: { id: string }) {
   const rings = ringMetrics(s, events[0] ?? null, REVIEW_CHECKLIST.items.length)
   const baseline = personalBaseline(s, Object.values(ds.sessions))
   return (
-    <div className="flex flex-col gap-4" data-testid="session-report">
-      <section className="panel overflow-hidden">
-        <div className="px-4 pt-3 pb-3">
-          <a href={href.crew} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink-2">
-            <ArrowLeft size={12} /> Recovery history
+    <div className="tab-page" data-testid="session-report">
+      <div className="mission-horizon" aria-hidden="true" />
+      <section>
+        <header className="mission-intro">
+          <a href={href.crew} className="tab-back">
+            <ArrowLeft size={13} /> Recovery history
           </a>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] font-semibold text-ink-2">Recovery assessment</span>
+          <div className="tab-intro-tags">
+            <span className="text-[13px] font-semibold text-ink-2">Recovery assessment</span>
             {s.isSimulated ? <SimTag /> : <RealTag />}
           </div>
-          <h1 className="display mt-1.5 text-[26px] text-ink">
-            {subjectLabel(s.subjectId)} · {utcStamp(s.startedAt)}
-          </h1>
-        </div>
-        <dl className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-4 xl:grid-cols-7">
+          <h1 className="display faded-label tab-intro-title">{subjectLabel(s.subjectId)}</h1>
+          <p>
+            <span className="tnum">{utcStamp(s.startedAt)}</span>
+            <span>{s.protocol.id.replace(/_/g, ' ').toLowerCase()} v{s.protocol.version}</span>
+            <span>{plural(events.length, 'review event')}</span>
+          </p>
+        </header>
+        <SessionStats s={s} events={events.length} />
+        <dl className="panel tab-facts mt-4 p-3">
           <KV k="Session ID" mono>
             {s.sessionId}
           </KV>
@@ -78,7 +133,7 @@ export function SessionReport({ id }: { id: string }) {
                   <li key={x.symptomId} className="text-[12.5px]">
                     <span className="font-bold text-ink">{SYMPTOM_LABEL[x.code]}</span>{' '}
                     <span className="text-ink-2">
-                      — {x.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'reported by a crew observer'} {utcStamp(x.reportedAt)}
+                      {x.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'reported by a crew observer'} {utcStamp(x.reportedAt)}
                     </span>
                     {x.bodyRegion && <span className="text-ink-3"> · location {x.bodyRegion.toLowerCase()}</span>}
                   </li>

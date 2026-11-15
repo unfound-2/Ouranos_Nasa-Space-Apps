@@ -1,6 +1,6 @@
 import { Disclosure } from '../components/ui'
 import { watchSignIn } from '../lib/watch-pairing'
-import { ArrowUpRight, Check, Copy, FileUp, FlaskConical, Minus, RefreshCw, RotateCcw, SquareCheck, SquareDashed, SquareX, X } from 'lucide-react'
+import { ArrowUpRight, Check, Copy, Cpu, FileUp, FlaskConical, Minus, MonitorCheck, RefreshCw, RotateCcw, SquareCheck, SquareDashed, SquareX, Watch, Wifi, X, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IngestPathT } from '../../shared/contract'
 import type { Dataset, DeviceRecord, IngestResult } from '../../shared/dataset'
@@ -14,6 +14,7 @@ import { checkTally, resolveChecks } from '../lib/integration'
 import { href } from '../lib/router'
 import { LINK_META, sessionsOf, subjectLabel, subjectsOf, type Tone } from '../lib/view'
 import { TriggerButton } from './Overview'
+import './tabs.css'
 
 // ---------------------------------------------------------------------------
 // Shared pieces
@@ -132,26 +133,25 @@ function recordHref(c: IntegrationCheck): string | null {
   return null
 }
 
-function CheckRow({ c, n, last }: { c: IntegrationCheck; n: number; last: boolean }) {
+function CheckRow({ c, n }: { c: IntegrationCheck; n: number }) {
   const mark = STATUS_MARK[c.status]
   const link = recordHref(c)
   return (
-    <li className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-3.5 pb-4 last:pb-0" data-testid={`check-${c.id}`} data-status={c.status}>
-      {!last && <span aria-hidden className="absolute top-[22px] bottom-[2px] left-[11.5px] w-px bg-hair" />}
-      <span className={`relative mt-px grid h-6 w-6 place-items-center rounded-[6px] border border-line bg-panel ${mark.className}`} aria-hidden>
+    <li data-testid={`check-${c.id}`} data-status={c.status}>
+      <span className="check-tile-mark" aria-hidden>
         {mark.icon}
       </span>
       <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h3 className="text-[13.5px] font-semibold text-ink">
-            <span className="mr-2 font-mono text-[11px] font-normal text-ink-3">{n}</span>
-            {CHECK_TITLE[c.id] ?? c.label}
-          </h3>
-          <span className={`text-[13px] font-semibold ${c.status === 'NOT_TESTED' ? 'text-ink-3' : 'text-ink'}`} data-testid={`check-${c.id}-status`}>
-            {mark.text}
-          </span>
-        </div>
-        <p className="mt-1 max-w-[78ch] text-[12.5px] leading-relaxed text-ink-2">{c.detail}</p>
+        <h3 className="text-[13.5px] font-semibold text-ink">
+          <span className="mr-2 font-mono text-[11px] font-normal text-ink-3">{n}</span>
+          {CHECK_TITLE[c.id] ?? c.label}
+        </h3>
+        <span className={`text-[13px] font-semibold ${c.status === 'NOT_TESTED' ? 'text-ink-3' : 'text-ink'}`} data-testid={`check-${c.id}-status`}>
+          {mark.text}
+        </span>
+      </div>
+      <div className="col-span-2 min-w-0">
+        <p className="text-[12.5px] leading-relaxed text-ink-2">{c.detail}</p>
         {(c.evidence || c.at || link) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-3">
             {c.evidence && <span className="font-mono break-all">{c.evidence}</span>}
@@ -168,13 +168,84 @@ function CheckRow({ c, n, last }: { c: IntegrationCheck; n: number; last: boolea
   )
 }
 
+/** The path a watch reading takes, each stop coloured by the real results of its own checks. */
+const FLOW: { title: string; icon: LucideIcon; checks: string[] }[] = [
+  { title: 'Watch', icon: Watch, checks: ['pairing', 'watch-confirmation'] },
+  { title: 'Local network', icon: Wifi, checks: ['lan-enabled', 'network-interface', 'lan-reachable'] },
+  { title: 'Mission computer', icon: Cpu, checks: ['backend', 'device-ingest', 'record-persisted'] },
+  { title: 'Dashboard', icon: MonitorCheck, checks: ['dashboard-display'] },
+]
+const FLOW_TONE: Record<CheckStatus, string> = { PASS: 'tab-tone-mint', FAIL: 'tab-tone-coral', NOT_TESTED: 'tab-tone-neutral' }
+
+function stageStatus(checks: IntegrationCheck[]): CheckStatus {
+  if (checks.some((c) => c.status === 'FAIL')) return 'FAIL'
+  if (checks.length && checks.every((c) => c.status === 'PASS')) return 'PASS'
+  return 'NOT_TESTED'
+}
+
+function ConnectionDiagram({ list, loading }: { list: IntegrationCheck[]; loading: boolean }) {
+  const stages = FLOW.map((f) => {
+    const checks = f.checks.map((id) => list.find((c) => c.id === id)).filter((c): c is IntegrationCheck => !!c)
+    const status = stageStatus(checks)
+    const pass = checks.filter((c) => c.status === 'PASS').length
+    const fail = checks.filter((c) => c.status === 'FAIL').length
+    const state = !checks.length ? 'Not tested' : status === 'PASS' ? 'All checks pass' : fail ? `${fail} of ${checks.length} failing` : pass ? `${pass} of ${checks.length} pass, the rest not tested` : 'Not tested yet'
+    return { ...f, found: checks, status, state }
+  })
+  const linkStatus = (a: CheckStatus, b: CheckStatus): CheckStatus => (a === 'FAIL' || b === 'FAIL' ? 'FAIL' : a === 'PASS' && b === 'PASS' ? 'PASS' : 'NOT_TESTED')
+  return (
+    <section className="panel px-5 pt-5 pb-5" aria-labelledby="connection-path-title" data-testid="connection-path">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="connection-path-title" className="label">Connection path</h2>
+        <span className="text-[12px] text-ink-3">{loading ? 'Running the checks…' : 'From the integration checks below'}</span>
+      </div>
+      <div className="tab-flow">
+        {stages.map((st, i) => {
+          const Icon = st.icon
+          return (
+            <div key={st.title} className="contents">
+              {i > 0 && <div className={`tab-flow-link ${FLOW_TONE[linkStatus(stages[i - 1].status, st.status)].replace('neutral', 'muted')}`} aria-hidden />}
+              <div className={`tab-flow-node ${FLOW_TONE[st.status]}`} role="group" aria-label={`${st.title}: ${st.state}`} data-state={st.status}>
+                <header>
+                  <span className="tab-flow-icon" aria-hidden>
+                    <Icon size={18} />
+                  </span>
+                  <div className="min-w-0">
+                    <h3>{st.title}</h3>
+                    <div className="tab-flow-state">{st.state}</div>
+                  </div>
+                </header>
+                <ul className="tab-flow-checks">
+                  {st.checks.map((id) => {
+                    const c = st.found.find((x) => x.id === id)
+                    const status = c?.status ?? 'NOT_TESTED'
+                    return (
+                      <li key={id}>
+                        <span className={`status-mark ${STATUS_MARK[status].bar}`} aria-hidden />
+                        <span>
+                          {CHECK_TITLE[id] ?? id}: {STATUS_MARK[status].text.toLowerCase()}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-4 text-[11.5px] text-ink-3">Green when every check at that stop passes, red when one fails, grey when not tested. A line is green only when both ends pass. Simulated data never passes a check.</p>
+    </section>
+  )
+}
+
 function Selftest() {
   const { workspace } = useData()
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<SelftestReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   return (
-    <div className="rounded-[4px] border border-violet/45 px-4 py-3" data-testid="selftest">
+    <div className="well px-4 py-3" data-testid="selftest">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[62ch]">
           <div className="text-[13px] font-semibold text-ink">Simulated self-test</div>
@@ -293,18 +364,18 @@ function IntegrationCheckPanel({ checks, className = '' }: { checks: ReturnType<
       )}
       {checks.data && (
         <>
-          <div className="mt-4 flex items-center gap-1" role="img" aria-label={`${tally.PASS} of ${list.length} checks pass, ${tally.FAIL} fail, ${tally.NOT_TESTED} not tested`}>
+          <div className="mt-4 flex items-center gap-1.5" role="img" aria-label={`${tally.PASS} of ${list.length} checks pass, ${tally.FAIL} fail, ${tally.NOT_TESTED} not tested`}>
             {list.map((c) => (
-              <span key={c.id} className={`h-1.5 flex-1 rounded-[2px] ${STATUS_MARK[c.status].bar}`} title={`${CHECK_TITLE[c.id] ?? c.label}: ${STATUS_MARK[c.status].text}`} />
+              <span key={c.id} className={`h-2.5 flex-1 rounded-[4px] ${STATUS_MARK[c.status].bar}`} title={`${CHECK_TITLE[c.id] ?? c.label}: ${STATUS_MARK[c.status].text}`} />
             ))}
           </div>
           <div className="mt-1.5 flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-[10.5px] text-ink-3 tnum">
             <span>Checked {utcTime(checks.data.generatedAt)} · every 5 s while this page is open</span>
             <span>{workspace === 'demo' ? 'Mission records only' : 'Mission records'}</span>
           </div>
-          <ol className="mt-5 flex flex-col">
+          <ol className="check-tiles mt-5">
             {list.map((c, i) => (
-              <CheckRow key={c.id} c={c} n={i + 1} last={i === list.length - 1} />
+              <CheckRow key={c.id} c={c} n={i + 1} />
             ))}
           </ol>
         </>
@@ -934,54 +1005,62 @@ export function SystemStatus() {
     const link = watchLinks?.find((watch) => watch.deviceId === device)
     const connection = device ? snapshot?.links[device] : undefined
     return (
-      <section className="panel mission-event-card mx-auto grid max-w-2xl gap-3 p-6">
-        <h1 className="display text-[28px]">Hosted console</h1>
-        <p className="text-sm text-ink-2">{health.storage.writable ? 'HTTPS online' : 'Watch pairing needs the Supabase server key'}</p>
-        <p>{connection === 'VERIFIED' ? 'Watch connected' : link ? 'Paired. Waiting for the watch.' : 'No watch paired in this browser.'}</p>
-        <p className="text-sm text-ink-2">Use this address in the watch app:</p>
-        <code className="break-all">{location.origin}</code>
-        <a className="underline" href={href.pair}>Pair or sync a watch</a>
-      </section>
+      <div className="tab-page">
+        <div className="mission-horizon" aria-hidden="true" />
+        <header className="mission-intro">
+          <h1 className="display faded-label">Hosted console</h1>
+          <p>{health.storage.writable ? 'HTTPS online' : 'Watch pairing needs the Supabase server key'}</p>
+        </header>
+        <section className="panel mx-auto grid w-full max-w-2xl gap-3 p-6">
+          <p className="text-[17px] font-semibold">{connection === 'VERIFIED' ? 'Watch connected' : link ? 'Paired. Waiting for the watch.' : 'No watch paired in this browser.'}</p>
+          <p className="text-sm text-ink-2">Use this address in the watch app:</p>
+          <code className="well break-all px-3 py-2">{location.origin}</code>
+          <a className="underline" href={href.pair}>Pair or sync a watch</a>
+        </section>
+      </div>
     )
   }
   return <LocalSystemStatus />
 }
 
 function LocalSystemStatus() {
-  const { workspace, health, error } = useData()
+  const { workspace, health, error, snapshot } = useData()
   const checks = useChecks()
   const list = checks.data?.checks ?? []
   const tally = checkTally(list)
+  const resolved = checks.data ? resolveChecks(checks.data.checks, workspace, snapshot?.dataset ?? null) : []
   const signedIn = workspace === 'mission' ? watchSignIn() : null
   const summary = checks.data ? `${tally.PASS} of ${list.length} pass` : '--'
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-        <div className="min-w-0">
-          <h1 className="display text-[28px] text-ink">Mission computer</h1>
-          {signedIn && <p className="mt-1 faded-label">Signed in as {signedIn.name}</p>}
-          <p className="mt-1 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
-        </div>
-        <dl className="flex flex-wrap gap-x-8 gap-y-2">
-          <div>
-            <dt className="micro">Computer</dt>
-            <dd className={`text-[14px] font-semibold ${error ? 'text-ink' : 'text-ink'}`}>{error ? 'API down' : health ? 'Online' : 'Connecting'}</dd>
-          </div>
-          <div>
-            <dt className="micro">Watch pairing</dt>
-            <dd className={`text-[14px] font-semibold ${checks.data?.watch.paired ? 'text-ink' : 'text-ink'}`}>{checks.data ? (checks.data.watch.paired ? 'Paired' : 'Not paired') : '--'}</dd>
-          </div>
-          <div>
-            <dt className="micro">Integration</dt>
-            <dd className="text-[14px] font-semibold text-ink tnum">{summary}</dd>
-          </div>
-        </dl>
+    <div className="tab-page">
+      <div className="mission-horizon" aria-hidden="true" />
+      <header className="mission-intro">
+        <h1 className="display faded-label">Mission computer</h1>
+        <p>
+          {signedIn && <span className="faded-label">Signed in as {signedIn.name}</span>}
+          <span>System status</span>
+          <span>{workspace === 'demo' ? 'Simulated demo' : 'Mission records'}</span>
+          <span>What is proven about the watch link</span>
+        </p>
       </header>
+      <dl className="tab-stats">
+        <div className="tab-card tab-stat">
+          <dt className="tab-stat-label">Computer</dt>
+          <dd className="tab-stat-value">{error ? 'API down' : health ? 'Online' : 'Connecting'}</dd>
+        </div>
+        <div className="tab-card tab-stat">
+          <dt className="tab-stat-label">Watch pairing</dt>
+          <dd className="tab-stat-value">{checks.data ? (checks.data.watch.paired ? 'Paired' : 'Not paired') : '--'}</dd>
+        </div>
+        <div className="tab-card tab-stat">
+          <dt className="tab-stat-label">Integration</dt>
+          <dd className="tab-stat-value">{summary}</dd>
+        </div>
+      </dl>
 
+      <ConnectionDiagram list={resolved} loading={!checks.data && !checks.error} />
       <WatchConnection checks={checks.data} />
-      <Disclosure title="Integration checks">
-        <IntegrationCheckPanel checks={checks} />
-      </Disclosure>
+      <IntegrationCheckPanel checks={checks} />
       <Disclosure title="Computer, data and offline operation">
         <div className="grid items-start gap-4 lg:grid-cols-3">
           <OnboardComputer />

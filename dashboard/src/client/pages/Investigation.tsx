@@ -27,6 +27,7 @@ import { useData } from '../lib/data'
 import { href } from '../lib/router'
 import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SOURCE_META, STATUS_META, subjectLabel, type Tone } from '../lib/view'
 import { CrewReport } from './Overview'
+import './tabs.css'
 
 function Section({ index, title, children, className = '', aside }: { index?: string; title: string; children: ReactNode; className?: string; aside?: ReactNode }) {
   return (
@@ -62,7 +63,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
       return (
         <div className="text-[12.5px]">
           <span className="font-semibold text-ink">{SYMPTOM_LABEL[r.symptom.code]}</span>
-          <span className="text-ink-2"> — {r.symptom.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'crew-observed'} at {utcTime(r.symptom.reportedAt)}</span>
+          <span className="text-ink-2">, {r.symptom.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'crew-observed'} at {utcTime(r.symptom.reportedAt)}</span>
           {r.symptom.phase && <span className="text-ink-3">   {r.symptom.phase.toLowerCase()} phase</span>}
           {r.symptom.note && <div className="text-[12px] text-ink-3">“{r.symptom.note}”</div>}
         </div>
@@ -554,6 +555,53 @@ function download(name: string, data: unknown) {
 // ---------------------------------------------------------------------------
 // Page
 
+/** The event's lifecycle from its own fields. Acknowledged and reviewed stay separate steps. */
+function Lifecycle({ event, delivery }: { event: StoredEvent; delivery: string }) {
+  const d = event.delivery
+  const a = event.acknowledgement
+  const r = event.review
+  const steps: { name: string; done: boolean; tone: Tone; time: string | null; detail: string }[] = [
+    { name: 'Created', done: true, tone: 'cyan', time: event.createdAt, detail: ORIGIN_LABEL[event.origin.kind] },
+    {
+      name: 'Shown on the watch',
+      done: d.state === 'PRESENTED',
+      tone: d.state === 'PRESENTED' ? 'cyan' : d.state === 'WATCH_UNREACHABLE' || d.state === 'UNCONFIRMED' ? 'amber' : 'muted',
+      time: d.presentedAt,
+      detail: d.state === 'PRESENTED' ? (d.channel === 'SIMULATED_WATCH' ? 'Simulated watch' : 'Confirmed by the watch') : delivery,
+    },
+    {
+      name: 'Acknowledged by the wearer',
+      done: !!a,
+      tone: a ? 'cyan' : 'muted',
+      time: a?.acknowledgedAt ?? null,
+      detail: a ? (a.via === 'SIMULATED_WATCH' ? 'On the simulated watch' : 'On the watch') : 'Not acknowledged',
+    },
+    { name: 'Reviewed', done: !!r.reviewedAt, tone: r.reviewedAt ? 'mint' : r.state === 'IN_PROGRESS' ? 'violet' : 'muted', time: r.reviewedAt, detail: r.reviewedAt ? `By ${r.reviewer ?? 'a reviewer'}` : REVIEW_META[r.state].label },
+    { name: 'Closed', done: !!r.closedAt, tone: r.closedAt ? 'mint' : 'muted', time: r.closedAt, detail: r.closedAt ? 'No further action recorded' : 'Still open' },
+  ]
+  return (
+    <section className="panel px-5 py-5" aria-labelledby="lifecycle-title">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="lifecycle-title" className="label">Event lifecycle</h2>
+        <span className="text-[12px] text-ink-3">Times in UTC. Acknowledged is not reviewed, and reviewed is not cleared.</span>
+      </div>
+      <ol className="tab-steps">
+        {steps.map((st, i) => (
+          <li key={st.name} className={`tab-step tab-tone-${st.done || st.tone === 'amber' || st.tone === 'violet' ? st.tone : 'muted'}`} data-done={st.done}>
+            <span className="flex items-center gap-2 text-[11px] text-ink-3">
+              <span className="font-mono">{String(i + 1).padStart(2, '0')}</span>
+              {st.done ? <Check size={13} className="text-ink-2" aria-hidden /> : <Minus size={13} className="text-ink-3" aria-hidden />}
+            </span>
+            <span className="tab-step-name">{st.name}</span>
+            <span className="tab-step-time">{st.time ? utcStamp(st.time) : 'No time recorded'}</span>
+            <span className="text-[12px] text-ink-2">{st.detail}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 function HeaderField({ k, children, testId }: { k: string; children: ReactNode; testId?: string }) {
   return (
     <div className="min-w-0" data-testid={testId}>
@@ -620,24 +668,23 @@ export function Investigation({ id }: { id: string }) {
             : 'Not attempted'
 
   return (
-    <div className="flex flex-col gap-4" data-testid="investigation">
-      <section className="panel overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-4 pb-4">
-          <div className="min-w-0">
-            <a href={href.events} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink-2">
-              <ArrowLeft size={12} /> Event history
-            </a>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Pill tone={tone} className="font-semibold tracking-[0.02em]">{focusLabel(event)}</Pill>
-              {event.isSimulated ? <SimTag /> : <RealTag />}
-            </div>
-            <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>
-            <p className="mt-0.5 text-[13.5px] text-ink-2">
-              <span className="text-ink-3">Reason   </span>
-              {reasonLine(ctx)}
-            </p>
+    <div className="tab-page" data-testid="investigation">
+      <div className="mission-horizon" aria-hidden="true" />
+      <section>
+        <header className="mission-intro">
+          <a href={href.events} className="tab-back">
+            <ArrowLeft size={13} /> Event history
+          </a>
+          <div className="tab-intro-tags">
+            <Pill tone={tone} className="font-semibold tracking-[0.02em]">{focusLabel(event)}</Pill>
+            {event.isSimulated ? <SimTag /> : <RealTag />}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <h1 className="display faded-label tab-intro-title">{eventTitle(ctx)}</h1>
+          <p>
+            <span className="text-ink-3">Reason</span>
+            <span>{reasonLine(ctx)}</span>
+          </p>
+          <div className="tab-intro-actions">
             <button className="btn btn-hero" onClick={openReview} data-testid="open-review">
               <ClipboardCheck size={14} /> Open review workflow
             </button>
@@ -665,8 +712,8 @@ export function Investigation({ id }: { id: string }) {
               <Download size={14} /> Export record
             </button>
           </div>
-        </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-4" data-testid="event-header">
+        </header>
+        <dl className="panel tab-facts mt-6 p-3" data-testid="event-header">
           <HeaderField k="Event ID">
             <span className="font-mono text-[12px]">{event.eventId}</span>
           </HeaderField>
@@ -694,6 +741,7 @@ export function Investigation({ id }: { id: string }) {
         </dl>
       </section>
 
+      <Lifecycle event={event} delivery={delivery} />
       <Narrative ctx={ctx} />
       <Section className="mission-event-card" title="What to do next">
         <a className="underline" href={href.guideTopic(ctx.session?.symptoms.some((symptom) => symptom.code === 'DIZZY') ? 'dizziness' : 'reading-check')}>Open the relevant crew guide entry</a>
