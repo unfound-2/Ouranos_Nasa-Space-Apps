@@ -320,3 +320,7 @@ button.tab-stat:hover { border-color: rgb(140 206 255 / 0.4); }
   .guide-browser { grid-template-columns: minmax(0, 1fr); }
   .guide-index { max-height: 250px; }
 }
+
+.crew-guide .guide-search { grid-template-columns: minmax(0, 1fr) minmax(180px, 280px); align-items: center; }
+.crew-guide .guide-category-select { padding: 12px; min-height: 48px; background: #101a2b; border: 0; border-radius: 12px; color: #f5f7ff; max-width: 100%; }
+@media (max-width: 700px) { .crew-guide .guide-search { grid-template-columns: minmax(0, 1fr); } }

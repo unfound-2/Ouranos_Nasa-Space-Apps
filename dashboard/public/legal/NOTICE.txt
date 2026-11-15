@@ -1,0 +1,8 @@
+Ouranos
+Copyright 2026 the Ouranos contributors
+
+Original Ouranos contributions are licensed under the Apache License,
+Version 2.0. Third-party assets and dependencies retain their own terms.
+See docs/CREDITS.md for sources and asset notices.
+
+Ouranos is an independent NASA Space Apps Challenge project.

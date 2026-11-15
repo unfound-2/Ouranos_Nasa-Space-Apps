@@ -1,0 +1,9 @@
+.ouranos-footer { max-width: 1400px; box-sizing: border-box; margin: 0 auto; padding: 30px clamp(20px, 4vw, 42px) 40px; font: 12px/1.6 system-ui, sans-serif; color: #94a3b8; }
+.ouranos-footer-logo { display: block; width: clamp(130px, 19vw, 240px); height: auto; margin: 0 auto 36px; filter: invert(1); }
+.ouranos-footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px 30px; }
+.ouranos-footer-note { max-width: 72ch; margin: 0; }
+.ouranos-footer-links { display: flex; flex-wrap: wrap; gap: 9px 18px; }
+.ouranos-footer a { color: #becce0; text-decoration: none; }
+.ouranos-footer a:hover { color: #fff; text-decoration: underline; }
+.ouranos-footer a:focus-visible { outline: 2px solid #9dd8ff; outline-offset: 3px; }
+.ouranos-footer-credit { margin: 18px 0 0; font-size: 11px; color: #7e8da3; }

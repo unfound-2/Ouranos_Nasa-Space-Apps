@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { type RequestHandler } from 'express'
 import { ChecklistSchema } from '../shared/crew-guide.js'
+import { fullGuideCatalog } from '../shared/guide-index.js'
 import { crewGuides, guideCandidates } from '../shared/guide-library.js'
 import { assistantRequest, type AssistantReply } from '../shared/crew-assistant.js'
 
@@ -33,7 +34,7 @@ export function createCrewAssistant({
     }
   }
 
-  const list: RequestHandler = async (_req, res) => { res.json(await guides()) }
+  const list: RequestHandler = async (_req, res) => { res.json(fullGuideCatalog(await guides())) }
   const explain: RequestHandler = async (req, res) => {
     const parsed = assistantRequest.safeParse(req.body)
     if (!parsed.success) {

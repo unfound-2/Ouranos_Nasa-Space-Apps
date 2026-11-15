@@ -205,15 +205,20 @@ export function DashboardOptions() {
 
 export function Footer() {
   return (
-    <footer className={`${CONTAINER} pb-10`}>
-      <div className="rule flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-6 text-[13px] text-ink-2">
-        <span className="max-w-[90ch]">
-          OURANOS organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
-        </span>
-        <span className="font-mono text-[12px]">Contract v1 · UTC</span>
+    <footer className="ouranos-footer">
+      <img className="ouranos-footer-logo" src="/astronaut/mission-logo.png" width="443" height="464" alt="Ouranos logo" loading="lazy" />
+      <div className="ouranos-footer-row">
+        <p className="ouranos-footer-note">OURANOS organises recorded evidence for human review. It does not diagnose or clear anyone for duty.</p>
+        <nav className="ouranos-footer-links" aria-label="Footer">
+          <a href="/legal/">Licenses &amp; credits</a>
+          <a href="/legal/THIRD-PARTY-NOTICES.txt">Third-party notices</a>
+          <a href="/legal/#nasa">NASA sources</a>
+          <a href="/legal/#data">Data &amp; AI</a>
+          <a href="https://github.com/unfound-2/NASASPACEAPP26/tree/feat/dhruv-mission-ui-v2">Source code</a>
+        </nav>
       </div>
-      <p className="mt-3 text-[12px] text-ink-3">
-        “Astronaut by Jungle Jim” by Jungle Jim is licensed under <a className="underline" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.
+      <p className="ouranos-footer-credit">
+        “Astronaut by Jungle Jim” by Jungle Jim is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.
       </p>
     </footer>
   )

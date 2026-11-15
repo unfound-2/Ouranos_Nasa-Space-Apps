@@ -39,7 +39,8 @@ describe('sourced crew assistant', () => {
     expect(response.body.guide.title).toBe('Oxygen checklist from Supabase')
     expect(response.body.guide.sources[0].url).toMatch(/^https:\/\/www\.nasa\.gov\//)
     const catalog = await request(server).get('/guide').expect(200)
-    expect(catalog.body).toHaveLength(14)
+    expect(catalog.body).toHaveLength(185)
+    expect(catalog.body.some((entry: { id: string }) => entry.id === 'condition-001')).toBe(true)
     expect(fetch).toHaveBeenCalledTimes(2)
   })
 

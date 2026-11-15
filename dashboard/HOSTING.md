@@ -2,7 +2,7 @@
 
 ## Crew guide
 
-The Crew Guide uses practical checklists with direct NASA references. Apply `supabase/migrations/202611150003_refresh_crew_guide.sql` in the Supabase SQL Editor to replace the old public evidence index with the server-read `gg_crew_checklists` table. The prior catalog is kept as a private archive; pairing and crew records are unchanged. Until it is applied the dashboard uses the same checklists bundled with the app. The checklists are review and handoff aids, not flight medical procedures.
+The Crew Guide preserves all 175 original NASA source records plus 10 additional crew checklists (185 browsable items). The four original workflows use the updated checklist text. The assistant uses the procedural subset, while the browser retains the complete source index. Apply `supabase/migrations/202611150003_refresh_crew_guide.sql` in the Supabase SQL Editor to replace the old public evidence index with the server-read `gg_crew_checklists` table. The prior catalog is kept as a private archive; pairing and crew records are unchanged. Until it is applied the dashboard uses the same checklists bundled with the app. The checklists are review and handoff aids, not flight medical procedures.
 
 - [2026 Space Apps challenge](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/)
 - [NASA-STD-3001 Volume 1 Appendix E](https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/)
