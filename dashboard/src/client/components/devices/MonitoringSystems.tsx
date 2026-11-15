@@ -89,7 +89,7 @@ function SystemCard({ system, nowMs, owned, onRemove }: { system: CrewSystem; no
   return (
     <article className="system-card" data-testid="system-card" data-kind={kind} data-link={state} aria-label={`${meta.name}, ${linkInfo.label}`}>
       <div className="system-card-top">
-        <DeviceModel kind={kind} label={`3D model of a ${meta.name.toLowerCase()}`} />
+        <DeviceModel kind={kind} link={state} label={`3D model of a ${meta.name.toLowerCase()}`} />
         <div className="system-card-id">
           <h3 className="system-card-name">{meta.name}</h3>
           <p className="system-card-kind">{frame ? frame.source : 'Waiting for its first reading'}</p>

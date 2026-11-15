@@ -1,6 +1,8 @@
 import { Activity, Cpu, Gauge, HeartPulse, type LucideIcon } from 'lucide-react'
 import { Component, lazy, Suspense, useState, type ReactNode } from 'react'
 import type { SystemKind } from './systems'
+import type { LinkState } from '../../../shared/dataset'
+import { OuranosWatch3D } from '../OuranosWatch3D'
 
 // three.js lives in its own chunk, loaded only when a device card is shown.
 const DeviceModel3D = lazy(() => import('./DeviceModel3D'))
@@ -61,11 +63,15 @@ export function DeviceGlyph({ kind }: { kind: Exclude<SystemKind, 'ouranos-watch
  * The device picture on a monitoring-system card, always the same square size. The Ouranos watch
  * gets an empty slot for the CAD-based watch model; every other kind gets a procedural 3D model.
  */
-export function DeviceModel({ kind, label }: { kind: SystemKind; label: string }) {
+export function DeviceModel({ kind, label, link = 'NOT_PAIRED' }: { kind: SystemKind; label: string; link?: LinkState }) {
   const [failed, setFailed] = useState(false)
   if (kind === 'ouranos-watch') {
-    // Slot for the CAD-based watch model. Keep the data-slot name: the watch model mounts here.
-    return <div data-slot="ouranos-watch-3d" className="device-model device-model-watch" role="img" aria-label={label} />
+    // The CAD-based OURANOS watch, following this system's link. Keep the data-slot name.
+    return (
+      <div data-slot="ouranos-watch-3d" className="device-model device-model-watch" role="img" aria-label={label}>
+        <OuranosWatch3D link={link} compact />
+      </div>
+    )
   }
   return (
     <div className="device-model" role="img" aria-label={label}>

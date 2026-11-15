@@ -25,7 +25,7 @@ const SCREEN: Record<LinkState, { detail: string; status: string }> = {
  * The OURANOS watch from our CAD, following the real watch link: apart while no watch is paired,
  * together while the link is quiet, and the star connect sequence when the link is verified.
  */
-export function OuranosWatch3D({ link, className = '' }: { link: LinkState; className?: string }) {
+export function OuranosWatch3D({ link, className = '', compact = false }: { link: LinkState; className?: string; compact?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const labels = useRef<HTMLDivElement>(null)
   const viewer = useRef<Viewer | null>(null)
@@ -40,7 +40,9 @@ export function OuranosWatch3D({ link, className = '' }: { link: LinkState; clas
     void import(/* @vite-ignore */ VIEWER_MODULE)
       .then(async ({ createOuranosWatch }) => {
         if (disposed || !canvas.current) return
-        created = (await createOuranosWatch(canvas.current, { labels: labels.current, exploded: true, onExplodedChange: setExploded, distance: 300 })) as Viewer
+        created = (await createOuranosWatch(canvas.current, {
+          labels: compact ? null : labels.current, exploded: true, onExplodedChange: setExploded, distance: compact ? 250 : 300,
+        })) as Viewer
         if (disposed) return created.dispose()
         viewer.current = created
         setReady(true)
@@ -74,11 +76,13 @@ export function OuranosWatch3D({ link, className = '' }: { link: LinkState; clas
   return (
     <div className={`ouranos-watch3d ${className}`}>
       <div className="ouranos-stage">
-        <canvas ref={canvas} className="ouranos-canvas" role="img" aria-label="3D model of the OURANOS watch from our CAD files. Drag to turn it, click to take it apart." />
+        <canvas ref={canvas} className="ouranos-canvas" {...(compact
+          ? { 'aria-hidden': true }
+          : { role: 'img', 'aria-label': '3D model of the OURANOS watch from our CAD files. Drag to turn it, click to take it apart.' })} />
         <div ref={labels} className="ouranos-labels" aria-hidden="true" />
-        {!ready && <div className="absolute inset-0 grid place-items-center text-[13px] text-ink-2">Loading the watch model…</div>}
+        {!ready && !compact && <div className="absolute inset-0 grid place-items-center text-[13px] text-ink-2">Loading the watch model…</div>}
       </div>
-      {ready && (
+      {ready && !compact && (
         <button type="button" className="ouranos-button" onClick={() => viewer.current?.setExploded(!exploded)}>
           {exploded ? 'Put it together' : 'Take it apart'}
         </button>
