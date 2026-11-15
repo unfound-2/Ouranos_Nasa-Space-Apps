@@ -6,7 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ReviewAction } from '../../shared/contract'
 import type { Workspace } from '../../shared/dataset'
-import type { WatchLinkSnapshot } from '../../shared/watch-link'
+import type { WatchFrame, WatchLinkSnapshot } from '../../shared/watch-link'
 import { api, ApiError, request, type Health, type Snapshot } from './api'
 
 const POLL_MS = 2500
@@ -47,6 +47,7 @@ interface DataState {
   setSubjectId: (id: string | null) => void
   /** Live code-paired watch links (null until loaded or when the endpoint is unavailable). */
   watchLinks: WatchLinkSnapshot[] | null
+  watchHistory: Readonly<Record<string, readonly WatchFrame[]>>
   /** The demo scenario the presenter chose, if any (demo workspace only). */
   scenarioId: string | null
   setScenarioId: (id: string | null) => void
@@ -75,6 +76,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [subjectId, setSubjectState] = useState<string | null>(() => readPref(`gg.subject.${readPref('gg.workspace') ?? 'mission'}`))
   const [trigger, setTrigger] = useState<TriggerNotice | null>(null)
   const [watchLinks, setWatchLinks] = useState<WatchLinkSnapshot[] | null>(null)
+  const [watchHistory, setWatchHistory] = useState<Record<string, readonly WatchFrame[]>>({})
   const [scenarioId, setScenarioState] = useState<string | null>(() => readPref('gg.scenario'))
   const wsRef = useRef(workspace)
   wsRef.current = workspace
@@ -99,6 +101,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setHealth(h)
       setSnapshot(s)
       setWatchLinks(links)
+      if (links) setWatchHistory((previous) => {
+        const next: Record<string, readonly WatchFrame[]> = {}
+        for (const { deviceId, watch } of links) {
+          if (!watch || watch.simulated) continue
+          const frames = previous[deviceId] ?? []
+          next[deviceId] = frames.at(-1)?.observedAt === watch.observedAt
+            ? frames
+            : [...frames.slice(-119), watch]
+        }
+        return next
+      })
       setError(null)
       setLastOkAt(Date.now())
     } catch (e) {
@@ -191,6 +204,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     subjectId,
     setSubjectId,
     watchLinks,
+    watchHistory,
     scenarioId: workspace === 'demo' ? scenarioId : null,
     setScenarioId,
     trigger,

@@ -7,8 +7,19 @@
     <meta name="description" content="GRAVITYGUARD mission-computer health review dashboard. Runs offline." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>GRAVITYGUARD · Mission Health</title>
-  </head>
+    <link rel="stylesheet" href="/starfield.css">
+  <link rel="stylesheet" href="/mission-nav.css">
+  <script type="module" src="/mission-nav.js"></script>
+    <script type="module" src="/starfield.js"></script>
+</head>
   <body>
+  <canvas class="site-stars" aria-hidden="true"></canvas>
+  <div id="mission-navigation"></div>
+    <script>
+      if (window.location.pathname === '/' && !window.location.hash) {
+        window.location.replace('/astronaut/' + window.location.search)
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/client/main.tsx"></script>
   </body>

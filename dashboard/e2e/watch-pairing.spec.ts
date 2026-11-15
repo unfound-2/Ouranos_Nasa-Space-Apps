@@ -13,20 +13,24 @@ test('a watch link pairs, streams simulated readings, and creates one review eve
   }
   expect((await page.request.post('/api/watch', { headers, data: frame })).status()).toBe(401)
   await page.goto(consoleURL + '#pair=' + code)
-  await expect(page.getByRole('status').filter({ hasText: 'Watch paired' })).toBeVisible()
-  expect(new URL(page.url()).hash).toBe('#/system')
+  await expect(page.getByLabel('What’s your watch code?')).toHaveValue(code)
+  await page.getByLabel('What’s your name?').fill('Pairing test crew')
+  await page.getByRole('button', { name: 'Pair watch', exact: true }).click()
+  await expect(page).toHaveURL(/#\/system$/)
   expect((await page.request.post('/api/pairing/redeem', { data: { code } })).status()).toBe(404)
   expect((await (await page.request.get('/api/device', { headers })).json()).paired).toBe(true)
   expect((await page.request.post('/api/watch', { headers, data: frame })).status()).toBe(202)
   await expect(page.getByText('Pairing test simulator · SIMULATED DEMO')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Open simulated demo' }).click()
+  await page.goto('/#/pair')
+  await page.getByRole('button', { name: 'Run simulator' }).click()
+  await expect(page).toHaveURL(/#\/$/)
   await page.goto('/#/system')
   await expect(page.getByText('Pairing test simulator · SIMULATED DEMO')).toBeVisible()
 
   const id = randomUUID()
   const signal = {
     id, createdAt: Date.now() / 1000, frame,
-    evidence: ['Heart rate'], action: 'Verify the pulse with the source instrument.',
+    hapticRequested: false, evidence: ['Heart rate'], action: 'Verify the pulse with the source instrument.',
   }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     expect((await page.request.post('/api/signals', { headers, data: signal })).status()).toBe(202)
@@ -34,6 +38,7 @@ test('a watch link pairs, streams simulated readings, and creates one review eve
   const demo = await (await page.request.get('/api/v1/snapshot?workspace=demo')).json()
   const mission = await (await page.request.get('/api/v1/snapshot?workspace=mission')).json()
   expect(Object.keys(demo.dataset.events).filter((key) => key === id)).toHaveLength(1)
+  expect(demo.dataset.events[id].delivery.hapticRequested).toBe(false)
   expect(mission.dataset.events[id]).toBeUndefined()
   await page.goto('/#/events/' + id)
   await expect(page.getByText(signal.action, { exact: true })).toBeVisible()

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome · GRAVITYGUARD</title>
+  <link rel="stylesheet" href="/astronaut/welcome.css">
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+    }
+
+    .ribbon-background {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 50%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .astronaut-panel {
+      position: relative;
+      display: grid;
+      align-items: center;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .astronaut-panel figure {
+      position: relative;
+      width: 50vw;
+      margin: 0;
+      padding: 12px 0;
+    }
+
+    model-viewer {
+      display: block;
+      width: 100%;
+      height: min(72vh, 95vw);
+      height: min(72dvh, 95vw);
+      background: radial-gradient(ellipse 44% 47% at 50% 57%, #a7b8d435, #ced9eb22 52%, transparent 100%);
+      --progress-bar-height: 0;
+    }
+
+    figcaption {
+      margin: 5px 10px 0;
+      color: #aeb9ce;
+      font: 7px/1.4 system-ui, sans-serif;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    figcaption a {
+      color: inherit;
+    }
+
+    @media (max-width: 640px) {
+      .ribbon-background {
+        width: 30%;
+      }
+
+      .astronaut-panel figure {
+        width: 70vw;
+      }
+
+      model-viewer {
+        height: min(72dvh, 104vw);
+      }
+    }
+  </style>
+  <script type="module" src="/astronaut/black-hole.js"></script>
+  <script type="module" src="/astronaut/welcome.js"></script>
+  <script type="module" src="/astronaut/model-viewer-4.1.0.min.js"></script>
+  <script type="module" src="/astronaut/ribbon-background.js"></script>
+  <link rel="stylesheet" href="/starfield.css">
+  <link rel="stylesheet" href="/mission-nav.css">
+  <script type="module" src="/mission-nav.js"></script>
+  <script type="module" src="/starfield.js"></script>
+</head>
+<body>
+  <canvas class="site-stars" aria-hidden="true"></canvas>
+  <div id="mission-navigation"></div>
+  <main class="astronaut-site">
+    <section class="welcome">
+      <h1>Welcome back, Astronaut</h1>
+      <img class="welcome-logo" src="/astronaut/mission-logo.png" width="443" height="464" alt="">
+      <div class="watch-entry">
+        <a class="watch-cta" href="/#/pair"><span>Pair watch</span></a>
+      </div>
+      <div class="black-hole" role="group" aria-label="Black hole visualization"></div>
+      <p class="mission-statement">We help astronauts who aren’t doctors understand what’s happening in their bodies and know what actions to take, even when medical support from Earth is delayed.</p>
+    </section>
+    <section class="astronaut-panel" aria-label="Astronaut model">
+      <canvas class="ribbon-background" aria-hidden="true"></canvas>
+      <figure>
+        <model-viewer
+          src="/astronaut/astronaut.glb"
+          alt="Astronaut in a white suit with blue accents and a NASA shoulder patch"
+          loading="lazy"
+          exposure="1.12"
+          camera-controls
+          camera-orbit="-28deg 82deg 112%"
+          max-camera-orbit="auto auto 112%"
+          disable-pan
+          disable-zoom
+          interaction-prompt="none"
+          touch-action="none"
+        ></model-viewer>
+        <figcaption>"Astronaut by Jungle Jim" by Jungle Jim is licensed under Creative Commons Attribution (<a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a>).</figcaption>
+      </figure>
+    </section>
+  </main>
+</body>
+</html>

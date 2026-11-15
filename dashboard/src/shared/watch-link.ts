@@ -26,6 +26,7 @@ export const WatchSignalSchema = z.object({
   evidence: z.array(z.string()).min(1).max(64),
   action: z.string().min(1).max(750),
   wristMotionG: z.number().nonnegative().nullish(),
+  hapticRequested: z.boolean().optional(),
 }).refine((signal) => signal.evidence.every((metric) =>
   signal.frame.readings.some((r) => r.metric === metric && r.quality === 'valid' && r.status !== 'nominal')))
 

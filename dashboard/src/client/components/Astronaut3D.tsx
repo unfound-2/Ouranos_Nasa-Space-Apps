@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Region, RegionInfo } from '../lib/view'
 import { KIND, REGION_NO, REGION_ORDER, STATE_TONE } from './Astronaut'
@@ -10,17 +9,8 @@ import { Activity } from 'lucide-react'
 import { Pill } from './ui'
 import type { BodyMapProps } from './BodyMap'
 
-/*
- * The crew member as NASA's Z2 spacesuit model (NASA 3D Resources, "free and without copyright"),
- * served locally from /models with its Draco decoder in /draco, so it works offline. The texture
- * was cleaned of grime and the agency insignia (scripts/notes in docs/CREDITS.md).
- * Body regions are tinted by height and width in the shader, since the model is one mesh. It
- * renders on demand only and never moves by itself. Every region also has an HTML button over the
- * canvas, so selection works by keyboard and the tests can find region-HEAD / CHEST / ARMS / LEGS.
- */
-
-const MODEL_URL = '/models/z2-suit.glb'
-const DRACO_PATH = '/draco/'
+// The same updated Jungle Jim model used on the welcome page.
+const MODEL_URL = '/astronaut/astronaut.glb'
 const STATE_HEX: Record<RegionInfo['state'], number | null> = { symptom: 0xe5484d, data: 0x0090ff, caution: 0xffc53d, neutral: null }
 const SELECT_HEX = 0xededed
 
@@ -106,7 +96,7 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
     uAmt: { value: REGION_ORDER.map(() => 0) },
     uBounds: { value: new THREE.Vector4(1.58, 1.04, 0.215, 0) },
   }
-  let mesh: THREE.Mesh | null = null
+  const meshes: THREE.Mesh[] = []
   let anchors: Record<Region, { p: THREE.Vector3; n: THREE.Vector2 }> | null = null
 
   const controls = new OrbitControls(camera, canvas)
@@ -129,11 +119,7 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
   }
   controls.addEventListener('change', render)
 
-  const draco = new DRACOLoader()
-  draco.setDecoderPath(DRACO_PATH)
-  draco.setDecoderConfig({ type: 'wasm' })
   const loader = new GLTFLoader()
-  loader.setDRACOLoader(draco)
   loader.load(
     MODEL_URL,
     (gltf) => {
@@ -142,13 +128,13 @@ function createEngine(canvas: HTMLCanvasElement, w: number, h: number, onLoaded:
       root.traverse((o) => {
         const m = o as THREE.Mesh
         if (!m.isMesh) return
-        mesh = m
+        meshes.push(m)
         const mat = m.material as THREE.MeshStandardMaterial
         mat.onBeforeCompile = (shader) => {
           Object.assign(shader.uniforms, uniforms)
           shader.vertexShader = shader.vertexShader
             .replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
-            .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;')
+            .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = (modelMatrix * vec4(transformed, 1.0)).xyz;')
           shader.fragmentShader = shader.fragmentShader
             .replace(
               '#include <common>',
@@ -174,6 +160,8 @@ uniform vec4 uBounds;`,
       })
       // Stand the model on the ground at the origin and frame it.
       const box = new THREE.Box3().setFromObject(root)
+      root.scale.multiplyScalar(1.94 / box.getSize(new THREE.Vector3()).y)
+      box.setFromObject(root)
       const size = box.getSize(new THREE.Vector3())
       const center = box.getCenter(new THREE.Vector3())
       root.position.x -= center.x
@@ -185,15 +173,7 @@ uniform vec4 uBounds;`,
       target.set(0, size.y * 0.5, 0)
       controls.target.copy(target)
 
-      // Region bounds in the mesh's own coordinates (the shader reads the position attribute).
-      if (mesh) {
-        mesh.geometry.computeBoundingBox()
-        const gb = mesh.geometry.boundingBox!
-        const gh = gb.max.y - gb.min.y
-        const gw = gb.max.x - gb.min.x
-        const gcx = (gb.max.x + gb.min.x) / 2
-        uniforms.uBounds.value.set(gb.min.y + gh * 0.817, gb.min.y + gh * 0.537, gw * 0.271, gcx)
-      }
+      uniforms.uBounds.value.set(size.y * 0.81, size.y * 0.5, size.x * 0.25, 0)
 
       // Cast each marker onto the suit's surface from the front.
       const ray = new THREE.Raycaster()
@@ -204,9 +184,9 @@ uniform vec4 uBounds;`,
         const pr = PROBE[r]
         const origin = new THREE.Vector3(pr.x * ws.x * 1.0, wb.min.y + pr.y * ws.y, wb.max.z + 2)
         ray.set(origin, new THREE.Vector3(0, 0, -1))
-        const hit = mesh ? ray.intersectObject(mesh, false)[0] : undefined
+        const hit = ray.intersectObjects(meshes, false)[0]
         if (hit) {
-          const nrm = hit.face ? hit.face.normal.clone().transformDirection(mesh!.matrixWorld) : new THREE.Vector3(0, 0, 1)
+          const nrm = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0, 0, 1)
           found[r] = { p: hit.point.clone(), n: new THREE.Vector2(nrm.x, nrm.z).normalize() }
         } else {
           found[r] = { p: new THREE.Vector3(origin.x, origin.y, wb.max.z * 0.6), n: new THREE.Vector2(0, 1) }
@@ -249,12 +229,12 @@ uniform vec4 uBounds;`,
 
   const raycaster = new THREE.Raycaster()
   const pick = (clientX: number, clientY: number): Region | null => {
-    if (!mesh) return null
+    if (!meshes.length) return null
     const rect = canvas.getBoundingClientRect()
     raycaster.setFromCamera(new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1), camera)
-    const hit = raycaster.intersectObject(mesh, false)[0]
+    const hit = raycaster.intersectObjects(meshes, false)[0]
     if (!hit) return null
-    const local = mesh.worldToLocal(hit.point.clone())
+    const local = hit.point
     const b = uniforms.uBounds.value
     return local.y > b.x ? 'HEAD' : local.y < b.y ? 'LEGS' : Math.abs(local.x - b.w) > b.z ? 'ARMS' : 'CHEST'
   }
@@ -275,7 +255,6 @@ uniform vec4 uBounds;`,
   const dispose = () => {
     disposed = true
     controls.dispose()
-    draco.dispose()
     scene.traverse((o) => {
       const m = o as THREE.Mesh
       if (m.isMesh) {

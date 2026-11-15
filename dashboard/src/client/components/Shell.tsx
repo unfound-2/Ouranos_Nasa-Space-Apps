@@ -3,32 +3,16 @@ import { useEffect, type ReactNode } from 'react'
 import { subjectDevice, type SourceMode } from '../../shared/dataset'
 import { ago, utcStamp } from '../../shared/format'
 import { useData, useExternalRequests, useNavigatorOnline, useNow } from '../lib/data'
-import { href, type Route } from '../lib/router'
+import { href, navigate } from '../lib/router'
+import { Disclosure } from './ui'
 import { DEMO_SCENARIOS, scenarioById } from '../lib/scenarios'
 import { bannerSourceMode, defaultSubject, LINK_META, SOURCE_META, subjectsOf, type Tone } from '../lib/view'
 import { Pill } from './ui'
 
-/** A monochrome tile with a heartbeat trace (Vercel-style: light mark, no colour). */
-export function LogoMark({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden>
-      <rect width="28" height="28" rx="6" fill="#ededed" />
-      <path d="M5 15h4l2-5 3 9 2.5-6 1.5 2H23" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 /** The page width used by the header, the pages and the footer. */
 export const CONTAINER = 'mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8'
 
-const NAV: { key: Route['name'][]; label: string; to: string }[] = [
-  { key: ['overview'], label: 'Mission Overview', to: href.overview },
-  { key: ['crew', 'session'], label: 'Crew Health', to: href.crew },
-  { key: ['events', 'event'], label: 'Event History', to: href.events },
-  { key: ['system'], label: 'System Status', to: href.system },
-]
-
-export function CommandBar({ route }: { route: Route }) {
+function CrewPicker() {
   const { snapshot, workspace, subjectId, setSubjectId, setScenarioId } = useData()
   const ds = snapshot?.dataset ?? null
   const subjects = ds ? subjectsOf(ds) : []
@@ -42,18 +26,8 @@ export function CommandBar({ route }: { route: Route }) {
   }, [ds, subjectId, subjects, setSubjectId])
 
   return (
-    <div className="border-b border-line bg-void">
-      <div className={`${CONTAINER} flex h-16 items-center gap-4`}>
-        <a href={href.overview} className="flex min-w-0 items-center gap-3" aria-label="GRAVITYGUARD mission overview">
-          <LogoMark />
-          <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">GRAVITYGUARD</span>
-          <span className="hidden text-line-strong sm:inline" aria-hidden>
-            /
-          </span>
-          <span className="hidden truncate text-[14px] text-ink-2 sm:inline">Crew health review</span>
-        </a>
-        <label className="ml-auto flex shrink-0 items-center gap-3">
-          <span className="micro hidden lg:inline">Active crew</span>
+        <label className="flex flex-wrap items-center gap-3">
+          <span className="text-[13px] text-ink-2">Active crew</span>
           <span className="relative">
             <select
               className="field h-8 appearance-none pr-8 pl-3 text-[14px]"
@@ -76,20 +50,6 @@ export function CommandBar({ route }: { route: Route }) {
             <ChevronDown size={14} className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-ink-2" aria-hidden />
           </span>
         </label>
-      </div>
-      <nav aria-label="Main" className={`${CONTAINER} -mb-px flex overflow-x-auto`}>
-        <div className="-ml-3 flex">
-          {NAV.map((n) => {
-            const active = n.key.includes(route.name)
-            return (
-              <a key={n.label} href={n.to} aria-current={active ? 'page' : undefined} className="nav-pill">
-                {n.label}
-              </a>
-            )
-          })}
-        </div>
-      </nav>
-    </div>
   )
 }
 
@@ -145,7 +105,7 @@ function ScenarioPicker() {
 }
 
 /** The persistent data-source line. It is part of the sticky header on every page. */
-export function StatusRail() {
+function ConnectionDetails() {
   const { snapshot, error, workspace, setWorkspace, subjectId, refresh, latencyMs, setScenarioId } = useData()
   const now = useNow(5000)
   const online = useNavigatorOnline()
@@ -154,7 +114,7 @@ export function StatusRail() {
   if (error) {
     return (
       <div role="status" data-testid="source-banner" className="border-b border-coral/40 bg-[rgb(229_72_77/0.1)]">
-        <div className={`${CONTAINER} flex flex-wrap items-center gap-3 py-2.5`}>
+        <div className="flex flex-wrap items-center gap-3">
           <Pill tone="coral" className="font-medium">Local API unavailable</Pill>
           <span className="text-[13px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
           <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
@@ -182,8 +142,8 @@ export function StatusRail() {
   const demo = workspace === 'demo'
 
   return (
-    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet/50 bg-[rgb(110_86_207/0.12)]' : 'border-line bg-void'}`}>
-      <div className={`${CONTAINER} flex flex-wrap items-center gap-x-6 gap-y-2 py-2.5`}>
+    <div role="status" data-testid="source-banner">
+      <div className="flex flex-col gap-3">
         <span className="flex items-center gap-2.5">
           {!demo && <span className="text-[13px] text-ink-2">Data source</span>}
           <Pill tone={demo ? 'violet' : meta ? meta.tone : 'muted'} className="font-medium" testId="source-mode" title={meta?.hint}>
@@ -193,7 +153,7 @@ export function StatusRail() {
         </span>
         {demo && <ScenarioPicker />}
 
-        <span className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <RailReadout icon={null} label="Watch" value={linkMeta.label} tone={linkMeta.tone} title={linkMeta.hint} testId="watch-state" />
           <RailReadout
             icon={null}
@@ -221,7 +181,7 @@ export function StatusRail() {
               Exit demo
             </button>
           ) : (
-            <button className="btn btn-ghost btn-sm" onClick={() => setWorkspace('demo')}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate(href.pair)}>
               Open simulated demo
             </button>
           )}
@@ -229,6 +189,17 @@ export function StatusRail() {
       </div>
       {demo && <div className="sr-only">Every reading, symptom and alert here is simulated. No astronaut data.</div>}
     </div>
+  )
+}
+
+export function DashboardOptions() {
+  return (
+    <Disclosure title="Crew, simulator and connection details" className="mt-10">
+      <div className="grid gap-4">
+        <CrewPicker />
+        <ConnectionDetails />
+      </div>
+    </Disclosure>
   )
 }
 
@@ -242,7 +213,7 @@ export function Footer() {
         <span className="font-mono text-[12px]">Contract v1 · UTC · offline</span>
       </div>
       <p className="mt-3 text-[12px] text-ink-3">
-        Spacesuit model: NASA 3D Resources (Z2 suit). Earth photograph: NASA, ISS crew image iss072e340644. Both free of copyright; NASA does not endorse this project.
+        “Astronaut by Jungle Jim” by Jungle Jim is licensed under <a className="underline" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.
       </p>
     </footer>
   )

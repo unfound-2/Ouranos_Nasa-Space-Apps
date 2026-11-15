@@ -4,7 +4,7 @@ import { BASELINE_EXCLUSION_LABEL, comparePhases, externalReadingFindings, forma
 import type { IngestPathT, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, type Dataset } from '../../shared/dataset'
 import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp } from '../../shared/format'
-import { Empty, Pill, SimTag } from '../components/ui'
+import { Disclosure, Empty, Pill, SimTag } from '../components/ui'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { eventsOf, REVIEW_META, sessionsOf, subjectLabel, subjectsOf, symptomCheckText } from '../lib/view'
@@ -416,6 +416,7 @@ export function CrewHealth() {
         </dl>
       </header>
 
+      <Disclosure title="Filters">
       <div className="panel flex flex-wrap items-end gap-3 px-4 py-3" role="search" aria-label="Filter sessions">
         <label className="flex flex-col gap-1.5">
           <span className="micro">Astronaut</span>
@@ -474,7 +475,12 @@ export function CrewHealth() {
           </Pill>
         </div>
       </div>
+      </Disclosure>
 
+      <Section index="04" title="Recorded assessments" aside={<span className="text-[11.5px] text-ink-3">{rows.length} of {all.length}</span>}>
+        <SessionsTable rows={rows} ds={ds} />
+      </Section>
+      <Disclosure title="Recovery trends, baseline and symptoms">
       <div className="grid items-start gap-4 xl:grid-cols-12">
         <Section
           index="01"
@@ -494,9 +500,7 @@ export function CrewHealth() {
         </div>
       </div>
 
-      <Section index="04" title="Recorded assessments" aside={<span className="text-[11.5px] text-ink-3">{rows.length} of {all.length}</span>}>
-        <SessionsTable rows={rows} ds={ds} />
-      </Section>
+      </Disclosure>
     </div>
   )
 }

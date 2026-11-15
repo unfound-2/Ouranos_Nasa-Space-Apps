@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
-import earth from './assets/earth-horizon.webp'
-import { CommandBar, CONTAINER, Footer, StatusRail } from './components/Shell'
-import { SimWatchOverlay } from './components/SimWatch'
+import { DashboardOptions, CONTAINER, Footer } from './components/Shell'
+import { WarningInbox } from './components/WarningInbox'
+import { CrewGuide } from './pages/CrewGuide'
 import { Empty } from './components/ui'
 import { DataProvider, useData } from './lib/data'
-import { href, useRoute, type Route } from './lib/router'
+import { href, navigate, useRoute, type Route } from './lib/router'
+import { hasSimulatorSignIn, watchSignIn } from './lib/watch-pairing'
+import { PairWatch } from './pages/PairWatch'
 import { CrewHealth } from './pages/CrewHealth'
 import { EventHistory } from './pages/EventHistory'
 import { Investigation } from './pages/Investigation'
@@ -14,6 +16,7 @@ import { SystemStatus } from './pages/SystemStatus'
 
 function Page({ route }: { route: Route }) {
   const { snapshot, error } = useData()
+  if (route.name === 'guide') return <CrewGuide />
   if (route.name === 'system') return <SystemStatus />
   if (error)
     return (
@@ -51,62 +54,41 @@ function Page({ route }: { route: Route }) {
 }
 
 const TITLES: Partial<Record<Route['name'], string>> = {
+  pair: 'Pair watch',
   overview: 'Mission Health',
   event: 'Event evidence',
   crew: 'Crew Health',
   session: 'Session report',
   events: 'Event History',
   system: 'System Status',
-}
-
-/**
- * NASA photograph iss072e340644, "An orbital sunrise crowns Earth's horizon" (public domain), as a
- * single static image: the horizon behind the Overview hero, a softer band on the other pages.
- */
-function EarthBackdrop({ hero }: { hero: boolean }) {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden" style={{ height: hero ? 900 : 360 }}>
-      <div
-        className="absolute inset-x-0"
-        style={{
-          top: hero ? 170 : -70,
-          height: hero ? 690 : 360,
-          backgroundImage: `url(${earth})`,
-          backgroundSize: 'cover',
-          backgroundPosition: hero ? 'center top' : 'center 4%',
-          opacity: hero ? 1 : 0.4,
-          maskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 100%)',
-        }}
-      />
-    </div>
-  )
+  guide: 'Crew Guide',
 }
 
 function Shell() {
   const route = useRoute()
   const { workspace } = useData()
+  const hasAccess = watchSignIn() || (workspace === 'demo' && hasSimulatorSignIn())
+  const needsPairing = route.name !== 'pair' && !hasAccess
+  useEffect(() => {
+    if (needsPairing) navigate(href.pair)
+  }, [needsPairing, route.name])
   useEffect(() => {
     document.title = `${TITLES[route.name] ?? 'GRAVITYGUARD'}${workspace === 'demo' ? ' · SIMULATED' : ''} · GRAVITYGUARD`
   }, [route.name, workspace])
+  if (route.name === 'pair') return <PairWatch />
+  if (needsPairing) return null
+
   return (
     <div className="gg-backdrop relative min-h-screen">
-      <header>
-        <CommandBar route={route} />
-      </header>
-      <div className="sticky top-0 z-30">
-        <StatusRail />
-      </div>
-      <div className="relative">
-        <EarthBackdrop hero={route.name === 'overview'} />
-        <main className={`relative ${CONTAINER} pt-8 pb-16`}>
-          <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
-            <Page route={route} />
-          </div>
-        </main>
-      </div>
+      <main className={`relative ${CONTAINER} dashboard-main pt-9 pb-16`}>
+        {workspace === 'demo' && <p className="mb-6 text-center text-[12px] text-ink-2" role="status">Simulated demo · No astronaut data</p>}
+        <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
+          <Page route={route} />
+        </div>
+        <DashboardOptions />
+      </main>
       <Footer />
-      <SimWatchOverlay />
+      <WarningInbox />
     </div>
   )
 }

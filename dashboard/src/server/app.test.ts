@@ -648,16 +648,6 @@ describe('built dashboard', () => {
 })
 
 describe('review fixes: what the device may send and see', () => {
-  const nested = (levels: number) => {
-    const root: Record<string, unknown> = {}
-    let o = root
-    for (let i = 1; i < levels; i++) {
-      const next: Record<string, unknown> = {}
-      o.a = next
-      o = next
-    }
-    return root
-  }
   const queuedCuffAlert = async (app: App) => {
     await asDevice.post(app, '/api/v1/device/heartbeat', heartbeat()).expect(200)
     await asLocal.post(app, '/api/v1/measurements', { measurements: [cuffReading()] }).expect(201)
@@ -668,8 +658,10 @@ describe('review fixes: what the device may send and see', () => {
 
   it('refuses deeply nested extensions with 422 and keeps accepting records afterwards', async () => {
     const { app } = start()
-    // Serialized here: the test client's own serializer is recursive and cannot write 10,000 levels.
-    const body = JSON.stringify(watchEvent({ extensions: nested(10_000) }))
+    // Construct the deep JSON without depending on the runtime's recursion limit.
+    const extensions = '{"a":'.repeat(9_999) + '{}' + '}'.repeat(9_999)
+    const event = JSON.stringify(watchEvent({ extensions: {} }))
+    const body = event.replace('"extensions":{}', `"extensions":${extensions}`)
     const res = await request(app).post('/api/v1/alerts').set('Authorization', AUTH).set('Content-Type', 'application/json').send(body).expect(422)
     expect(res.body.error.details.join('\n')).toMatch(/^extensions: /m)
     await asDevice.post(app, '/api/v1/sessions', watchSession()).expect(201)

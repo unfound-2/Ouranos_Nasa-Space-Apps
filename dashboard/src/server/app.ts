@@ -941,7 +941,7 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
         status: 'DELIVERED',
         delivery: {
           channel: simulated ? 'SIMULATED_WATCH' : 'WATCH_LOCAL', state: 'PRESENTED',
-          presentedAt: createdAt, hapticRequested: true, confirmedBy: simulated ? 'SIMULATION' : 'WATCH_APP',
+          presentedAt: createdAt, hapticRequested: signal.hapticRequested ?? true, confirmedBy: simulated ? 'SIMULATION' : 'WATCH_APP',
         },
         isSimulated: simulated,
         provenance: { origin: simulated ? 'DEMO_FIXTURE' : 'WATCH_APP', deviceId },

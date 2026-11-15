@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { WatchFrame, WatchLinkSnapshot } from '../../shared/watch-link'
 import type { Workspace } from '../../shared/dataset'
 import { utcStamp } from '../../shared/format'
-import { takeWatchPairingCode } from '../lib/watch-pairing'
+import { takeAdapterToken } from '../lib/watch-pairing'
 import { request } from '../lib/api'
 import { Secret } from './Secret'
 
@@ -65,8 +65,8 @@ export function WatchPairing({ workspace }: { workspace: Workspace }) {
   }
 
   useEffect(() => {
-    const code = takeWatchPairingCode()
-    if (code !== null) void pair(code)
+    const token = takeAdapterToken()
+    if (token) setAdapterToken(token)
   }, [])
 
   useEffect(() => {

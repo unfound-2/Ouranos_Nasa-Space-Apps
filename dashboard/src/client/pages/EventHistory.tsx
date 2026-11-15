@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { EventCategoryT, EventStatusT } from '../../shared/contract'
 import { utcStamp } from '../../shared/format'
 import { ackLabel, evidenceLabel } from '../components/Events'
-import { Pill, SimTag, TONE } from '../components/ui'
+import { Disclosure, Pill, SimTag, TONE } from '../components/ui'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SEVERITY_META, sortEvents, STATUS_META, subjectLabel, subjectsOf } from '../lib/view'
@@ -53,6 +53,7 @@ export function EventHistory() {
           </div>
         </dl>
       </header>
+      <Disclosure title="Filters">
       <div className="panel flex flex-wrap items-end gap-3 px-4 py-3" role="search" aria-label="Filter events">
         <label className="flex min-w-[min(100%,260px)] flex-1 flex-col gap-1.5">
           <span className="micro">Search</span>
@@ -109,6 +110,7 @@ export function EventHistory() {
           </Pill>
         </div>
       </div>
+      </Disclosure>
       <section className="panel overflow-hidden">
         <header className="pane-head">
           <h2 className="label">Audit trail</h2>

@@ -16,6 +16,9 @@ Everything below ships inside the dashboard and loads from this computer. Nothin
   The Draco geometry is unchanged. The result is 0.56 MB, down from 16.9 MB.
 - **Draco decoder:** `dashboard/public/draco/` is copied unchanged from three.js 0.181 (`examples/jsm/libs/draco`, Apache-2.0).
 
+## Astronaut shown in the dashboard
+**Astronaut by Jungle Jim** by Jungle Jim, licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). The dashboard version changes the suit colors and adds a shoulder patch. The Earth photograph below is used on the pairing card.
+
 ## Earth photograph: `dashboard/src/client/assets/earth-horizon.webp`
 - **Source:** NASA image iss072e340644, "An orbital sunrise crowns Earth's horizon", taken from the International Space Station on 18 November 2024 (NASA Image and Video Library).
 - **Rights:** NASA imagery is generally not subject to copyright in the United States.

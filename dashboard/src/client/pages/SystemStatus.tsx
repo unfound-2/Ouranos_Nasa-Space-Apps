@@ -1,3 +1,5 @@
+import { Disclosure } from '../components/ui'
+import { watchSignIn } from '../lib/watch-pairing'
 import { ArrowUpRight, Check, Copy, FileUp, FlaskConical, Minus, RefreshCw, RotateCcw, SquareCheck, SquareDashed, SquareX, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IngestPathT } from '../../shared/contract'
@@ -930,12 +932,14 @@ export function SystemStatus() {
   const checks = useChecks()
   const list = checks.data?.checks ?? []
   const tally = checkTally(list)
+  const signedIn = workspace === 'mission' ? watchSignIn() : null
   const summary = checks.data ? `${tally.PASS} of ${list.length} pass` : '--'
   return (
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
           <h1 className="display text-[28px] text-ink">Mission computer</h1>
+          {signedIn && <p className="mt-1 faded-label">Signed in as {signedIn.name}</p>}
           <p className="mt-1 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
         </div>
         <dl className="flex flex-wrap gap-x-8 gap-y-2">
@@ -954,28 +958,25 @@ export function SystemStatus() {
         </dl>
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-12">
-        <WatchConnection checks={checks.data} className="xl:col-span-5" />
-        <IntegrationCheckPanel checks={checks} className="xl:col-span-7" />
-      </div>
-
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <OnboardComputer />
-        <DataIntegrity />
-        <OfflineOperation />
-      </div>
-
-      <section className="panel" data-testid="integration-tools">
-        <header className="pane-head">
-          <h2 className="label">Integration tools</h2>
-        </header>
-        <div className="grid gap-x-8 gap-y-6 p-4 lg:grid-cols-2">
+      <WatchConnection checks={checks.data} />
+      <Disclosure title="Integration checks">
+        <IntegrationCheckPanel checks={checks} />
+      </Disclosure>
+      <Disclosure title="Computer, data and offline operation">
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <OnboardComputer />
+          <DataIntegrity />
+          <OfflineOperation />
+        </div>
+      </Disclosure>
+      <Disclosure title="Integration tools">
+        <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2" data-testid="integration-tools">
           <ConnectionSettings />
           <ImportPanel />
           <ManualReading />
           <DemoTools />
         </div>
-      </section>
+      </Disclosure>
     </div>
   )
 }

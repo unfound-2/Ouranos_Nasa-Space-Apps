@@ -88,7 +88,7 @@
 
 @layer components {
   .gg-backdrop {
-    background: var(--color-void);
+    background: transparent;
   }
 
   /* Geist type scale. */
@@ -139,7 +139,6 @@
   .panel-quiet {
     position: relative;
     background: var(--color-panel);
-    border: 1px solid var(--color-line);
     border-radius: 12px;
   }
   .pane-head {
@@ -152,7 +151,6 @@
   }
   .well {
     background: var(--color-panel-2);
-    border: 1px solid var(--color-hair);
     border-radius: 8px;
   }
   .rule {
@@ -189,7 +187,6 @@
     white-space: nowrap;
     transition:
       background-color 150ms ease,
-      border-color 150ms ease,
       color 150ms ease;
   }
   .btn:disabled {
@@ -213,34 +210,38 @@
   /* primary: gray-1000 fill, background text (Geist "default" button) */
   .btn-primary,
   .btn-hero {
-    background: var(--color-ink);
+    --button-fill: var(--color-ink);
+    background: var(--button-fill);
     color: #0a0a0a;
     --btn-spin: #0a0a0a;
   }
   .btn-primary:hover:not(:disabled),
   .btn-hero:hover:not(:disabled) {
-    background: #cccccc;
+    --button-fill: #cccccc;
+    background: var(--button-fill);
   }
   /* secondary */
   .btn-ghost,
   .btn-sim {
-    background: var(--color-panel);
+    --button-fill: var(--color-panel);
+    background: var(--button-fill);
     color: var(--color-ink);
-    border: 1px solid var(--color-line);
   }
   .btn-ghost:hover:not(:disabled),
   .btn-sim:hover:not(:disabled) {
-    background: var(--color-raised);
-    border-color: var(--color-line-strong);
+    --button-fill: var(--color-raised);
+    background: var(--button-fill);
   }
   /* error */
   .btn-alert {
-    background: var(--color-coral);
+    --button-fill: var(--color-coral);
+    background: var(--button-fill);
     color: #ffffff;
     --btn-spin: #ffffff;
   }
   .btn-alert:hover:not(:disabled) {
-    background: #ec5d5e;
+    --button-fill: #ec5d5e;
+    background: var(--button-fill);
   }
   .btn-sm {
     height: 32px;
@@ -257,7 +258,6 @@
     flex: none;
     border-radius: 6px;
     color: var(--color-ink-2);
-    border: 1px solid var(--color-line);
     background: var(--color-panel);
     transition:
       background-color 150ms ease,
@@ -276,23 +276,16 @@
   .field {
     height: 40px;
     border-radius: 6px;
-    border: 1px solid var(--color-line);
     background: var(--color-panel);
     padding: 0 12px;
     font-size: 14px;
     color: var(--color-ink);
-    transition: border-color 150ms ease;
   }
   .field::placeholder {
     color: var(--color-ink-3);
   }
-  .field:hover {
-    border-color: var(--color-line-strong);
-  }
   .field:focus {
-    outline: none;
-    border-color: var(--color-ink-2);
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
+    background: var(--color-raised);
   }
 
   /* Geist table: quiet header, plain rows, row hover. */
@@ -333,7 +326,6 @@
     gap: 2px;
     padding: 2px;
     border-radius: 6px;
-    border: 1px solid var(--color-line);
     background: var(--color-panel);
   }
   .seg > button {
@@ -505,3 +497,84 @@
   transform-origin: center;
   animation: gg-mark 700ms var(--ease-out-quart) 1 both;
 }
+
+
+/* Keep solid surfaces and typography consistent across the dashboard. */
+.gg-backdrop [class~="border"],
+.gg-backdrop [class~="border-b"],
+.gg-backdrop [class~="border-t"],
+.gg-backdrop .rule {
+  border-width: 0;
+}
+
+@supports (background-clip: text) {
+  .gg-backdrop :is(h1, h2, h3, h4, p, label, span, dt, dd, th, td, a, strong, small, time, code, div[class*="text-"], li):not(:has(*)):not(.sr-only, .btn, .icon-btn, .status-mark, .faded-label, [class*="bg-"]):not(:is(.btn, .seg, .icon-btn) *) {
+    background-image: linear-gradient(to bottom, currentColor 52%, color-mix(in srgb, currentColor 87%, black));
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gg-backdrop :is(.btn, .seg > button) {
+    background-image:
+      linear-gradient(to bottom, currentColor 50%, color-mix(in srgb, currentColor 82%, black)),
+      linear-gradient(var(--button-fill, transparent), var(--button-fill, transparent));
+    background-clip: text, border-box;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .gg-backdrop .seg > button[aria-selected="true"],
+  .gg-backdrop .seg > button[aria-pressed="true"] {
+    --button-fill: var(--color-raised);
+  }
+
+  .gg-backdrop :is(.btn, .seg > button) svg {
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+@media (forced-colors: active) {
+  .gg-backdrop * { -webkit-text-fill-color: currentColor; }
+}
+
+.dashboard-main { max-width: 1120px; }
+
+.mission-intro {
+  text-align: center;
+  padding-block: clamp(16px, 4vw, 52px) 12px;
+  color: var(--color-ink-2);
+}
+
+.mission-intro h1 {
+  width: fit-content;
+  margin: 0 auto 14px;
+  font-size: clamp(2.5rem, 6vw, 4.75rem);
+  line-height: 1.05;
+}
+
+.mission-figure {
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  border-radius: 20px;
+  background: #0a0b0e;
+}
+
+.mission-region { padding: 20px clamp(16px, 3vw, 38px) 28px; }
+
+@media (min-width: 760px) {
+  .mission-figure { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .mission-region { padding-left: 0; }
+}
+
+.dashboard-disclosure > summary {
+  padding: 18px 22px;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.dashboard-disclosure > summary:hover { color: white; }
+.dashboard-disclosure-content { padding: 0 clamp(12px, 2vw, 22px) 20px; }
+
+.dashboard-main .panel { background-color: #101114; }

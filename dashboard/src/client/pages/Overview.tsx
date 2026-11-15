@@ -7,10 +7,11 @@ import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics, tim
 import { ago, plural, signed, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
 import { EvidenceList } from '../components/Astronaut'
+import { WatchCharts } from '../components/WatchCharts'
 import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
 import { Bars, Kpi, Progress, Spark, type BarDatum } from '../components/Gauge'
-import { CornerLink, Empty, Panel, Pill, SimTag } from '../components/ui'
+import { CornerLink, Empty, Pill, SimTag } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { scenarioById } from '../lib/scenarios'
@@ -647,7 +648,7 @@ export function Overview() {
   const [region, setRegion] = useState<Region | null>(null)
   if (!snapshot) return null
   const ds = snapshot.dataset
-  if (Object.keys(ds.sessions).length + Object.keys(ds.events).length === 0) return <EmptyWorkspace />
+  if (Object.keys(ds.sessions).length + Object.keys(ds.events).length === 0) return <div className="grid gap-6"><EmptyWorkspace /><WatchCharts /></div>
   return <Dashboard ds={ds} nowMs={nowMs} region={region} setRegion={setRegion} workspace={workspace} subjectId={subjectId} scenarioId={scenarioId} serverTime={snapshot.serverTime} links={snapshot.links} />
 }
 
@@ -684,50 +685,42 @@ function Dashboard({
   const crew = focus.subjectId ? subjectLabel(focus.subjectId) : null
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="grid items-center gap-x-10 gap-y-6 lg:min-h-[600px] lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <div>
-            <h1 className="display text-[40px] text-ink">Mission health</h1>
-            <p className="mt-2 text-[14px] text-ink-2">
-              {crew ?? 'No crew selected'} · gravity recovery check · latest <span className="font-mono text-[13px]">{session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'}</span> · {workspace === 'demo' ? 'simulated demo' : (sessionMode ?? 'no records')}
-              {focus.scenario && <span> · scenario {focus.scenario.id}</span>}
-            </p>
-          </div>
-          <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={serverTime} />
-          {workspace === 'demo' && <TriggerButton />}
-        </div>
-        <div className="relative min-w-0">
-          <BodyMap regions={regions} selected={region} onSelect={setRegion} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
-        </div>
-      </section>
+    <div className="flex flex-col gap-5">
+      <header className="mission-intro">
+        <h1 className="display faded-label">Mission health</h1>
+        <p>{crew ?? 'No crew selected'} · {session ? utcStamp(session.startedAt) : 'No recorded assessment'}</p>
+        <p>{workspace === 'demo' ? focus.scenario?.title ?? 'Simulated recovery check' : sessionMode ?? 'Mission records'}</p>
+      </header>
 
-      <KeyMetrics ds={ds} focus={focus} t={t} />
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Panel
-          title="Evidence by region"
-          meta={
-            crew ? (
-              <span className="flex items-center gap-3 text-[13px] text-ink-2">
-                {crew}
-                {session?.isSimulated && <SimTag />}
-              </span>
-            ) : undefined
-          }
-          bodyClassName="flex flex-col gap-4 px-2 pb-5"
-        >
+      <section className="mission-figure" aria-label="Astronaut body map">
+        <BodyMap regions={regions} selected={region} onSelect={setRegion} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
+        <div className="mission-region">
+          <h2 className="display faded-label mb-2 text-[24px]">Body regions</h2>
+          <p className="mb-4 text-ink-2">Select a marker to see symptoms and readings for that area.</p>
           <EvidenceList regions={regions} selected={region} onSelect={setRegion} title={null} />
-          <div className="px-3">
-            <RegionDetail info={region ? regions[region] : null} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
-          </div>
-        </Panel>
-        <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
+          {(region || regions.unplaced.length > 0) && (
+            <div className="mt-3" aria-live="polite">
+              <RegionDetail info={region ? regions[region] : null} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
+            </div>
+          )}
+        </div>
       </section>
 
-      <RecordDetails t={t} nowMs={nowMs} session={session} mode={sessionMode} hrCount={hrCount} />
-
+      <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={serverTime} />
+      <WatchCharts recordedHeartRate={t.series} />
+      <section className="grid gap-4" aria-labelledby="assessment-title">
+        <h2 id="assessment-title" className="display faded-label text-[24px]">Recovery assessment</h2>
+        <KeyMetrics ds={ds} focus={focus} t={t} />
+        <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
+        <details className="panel dashboard-disclosure">
+          <summary>Record details</summary>
+          <div className="dashboard-disclosure-content">
+            <RecordDetails t={t} nowMs={nowMs} session={session} mode={sessionMode} hrCount={hrCount} />
+          </div>
+        </details>
+      </section>
       <EventQueue ds={ds} focusId={focus.event?.eventId ?? null} />
+      {workspace === 'demo' && <div><TriggerButton /></div>}
     </div>
   )
 }

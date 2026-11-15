@@ -14,12 +14,14 @@ The watch-pairing code merged from the teammate branch `codex/watch-dashboard-in
 
 It worked from a written brief by Dhruv and the team's 12-hour PRD. The product idea, the scope and the safety rules (no diagnosis, no clearance, honest LIVE/SAVED/SIMULATED labels) come from those documents. Dhruv set the visual direction with reference images and rounds of feedback, and asked that the interface follow published design systems; it uses Vercel Geist, Radix Colors and Tremor, listed in `docs/CREDITS.md`. The AI chose the implementation details: the data-contract field names and rules, the event state machine, the record-store design, the layout, and the typefaces (Geist Sans and Geist Mono, bundled from open-source packages).
 
+The subsequent dashboard redesign and watch charts, warning inbox and crew guide were implemented with OpenAI Codex under Mustafa’s direction.
+
 ## Images and 3D models
 
 No photo, video, audio or 3D model in the dashboard was made by AI.
 
-- The spacesuit is NASA's Z2 model from NASA 3D Resources. The AI-written script `dashboard/scripts/clean-z2-suit.py` edited its texture: it lifted the grime, removed the NASA insignia patch and shrank the file.
-- The Earth background is NASA photograph iss072e340644, cropped and compressed.
+- The original dashboard spacesuit is NASA's Z2 model from NASA 3D Resources. The AI-written script `dashboard/scripts/clean-z2-suit.py` edited its texture: it lifted the grime, removed the NASA insignia patch and shrank the file.
+- The displayed astronaut is Jungle Jim’s model with edited suit accents and a NASA shoulder patch. The pairing card uses NASA photograph iss072e340644, cropped and compressed.
 - The AI drew three small graphics as SVG code: the logo mark, the browser-tab icon (`dashboard/public/favicon.svg`) and the 2D crew figure shown when the browser cannot run WebGL.
 - Icons come from Lucide (ISC licence).
 
@@ -29,7 +31,7 @@ Sources and licences for all of these are in `docs/CREDITS.md`.
 
 - Every record under `dashboard/fixtures/simulated/` and every example in `contracts/v1/examples/` is invented and flagged `isSimulated: true`. None of it was measured on a person.
 - The end-to-end tests send synthetic records named `e2e-*` to a throwaway data folder.
-- No astronaut or medical data was used. No NASA logo or insignia appears in the dashboard; the footer credits NASA for the model and the photo and says NASA does not endorse the project.
+- No astronaut or medical data was used.
 
 ## What a person still has to do
 

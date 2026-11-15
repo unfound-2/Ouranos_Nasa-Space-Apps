@@ -163,3 +163,12 @@ export function KV({ k, children, mono = false }: { k: string; children: ReactNo
 export function Code({ children }: { children: ReactNode }) {
   return <code className="code rounded-[4px] border border-line bg-panel-2 px-1.5 py-0.5 whitespace-pre-wrap text-ink">{children}</code>
 }
+
+export function Disclosure({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
+  return (
+    <details className={`panel dashboard-disclosure ${className}`}>
+      <summary>{title}</summary>
+      <div className="dashboard-disclosure-content">{children}</div>
+    </details>
+  )
+}

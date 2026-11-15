@@ -4,8 +4,8 @@ Dhruv’s Mission Dashboard connects to the GRAVITYGUARD watch app through the l
 
 1. In `dashboard/`, run `npm ci`, `npm run build`, then `npm start`. Open http://127.0.0.1:4317 on that computer.
 2. Open `AstronautHealthSystem/AstronautHealthSystem.xcodeproj` in Xcode and run the watch app. The simulator uses port 4317 automatically. For a physical watch, choose your own signing team in Xcode and start the dashboard with `GG_LAN=1 npm start`. In the watch app, tap **Set console address** and enter the LAN URL shown under **System Status → Watch connection** (the Wi-Fi `en0` address). Keep the Mac and watch on the same network.
-3. On the watch, tap **Get pairing code**, then **Share pairing link**. Open the link on the computer running the dashboard, or enter the code under **System Status → Watch connection**. A pairing code expires after five minutes and is single-use.
-4. Tap **Run simulation** on the watch. Open the dashboard’s **Demo** workspace to see its readings under **Watch connection** and review alerts in **Event History**. Actual watch review events appear in **Mission**.
+3. On the watch, tap **Get pairing code**, then **Share pairing link**. On the computer running the dashboard, open the link or choose **Pair watch**, then enter your name and submit the code. Successful pairing opens **System Status**. A pairing code expires after five minutes and is single-use.
+4. Tap **Run simulation** on the watch. Choose **Run simulator** on the dashboard’s **Pair watch** page to see its readings under **Watch connection** and review alerts in **Event History**. Actual watch review events appear in **Mission**.
 
 To test the connection with the physical watch step by step, follow [the watch connection test](docs/WATCH_CONNECTION_TEST.md). The mission computer reports each step as an **Integration check** (`GET /api/v1/integration/checks` on that computer). A check passes only on real records or live pairing state, never on simulated data. A paired watch app shows as "GRAVITYGUARD watch app (code-paired)", because the same app also runs in the Xcode simulator.
 
