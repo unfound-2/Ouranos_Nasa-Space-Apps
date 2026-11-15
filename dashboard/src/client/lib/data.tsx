@@ -8,6 +8,17 @@ import type { ReviewAction } from '../../shared/contract'
 import type { Workspace } from '../../shared/dataset'
 import type { WatchFrame, WatchLinkSnapshot } from '../../shared/watch-link'
 import { api, ApiError, request, type Health, type Snapshot } from './api'
+import { watchSignIn } from './watch-pairing'
+
+const workspaceKey = 'gg.workspace'
+
+function initialWorkspace(): Workspace {
+  try {
+    const tabWorkspace = window.sessionStorage.getItem(workspaceKey)
+    if (tabWorkspace === 'demo' || tabWorkspace === 'mission') return tabWorkspace
+  } catch { /* fall back to the saved preference */ }
+  return !watchSignIn() && readPref(workspaceKey) === 'demo' ? 'demo' : 'mission'
+}
 
 const POLL_MS = 2500
 
@@ -66,14 +77,14 @@ interface DataState {
 const Ctx = createContext<DataState | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [workspace, setWorkspaceState] = useState<Workspace>(() => (readPref('gg.workspace') === 'demo' ? 'demo' : 'mission'))
+  const [workspace, setWorkspaceState] = useState<Workspace>(initialWorkspace)
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
   const [latencyMs, setLatency] = useState<number | null>(null)
   const [skewMs, setSkew] = useState<number | null>(null)
   const [lastOkAt, setLastOkAt] = useState<number | null>(null)
-  const [subjectId, setSubjectState] = useState<string | null>(() => readPref(`gg.subject.${readPref('gg.workspace') ?? 'mission'}`))
+  const [subjectId, setSubjectState] = useState<string | null>(() => readPref(`gg.subject.${workspace}`))
   const [trigger, setTrigger] = useState<TriggerNotice | null>(null)
   const [watchLinks, setWatchLinks] = useState<WatchLinkSnapshot[] | null>(null)
   const [watchHistory, setWatchHistory] = useState<Record<string, readonly WatchFrame[]>>({})
@@ -103,12 +114,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setWatchLinks(links)
       if (links) setWatchHistory((previous) => {
         const next: Record<string, readonly WatchFrame[]> = {}
-        for (const { deviceId, watch } of links) {
-          if (!watch || watch.simulated) continue
-          const frames = previous[deviceId] ?? []
-          next[deviceId] = frames.at(-1)?.observedAt === watch.observedAt
-            ? frames
-            : [...frames.slice(-119), watch]
+        for (const { deviceId, watch, telemetry } of links) {
+          const currentFrames = [...(watch ? [watch] : []), ...telemetry]
+          const sources = new Set(currentFrames.map((frame) => frame.source))
+          const recent = (previous[deviceId] ?? []).filter((frame) => sources.has(frame.source))
+          for (const frame of currentFrames) {
+            if (!recent.some((sample) => sample.source === frame.source && sample.observedAt === frame.observedAt)) {
+              recent.push(frame)
+            }
+          }
+          next[deviceId] = recent.sort((a, b) => a.observedAt - b.observedAt).slice(-120)
         }
         return next
       })
@@ -139,9 +154,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [refresh, workspace])
 
   const setWorkspace = useCallback((w: Workspace) => {
-    writePref('gg.workspace', w)
+    writePref(workspaceKey, w)
+    try { window.sessionStorage.setItem(workspaceKey, w) } catch { /* use the current workspace in memory */ }
+    if (wsRef.current === w) return
     wsRef.current = w
     setSnapshot(null)
+    setWatchLinks(null)
+    setWatchHistory({})
     setError(null)
     setSubjectState(readPref(`gg.subject.${w}`))
     setWorkspaceState(w)

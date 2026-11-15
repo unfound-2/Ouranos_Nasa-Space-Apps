@@ -4,9 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Region, RegionInfo } from '../lib/view'
-import { KIND, REGION_NO, REGION_ORDER, STATE_TONE } from './Astronaut'
-import { Activity } from 'lucide-react'
-import { Pill } from './ui'
+import { REGION_NO, REGION_ORDER } from './Astronaut'
 import type { BodyMapProps } from './BodyMap'
 
 // The same updated Jungle Jim model used on the welcome page.
@@ -321,17 +319,13 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
     const place = () => {
       const pos = engine.project()
       if (!pos) return
-      const mid = wrap.clientWidth / 2
       for (const r of REGION_ORDER) {
         const el = markerRefs.current[r]
         if (!el) continue
         const p = pos[r]
         el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`
         el.style.opacity = p.facing ? '1' : '0.35'
-        // labels sit outside the figure, but flip inward when they would run off the edge
-        el.dataset.side = p.x >= mid ? (p.x + 200 > wrap.clientWidth ? 'left' : 'right') : p.x - 200 < 0 ? 'right' : 'left'
-        const tag = el.querySelector<HTMLElement>('[data-chip]')
-        if (tag) tag.style.visibility = p.facing ? 'visible' : 'hidden'
+
       }
     }
     engine.onChange(place)
@@ -385,8 +379,6 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
       {!loaded && <div className="absolute inset-0 grid place-items-center text-[13px] text-ink-2">Loading the 3D model…</div>}
       {REGION_ORDER.map((r) => {
         const info = regions[r]
-        const k = KIND[info.state]
-        const marked = Boolean(k && info.callout)
         const isSel = selected === r
         return (
           <button
@@ -399,7 +391,7 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
             data-state={info.state}
             data-selected={isSel}
             aria-pressed={isSel}
-            aria-label={`${REGION_NO[r]}, ${info.name}: ${info.callout ?? 'no evidence recorded'}`}
+            aria-label={`${info.name}: ${info.callout ?? 'no evidence recorded'}`}
             onClick={() => onSelect(isSel ? null : r)}
             className="group absolute top-0 left-0 z-10 -mt-3 -ml-3 grid h-6 w-6 place-items-center transition-opacity duration-150"
             style={{ transform: 'translate(-9999px, -9999px)' }}
@@ -407,19 +399,8 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
             <span
               className={`grid h-[18px] w-[18px] place-items-center rounded-[4px] border font-mono text-[10px] font-semibold ${isSel ? 'border-ink bg-ink text-void' : 'border-line-strong bg-panel text-ink group-hover:border-ink-2'}`}
             >
-              {REGION_NO[r]}
+              {size === 'hero' ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" /> : REGION_NO[r]}
             </span>
-            {marked && size === 'hero' && (
-              <span data-chip className="pointer-events-none absolute top-1/2 hidden -translate-y-1/2 items-center group-data-[side=left]:right-full group-data-[side=left]:flex-row-reverse group-data-[side=right]:left-full sm:flex">
-                <span className="h-px w-6 bg-line-strong" />
-                <span className="flex items-center gap-2.5 rounded-[6px] border border-line bg-panel px-2.5 py-1 text-[13px] font-medium whitespace-nowrap text-ink">
-                  {info.name}
-                  <Pill tone={STATE_TONE[info.state]} icon={info.state === 'data' ? Activity : undefined} className="text-ink-2">
-                    {k!.tag.charAt(0) + k!.tag.slice(1).toLowerCase()}
-                  </Pill>
-                </span>
-              </span>
-            )}
           </button>
         )
       })}

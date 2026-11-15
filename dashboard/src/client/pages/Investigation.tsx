@@ -63,7 +63,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
         <div className="text-[12.5px]">
           <span className="font-semibold text-ink">{SYMPTOM_LABEL[r.symptom.code]}</span>
           <span className="text-ink-2"> — {r.symptom.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'crew-observed'} at {utcTime(r.symptom.reportedAt)}</span>
-          {r.symptom.phase && <span className="text-ink-3"> · {r.symptom.phase.toLowerCase()} phase</span>}
+          {r.symptom.phase && <span className="text-ink-3">   {r.symptom.phase.toLowerCase()} phase</span>}
           {r.symptom.note && <div className="text-[12px] text-ink-3">“{r.symptom.note}”</div>}
         </div>
       )
@@ -76,7 +76,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
           </span>
           <span className="text-ink-2">
             {' '}
-            · {m.source.device ?? m.source.kind} · measured {utcStamp(m.measuredAt)} · quality {m.quality.toLowerCase()}
+              {m.source.device ?? m.source.kind}   measured {utcStamp(m.measuredAt)}   quality {m.quality.toLowerCase()}
           </span>
           {r.ref.note && <div className="text-[12px] text-ink-3">{r.ref.note}</div>}
         </div>
@@ -91,11 +91,11 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
     case 'SESSION':
       return (
         <div className="text-[12.5px] text-ink-2">
-          Session <span className="font-mono text-[11.5px]">{r.session.sessionId}</span> · {utcStamp(r.session.startedAt)}
+          Session <span className="font-mono text-[11.5px]">{r.session.sessionId}</span>   {utcStamp(r.session.startedAt)}
         </div>
       )
     case 'DEVICE':
-      return <div className="text-[12.5px] text-ink-2">Device {r.device.deviceId} · last seen {utcStamp(r.device.lastSeenAt)}</div>
+      return <div className="text-[12.5px] text-ink-2">Device {r.device.deviceId}   last seen {utcStamp(r.device.lastSeenAt)}</div>
   }
 }
 
@@ -109,7 +109,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
   const watchAction = ctx.event.extensions?.watchReviewAction
   return (
     <section className="grid gap-4 xl:grid-cols-3" aria-label="Evidence narrative">
-      <Section index="01" title="What happened?">
+      <Section className="mission-event-card" title="What happened?">
         <ol className="space-y-2.5" data-testid="what-happened">
           {timeline.map((i, idx) => (
             <li key={idx} className="grid grid-cols-[62px_minmax(0,1fr)] gap-x-3 text-[12.5px]">
@@ -127,7 +127,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
         </ol>
       </Section>
 
-      <Section index="02" title="Why was this flagged?">
+      <Section className="mission-event-card" title="Why was this flagged?">
         <div data-testid="explanation">
           <p className="text-[14px] leading-relaxed font-semibold text-ink">{sentences[0]}</p>
           {typeof watchAction === 'string' && <p className="mt-3 text-[12.5px] text-ink-2">{watchAction}</p>}
@@ -152,7 +152,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
         </ul>
       </Section>
 
-      <Section index="03" title="What can we actually conclude?">
+      <Section className="mission-event-card" title="What can we conclude?">
         <div data-testid="conclusions">
           <div className="micro text-ink">The record shows</div>
           <ul className="mt-2.5 space-y-2">
@@ -214,7 +214,7 @@ function MeasurementInspector({ m, c, links }: { m: StoredMeasurement | null; c:
       <ProvenanceRow k="Phase">{m.phase ? m.phase.toLowerCase() : 'not tagged'}</ProvenanceRow>
       <ProvenanceRow k="Quality">
         {m.quality.toLowerCase()}
-        {excl && <span className="text-ink"> · {EXCLUSION_LABEL[excl.reason].toLowerCase()}</span>}
+        {excl && <span className="text-ink">   {EXCLUSION_LABEL[excl.reason].toLowerCase()}</span>}
       </ProvenanceRow>
       <ProvenanceRow k="Device">{m.source.device ?? 'not recorded'}</ProvenanceRow>
       <ProvenanceRow k="Sensor">{m.source.sensor ?? 'not recorded'}</ProvenanceRow>
@@ -258,7 +258,7 @@ export function RecoveryPanel({ session, c, className = '', unlinked = false, in
         session ? (
           <span className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-3">
             <span>
-              {src?.source.device ?? 'Unknown device'} · {plural(hr.length, 'reading')}
+              {src?.source.device ?? 'Unknown device'}   {plural(hr.length, 'reading')}
             </span>
             {session.isSimulated ? <SimTag /> : <RealTag />}
             {mode && !session.isSimulated && <Pill tone={SOURCE_META[mode].tone}>{mode}</Pill>}
@@ -418,7 +418,7 @@ export function HistoryPanel({ ctx, className = '', index }: { ctx: Pick<EventCo
               <ul className="mt-2 space-y-1">
                 {b.excluded.map((x) => (
                   <li key={x.sessionId}>
-                    <span className="tnum">{utcStamp(x.startedAt).slice(0, 16)}</span> · {BASELINE_EXCLUSION_LABEL[x.reason]}
+                    <span className="tnum">{utcStamp(x.startedAt).slice(0, 16)}</span>   {BASELINE_EXCLUSION_LABEL[x.reason]}
                   </li>
                 ))}
               </ul>
@@ -463,7 +463,7 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-[11.5px] text-ink-2">
-            {REVIEW_CHECKLIST.id} · v{REVIEW_CHECKLIST.version}
+            {REVIEW_CHECKLIST.id}   v{REVIEW_CHECKLIST.version}
           </span>
           <Pill tone={REVIEW_META[r.state].tone}>{REVIEW_META[r.state].label}</Pill>
         </div>
@@ -612,7 +612,7 @@ export function Investigation({ id }: { id: string }) {
     event.delivery.state === 'PRESENTED'
       ? `Presented on the ${event.delivery.channel === 'SIMULATED_WATCH' ? 'simulated watch' : 'watch'} ${event.delivery.presentedAt ? utcTime(event.delivery.presentedAt) : ''}`
       : event.delivery.state === 'WATCH_UNREACHABLE'
-        ? 'Not delivered · watch unreachable'
+        ? 'Not delivered   watch unreachable'
         : event.delivery.state === 'UNCONFIRMED'
           ? 'Queued, never confirmed'
           : event.delivery.state === 'QUEUED'
@@ -633,7 +633,7 @@ export function Investigation({ id }: { id: string }) {
             </div>
             <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>
             <p className="mt-0.5 text-[13.5px] text-ink-2">
-              <span className="text-ink-3">Reason · </span>
+              <span className="text-ink-3">Reason   </span>
               {reasonLine(ctx)}
             </p>
           </div>
@@ -682,19 +682,22 @@ export function Investigation({ id }: { id: string }) {
           </HeaderField>
           <HeaderField k="Source">
             {ORIGIN_LABEL[event.origin.kind]}
-            {event.origin.ruleSet ? <span className="text-ink-3"> · {event.origin.ruleSet}</span> : null}
-            <span className={`mt-0.5 block text-[11.5px] ${TONE[SOURCE_META[ctx.sourceMode].tone].text}`}>{event.isSimulated ? 'SIMULATED' : `REAL · ${ctx.sourceMode}`}</span>
+            {event.origin.ruleSet ? <span className="text-ink-3">   {event.origin.ruleSet}</span> : null}
+            <span className={`mt-0.5 block text-[11.5px] ${TONE[SOURCE_META[ctx.sourceMode].tone].text}`}>{event.isSimulated ? 'SIMULATED' : `REAL   ${ctx.sourceMode}`}</span>
           </HeaderField>
           <HeaderField k="Delivery">
             <span className={event.delivery.state === 'PRESENTED' ? 'text-ink' : 'text-ink'}>{delivery}</span>
           </HeaderField>
           <HeaderField k="Acknowledgement">
-            <span className={TONE[ack.tone].text}>{event.acknowledgement ? ack.text : event.delivery.state === 'PRESENTED' ? 'Presented · not acknowledged' : ack.text}</span>
+            <span className={TONE[ack.tone].text}>{event.acknowledgement ? ack.text : event.delivery.state === 'PRESENTED' ? 'Presented   not acknowledged' : ack.text}</span>
           </HeaderField>
         </dl>
       </section>
 
       <Narrative ctx={ctx} />
+      <Section className="mission-event-card" title="What to do next">
+        <a className="underline" href={href.guideTopic(ctx.session?.symptoms.some((symptom) => symptom.code === 'DIZZY') ? 'dizziness' : 'reading-check')}>Open the relevant crew guide entry</a>
+      </Section>
 
       <RecoveryPanel index="04" session={ctx.session} c={ctx.comparison} unlinked={event.sessionId === null} />
 
@@ -708,7 +711,7 @@ export function Investigation({ id }: { id: string }) {
 
       <div ref={reviewRef} className="scroll-mt-32">
         {reviewOpen ? (
-          <Section index="08" title="Review workflow" aside={<span className="text-[11.5px] text-ink-3">Offline · stored on this computer</span>}>
+          <Section index="08" title="Review workflow" aside={<span className="text-[11.5px] text-ink-3">Offline   stored on this computer</span>}>
             <ReviewWorkflow key={`${event.eventId}-${event.review.updatedAt ?? 'new'}`} event={event} />
           </Section>
         ) : (
@@ -741,7 +744,7 @@ export function Investigation({ id }: { id: string }) {
             ))}
           </ol>
         </Section>
-        <Section index="10" title="Source record" className="lg:col-span-7" aside={<span className="text-[11.5px] text-ink-3">Exactly as stored · provenance included</span>}>
+        <Section index="10" title="Source record" className="lg:col-span-7" aside={<span className="text-[11.5px] text-ink-3">Exactly as stored   provenance included</span>}>
           <details className="group">
             <summary className="cursor-pointer text-[12.5px] text-ink-2 hover:text-ink">Show the stored event and session JSON</summary>
             <pre className="mt-3 max-h-[420px] overflow-auto code rounded-[4px] border border-hair bg-void p-4 text-[11px] leading-relaxed text-ink-2">

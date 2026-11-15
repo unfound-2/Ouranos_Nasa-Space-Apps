@@ -928,6 +928,26 @@ function DemoTools() {
 // ---------------------------------------------------------------------------
 
 export function SystemStatus() {
+  const { health, watchLinks, snapshot } = useData()
+  if (health?.network.bind === 'HTTPS') {
+    const device = watchSignIn()?.deviceId
+    const link = watchLinks?.find((watch) => watch.deviceId === device)
+    const connection = device ? snapshot?.links[device] : undefined
+    return (
+      <section className="panel mission-event-card mx-auto grid max-w-2xl gap-3 p-6">
+        <h1 className="display text-[28px]">Hosted console</h1>
+        <p className="text-sm text-ink-2">{health.storage.writable ? 'HTTPS online' : 'Watch pairing needs the Supabase server key'}</p>
+        <p>{connection === 'VERIFIED' ? 'Watch connected' : link ? 'Paired. Waiting for the watch.' : 'No watch paired in this browser.'}</p>
+        <p className="text-sm text-ink-2">Use this address in the watch app:</p>
+        <code className="break-all">{location.origin}</code>
+        <a className="underline" href={href.pair}>Pair or sync a watch</a>
+      </section>
+    )
+  }
+  return <LocalSystemStatus />
+}
+
+function LocalSystemStatus() {
   const { workspace, health, error } = useData()
   const checks = useChecks()
   const list = checks.data?.checks ?? []

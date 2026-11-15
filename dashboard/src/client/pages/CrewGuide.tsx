@@ -1,51 +1,84 @@
-const chapters = [
-  {
-    id: 'dizziness',
-    title: 'Lightheadedness after a gravity change',
-    evidence: 'NASA describes postflight orthostatic intolerance as difficulty maintaining blood pressure while standing after a return to gravity. It can cause lightheadedness or fainting.',
-    actions: ['Notify the crew medical officer and follow the mission’s approved procedure.', 'Log when symptoms began, the gravity transition or task, and the crew member’s posture.', 'Open the matching event and attach available readings with their source and timestamp. Use only mission-approved equipment and procedures for any follow-up measurements.'],
-    source: 'NASA · The Human Body in Space',
-    url: 'https://www.nasa.gov/humans-in-space/the-human-body-in-space/',
-  },
-  {
-    id: 'nausea',
-    title: 'Nausea or motion sickness',
-    evidence: 'NASA reports that space adaptation sickness can affect up to 73% of crewmembers during the first two to three days of spaceflight. Symptoms can also occur when returning to Earth gravity.',
-    actions: ['Tell the crew medical officer and use the mission’s approved motion sickness procedure.', 'Record when the symptoms began, whether they changed during the task, and any effect on the crew member’s ability to work.'],
-    source: 'NASA · Fundamentals of Human Health',
-    url: 'https://www.nasa.gov/reference/fundamentals-of-human-health/',
-  },
-  {
-    id: 'communications',
-    title: 'When Earth support is delayed',
-    evidence: 'NASA’s mission duration brief describes how communications delays can limit real-time ground support and require crews to solve more problems with resources onboard.',
-    actions: ['Use the onboard medical procedures and notify the designated crew medical officer. Follow mission escalation rules for time-critical situations.', 'Prepare the handoff with symptom onset in UTC, recent activities, readings and their source, actions already taken, and changes since the first report.', 'Send the update through the mission’s approved communications channel.'],
-    source: 'NASA OCHMO · Mission Duration Technical Brief',
-    url: 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-007-mission-duration.pdf',
-  },
-]
+import { useEffect, useState } from 'react'
+import { z } from 'zod'
+import { GuideEntrySchema, type GuideEntry } from '../../shared/crew-guide'
+import bundled from '../../shared/crew-guide.json'
+import { href } from '../lib/router'
 
-export function CrewGuide() {
+const bundledEntries = GuideEntrySchema.array().parse(bundled)
+const catalogUrl = 'https://ohbufsembuzekdnwlpsd.supabase.co/rest/v1/gg_crew_guide?select=entry&order=id'
+const readKey = 'sb_publishable_2dFD1lilS9AMFmn4rrWNiQ_EpY4cBpd'
+const catalogSchema = z.array(z.object({ entry: GuideEntrySchema })).min(1)
+const kindLabels = { workflow: 'Crew workflows', condition: 'Medical conditions', evidence: 'NASA evidence' } as const
+
+export function CrewGuide({ topic }: { topic?: string }) {
+  const [entries, setEntries] = useState<GuideEntry[]>(bundledEntries)
+  const [origin, setOrigin] = useState('Bundled NASA catalog')
+  const [query, setQuery] = useState('')
+  const [kind, setKind] = useState<GuideEntry['kind'] | 'all'>('all')
+  useEffect(() => {
+    const abort = new AbortController()
+    void (async () => {
+      const response = await fetch(catalogUrl, { headers: { apikey: readKey }, signal: abort.signal })
+      if (!response.ok) return
+      const catalog = catalogSchema.parse(await response.json())
+      if (abort.signal.aborted) return
+      setEntries(catalog.map(({ entry }) => entry))
+      setOrigin('Supabase catalog')
+    })().catch(() => { /* The bundled copy remains available offline. */ })
+    return () => abort.abort()
+  }, [])
+
+  const selected = entries.find(({ id }) => id === topic) ?? entries.find(({ id }) => id === 'reading-check')!
+  const needle = query.trim().toLowerCase()
+  const visible = entries.filter((entry) => (kind === 'all' || entry.kind === kind) &&
+    `${entry.title} ${entry.category}`.toLowerCase().includes(needle))
+    .sort((a, b) => Number(b.kind === 'workflow') - Number(a.kind === 'workflow') || a.title.localeCompare(b.title))
+
   return (
-    <article className="mx-auto grid max-w-3xl gap-6">
+    <main className="mx-auto grid max-w-5xl gap-5">
       <header>
         <h1 className="display faded-label text-[36px]">Crew guide</h1>
-        <p className="mt-2 text-ink-2">NASA research and practical steps for recording and sharing an event. For medical decisions, follow the mission’s approved procedures and crew medical officer.</p>
+        <p className="mt-1 text-sm text-ink-2">{entries.length} entries <span className="ml-3">{origin}</span></p>
       </header>
-      <nav aria-label="Guide chapters" className="flex flex-wrap gap-x-5 gap-y-2">
-        {chapters.map(({ id, title }) => <button key={id} type="button" className="text-ink-2 underline" onClick={() => document.getElementById(id)?.scrollIntoView()}>{title}</button>)}
-      </nav>
-      {chapters.map(({ id, title, evidence, actions, source, url }) => (
-        <section key={id} id={id} className="panel scroll-mt-24 p-5 sm:p-7">
-          <h2 className="display faded-label text-[23px]">{title}</h2>
-          <p className="mt-2 text-ink-2">{evidence}</p>
-          <h3 className="mt-4 font-medium">What to do</h3>
-          <ol className="mt-2 list-decimal space-y-2 pl-5">
-            {actions.map((action) => <li key={action}>{action}</li>)}
-          </ol>
-          <a className="mt-4 inline-block text-ink-2 underline" href={url} target="_blank" rel="noreferrer">{source}</a>
-        </section>
-      ))}
-    </article>
+      <div className="grid items-start gap-4 md:grid-cols-[17rem_minmax(0,1fr)]">
+        <nav aria-label="Guide topics" className="panel mission-event-card grid gap-2 p-4">
+          <input aria-label="Find a topic" className="field w-full px-3 py-2" placeholder="Find a topic" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <select className="field px-3 py-2" aria-label="Entry type" value={kind} onChange={(event) => setKind(event.target.value as typeof kind)}>
+            <option value="all">All entries</option>
+            {Object.entries(kindLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+          <div className="grid max-h-[30vh] gap-1 overflow-auto md:max-h-[58vh]">
+            {visible.map(({ id, title }) => (
+              <a key={id} href={href.guideTopic(id)} aria-current={selected.id === id ? 'page' : undefined}
+                className={`rounded-lg px-3 py-2 text-sm ${selected.id === id ? 'bg-[#1a3557] text-white' : 'text-ink-2 hover:bg-raised'}`}>{title}</a>
+            ))}
+            {!visible.length && <p className="px-3 text-sm text-ink-2">No matching topics.</p>}
+          </div>
+        </nav>
+        <article className="panel mission-event-card grid gap-5 p-6">
+          <header><p className="mb-2 text-sm text-ink-2">{selected.category}</p><h2 className="display text-2xl">{selected.title}</h2></header>
+          {selected.image && <figure>
+            <img src={selected.image.src} alt={selected.image.alt} className="w-full rounded-lg" loading="lazy" />
+            {selected.image.caption && <figcaption className="mt-2 text-sm text-ink-2">{selected.image.caption}</figcaption>}
+          </figure>}
+          {selected.summary && <p className="text-ink-2">{selected.summary}</p>}
+          {selected.steps?.length ? <section>
+            <h3 className="font-semibold">Steps</h3>
+            <ol className="mt-2 list-decimal space-y-2 pl-5">{selected.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+          </section> : <p className="text-sm text-ink-2">
+            {selected.allMission && 'NASA flags this condition for consideration on all missions. '}
+            This entry indexes NASA evidence. Use the mission-approved medical procedure for care.
+          </p>}
+          {selected.kind === 'condition' && <a className="underline" href={href.guideTopic('communications')}>Prepare a ground support handoff</a>}
+          <section>
+            <h3 className="font-semibold">NASA sources</h3>
+            <ul className="mt-2 grid gap-2">{selected.sources.map(({ title, url }) =>
+              <li key={url}><a className="text-sm underline" href={url} target="_blank" rel="noreferrer">{title}</a></li>
+            )}</ul>
+          </section>
+          {selected.kind === 'workflow' && <p className="text-xs text-ink-2">GravityGuard checklist based on NASA references. Follow your mission’s approved procedures for medical decisions.</p>}
+        </article>
+      </div>
+    </main>
   )
 }

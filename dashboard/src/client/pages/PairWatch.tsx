@@ -8,7 +8,7 @@ import { currentCrew, saveCrew, type CrewProfile } from '../lib/crew-profile'
 import './pair-watch.css'
 
 export function PairWatch() {
-  const { workspace, setWorkspace, refresh } = useData()
+  const { workspace, setWorkspace, refresh, health } = useData()
   const mode = new URLSearchParams(location.hash.split('?')[1]).get('mode')
   const previousSignIn = watchSignIn()
   const active = currentCrew() ?? (previousSignIn ? { ...previousSignIn, id: previousSignIn.deviceId } : null)
@@ -34,11 +34,11 @@ export function PairWatch() {
     setPending('watch')
     setError('')
     try {
-      const paired = await request<{ deviceId: string; adapterToken: string }>('POST', '/pairing/redeem', { code }, '/api')
-      rememberWatch(name.trim(), paired.deviceId, paired.adapterToken)
-      if (sync) {
-        saveCrew({ ...active, deviceId: paired.deviceId })
-        if (workspace !== 'mission') setWorkspace('mission')
+      const paired = await request<{ deviceId: string; adapterToken?: string }>('POST', '/pairing/redeem', { code }, '/api')
+      rememberWatch(name.trim(), paired.deviceId, paired.adapterToken ?? '')
+      setWorkspace('mission')
+      if (sync || (active && !add)) {
+        saveCrew({ ...active, name: name.trim(), deviceId: paired.deviceId })
         await refresh()
         navigate(href.overview)
       } else {
@@ -114,6 +114,11 @@ export function PairWatch() {
         <img className="pair-card-image" src={earth} alt="" />
         <img className="pair-card-image pair-card-image-blur" src={earth} alt="" />
         <h1 id="pair-title" className="faded-label">{sync ? 'Sync watch' : add ? 'Add another astronaut' : 'Pair watch'}</h1>
+        {health?.network.bind === 'HTTPS' && (
+          <p className="mb-4 break-words text-sm text-ink-2">
+            Open <strong>Set website address</strong> on your watch and enter <strong>{location.origin}</strong>. Then select <strong>Get pairing code</strong>.
+          </p>
+        )}
         <form onSubmit={pair}>
           {!sync && <label>
             <span className="faded-label">What’s your name?</span>

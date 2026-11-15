@@ -16,7 +16,7 @@ import { SystemStatus } from './pages/SystemStatus'
 
 function Page({ route }: { route: Route }) {
   const { snapshot, error } = useData()
-  if (route.name === 'guide') return <CrewGuide />
+  if (route.name === 'guide') return <CrewGuide topic={route.topic} />
   if (route.name === 'system') return <SystemStatus />
   if (error)
     return (

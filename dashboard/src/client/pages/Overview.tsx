@@ -1,27 +1,28 @@
+import { AttentionSummary, useAttentionSummary } from '../components/AttentionSummary'
 import { Activity, ArrowRight, FileUp, Search } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { comparePhases, externalReadingFindings, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type Dataset, type LinkState } from '../../shared/dataset'
-import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics, timelineFor, type TimelineItem } from '../../shared/explain'
-import { ago, plural, signed, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
+import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics } from '../../shared/explain'
+import { plural, signed, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
-import { EvidenceList } from '../components/Astronaut'
+import { EvidenceList, REGION_ORDER } from '../components/Astronaut'
 import { MissionAssistant } from '../components/MissionAssistant'
 import { useCrewProfile } from '../lib/crew-profile'
-import { OnboardSimulatorCharts, WatchCharts } from '../components/WatchCharts'
+import { OnboardInstrumentTrends, useSimulatorSamples, WatchCharts } from '../components/WatchCharts'
 import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
 import { Bars, Kpi, type BarDatum } from '../components/Gauge'
 import { CornerLink, Empty, Pill } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
+import { watchSignIn } from '../lib/watch-pairing'
 import { scenarioById } from '../lib/scenarios'
 import {
   CATEGORY_META,
   focusFor,
   isOpen,
-  LINK_META,
   ORIGIN_LABEL,
   recoveryCheckState,
   regionsFor,
@@ -51,14 +52,14 @@ const LEGEND: { state: RegionInfo['state']; label: string; tone: Tone }[] = [
   { state: 'neutral', label: 'No evidence', tone: 'muted' },
 ]
 
-export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unplaced: string[] }) {
+export function RegionDetail({ info, unplaced, showBadge = true }: { info: RegionInfo | null; unplaced: string[]; showBadge?: boolean }) {
   return (
     <div className="rounded-[8px] border border-hair bg-panel-2 px-4 py-3.5" data-testid="region-detail">
       {info ? (
         <>
           <div className="flex items-center justify-between gap-3">
             <div className="text-[14px] font-medium text-ink">{info.name}</div>
-            <Pill tone={LEGEND.find((l) => l.state === info.state)!.tone}>{LEGEND.find((l) => l.state === info.state)!.label}</Pill>
+            {showBadge && <Pill tone={LEGEND.find((l) => l.state === info.state)!.tone}>{LEGEND.find((l) => l.state === info.state)!.label}</Pill>}
           </div>
           {info.items.length ? (
             <ul className="mt-3 space-y-2.5">
@@ -361,141 +362,12 @@ function RecoveryTrend({ ds, focus, t }: { ds: Dataset; focus: Focus; t: Telemet
 }
 
 // ---------------------------------------------------------------------------
-// 3. Timeline
+// Health event queue
 
-
-function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; onSymptom: (r: Region) => void; selectedRegion: Region | null }) {
-  const items = timelineFor(focus.event, focus.session)
-  const symptomFor = (at: string) => focus.session?.symptoms.find((s) => s.reportedAt === at) ?? null
-  const act = (i: TimelineItem) => {
-    if (i.kind === 'SYMPTOM') {
-      const sym = symptomFor(i.at)
-      const r = sym ? symptomRegion(sym) : null
-      if (r) onSymptom(r)
-      return
-    }
-    if (['SESSION_STARTED', 'REST_RECORDED', 'RECOVERY_CONFIRMED', 'RECOVERY_RECORDED', 'SESSION_SAVED'].includes(i.kind) && focus.session) navigate(href.session(focus.session.sessionId))
-    else if (focus.event) navigate(href.event(focus.event.eventId))
-  }
-  return (
-    <section className="panel flex min-w-0 flex-col" aria-label="Mission timeline" data-testid="timeline">
-      <header className="pane-head">
-        <h2 className="label">Mission timeline</h2>
-        <span className="font-mono text-[12px] text-ink-3">{items.length ? `${utcStamp(items[0].at).slice(0, 10)} UTC` : ''}</span>
-      </header>
-      {items.length ? (
-        <ol className="flex flex-col px-2 pb-3">
-          {items.map((i, idx) => {
-            const sym = i.kind === 'SYMPTOM' ? symptomFor(i.at) : null
-            const linked = sym ? symptomRegion(sym) : null
-            const active = linked !== null && linked === selectedRegion
-            return (
-              <li key={`${i.kind}-${idx}`}>
-                <button
-                  className={`grid w-full grid-cols-[72px_minmax(0,1fr)] items-baseline gap-x-4 rounded-[6px] px-3 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised' : ''}`}
-                  onClick={() => act(i)}
-                  data-testid={`tl-${i.kind}`}
-                >
-                  <span className="font-mono text-[12px] text-ink-3">{utcTime(i.at).replace(' UTC', '')}</span>
-                  <span className="min-w-0">
-                    <span className="block text-[14px] text-ink">{i.label}</span>
-                    {i.detail && <span className="block truncate text-[13px] text-ink-2">{i.detail}</span>}
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      ) : (
-        <p className="px-5 pb-5 text-[14px] text-ink-2">No recorded activity for this crew member.</p>
-      )}
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 4. Record details: every reading, its quality and where it came from
-
-function Row({ label, value, detail, testId }: { label: string; value: ReactNode; detail?: string; testId?: string }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 border-b border-hair px-5 py-3 last:border-b-0" data-testid={testId}>
-      <span className="text-[14px] text-ink-2">{label}</span>
-      <span className="text-right text-[14px] text-ink tnum">{value}</span>
-      {detail && (
-        <span className="col-span-2 mt-0.5 truncate text-[13px] text-ink-3" title={detail}>
-          {detail}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function RecordDetails({ t, nowMs, session, mode, hrCount }: { t: Telemetry; nowMs: number; session: StoredSession | null; mode: string | null; hrCount: number }) {
-  const { s, e, rings, c, recorded, valid, check, steps, excluded, extFlags, device, link, latestSession } = t
-  const phase = (p: NonNullable<typeof c>['rest']) => `${p.valid.length} / ${p.valid.length + p.excluded.length}`
-  return (
-    <section className="panel min-w-0" aria-label="Mission telemetry" data-testid="telemetry">
-      <header className="pane-head">
-        <h2 className="label">Record details</h2>
-        {s && <CornerLink href={href.session(s.sessionId)} label="Open the session readings" />}
-      </header>
-      <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-hair" data-testid="measurement-strip">
-        <div>
-          <Row label="HR coverage" value={rings.coverage ? `${rings.coverage.numerator} / ${rings.coverage.denominator}` : 'N/A'} detail={rings.coverage ? '10 s intervals with a valid reading' : s ? 'Phase times incomplete' : 'No check recorded'} />
-          <Row label="Valid heart-rate readings" value={s ? `${valid} / ${recorded}` : '--'} detail={s ? 'Valid of recorded readings' : 'No check recorded'} />
-          <Row label="Rest phase, valid" value={c ? phase(c.rest) : '--'} />
-          <Row label="Recovery phase, valid" value={c ? phase(c.recovery) : '--'} />
-          <Row
-            label="Source quality"
-            value={!s ? '--' : <Pill tone={excluded.length || extFlags ? 'amber' : 'mint'}>{excluded.length || extFlags ? `${excluded.length + extFlags} flagged` : 'All valid'}</Pill>}
-            detail={
-              !s
-                ? 'No check recorded'
-                : excluded.length
-                  ? `${plural(excluded.length, 'reading')} left out of the medians${extFlags ? `   ${plural(extFlags, 'external flag')}` : ''}`
-                  : extFlags
-                    ? `${plural(extFlags, 'external reading')} flagged for source review`
-                    : 'Every heart-rate reading used'
-            }
-          />
-        </div>
-        <div>
-          <Row testId="strip-check" label="Session progress" value={check.value} detail={steps ? `${steps.done} of ${steps.total} protocol steps   ${check.sub}` : check.sub} />
-          <Row
-            label="Review state"
-            value={e ? <Pill tone={REVIEW_META[e.review.state].tone}>{REVIEW_META[e.review.state].label}</Pill> : '--'}
-            detail={e ? (e.review.reviewer ? `Reviewer: ${e.review.reviewer}` : `${STATUS_META[e.status].label}   ${ackLabel(e).text}`) : 'No event for this check'}
-          />
-          <Row
-            label="Last assessment"
-            value={latestSession ? <span className="font-mono text-[13px]">{utcStamp(latestSession.startedAt).slice(5, 16)}Z</span> : '--'}
-            detail={latestSession ? `${latestSession.summary ? `Watch summary: ${latestSession.summary.status.replace(/_/g, ' ').toLowerCase()}` : 'No watch summary'}   ${ago(latestSession.startedAt, nowMs)}` : 'No assessment recorded'}
-          />
-          <Row
-            label="Watch reachability"
-            value={<Pill tone={LINK_META[link].tone}>{LINK_META[link].label}</Pill>}
-            detail={device ? `${device.deviceModel ?? device.deviceId}   last contact ${ago(device.lastSeenAt, nowMs)}` : 'No watch has checked in for this crew member'}
-          />
-          <div data-testid="provenance">
-            <Row
-              label="Sensor provenance"
-              value={session ? (session.measurements[0]?.source.device ?? session.provenance.deviceId ?? 'Unknown device') : '--'}
-              detail={session ? `${mode}   ${plural(hrCount, 'heart-rate reading')}, ${valid} valid   received ${session.provenance.receivedAt ? utcStamp(session.provenance.receivedAt).slice(5) : '--'}` : 'No session recorded for this crew member.'}
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 5. Event queue (the search filters it; it matches text in stored events, nothing more)
 
 function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
   const [q, setQ] = useState('')
   const all = useMemo(() => sortEvents(Object.values(ds.events)), [ds])
-  const open = all.filter(isOpen).length
   const needle = q.trim().toLowerCase()
   const events = needle
     ? all.filter((e) => [e.eventId, e.sessionId ?? '', subjectLabel(e.subjectId), CATEGORY_META[e.category].label, STATUS_META[e.status].label, ORIGIN_LABEL[e.origin.kind], ...e.reasonCodes].some((f) => f.toLowerCase().includes(needle)))
@@ -505,7 +377,6 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
       <header className="pane-head flex-wrap">
         <h2 className="label">Health event queue</h2>
         <div className="flex flex-wrap items-center gap-4">
-          <Pill tone={open ? 'coral' : 'muted'}>{open} open</Pill>
           <label className="relative">
             <span className="sr-only">Search events</span>
             <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-3" aria-hidden />
@@ -521,9 +392,6 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
               <th>Event</th>
               <th className="hidden md:table-cell">Crew</th>
               <th className="hidden md:table-cell">Created</th>
-              <th className="hidden lg:table-cell">Reason</th>
-              <th className="hidden lg:table-cell">On the watch</th>
-              <th className="hidden xl:table-cell">Review</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -531,8 +399,6 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
             {events.map((e) => {
               const cat = CATEGORY_META[e.category]
               const st = STATUS_META[e.status]
-              const ack = ackLabel(e)
-              const rv = REVIEW_META[e.review.state]
               return (
                 <tr key={e.eventId} className="row-link" data-selected={e.eventId === focusId} onClick={() => navigate(href.event(e.eventId))}>
                   <td>
@@ -540,14 +406,11 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
                       <span className="truncate font-medium text-ink">{cat.label}</span>
                     </a>
                     <span className="mt-1 block truncate text-[13px] text-ink-2 md:hidden">
-                      {subjectLabel(e.subjectId)}   {utcStamp(e.createdAt).slice(5)}   {ack.text}
+                      {subjectLabel(e.subjectId)}   {utcStamp(e.createdAt).slice(5)}
                     </span>
                   </td>
                   <td className="hidden text-ink-2 md:table-cell">{subjectLabel(e.subjectId)}</td>
                   <td className="hidden font-mono text-[13px] text-ink-2 md:table-cell">{utcStamp(e.createdAt).slice(5)}</td>
-                  <td className="hidden max-w-[260px] truncate font-mono text-[12px] text-ink-2 lg:table-cell">{e.reasonCodes.join(', ')}</td>
-                  <td className="hidden max-w-[260px] truncate text-ink-2 lg:table-cell">{ack.text}</td>
-                  <td className="hidden text-ink-2 xl:table-cell">{rv.label}</td>
                   <td>
                     <Pill tone={st.tone}>{st.label}</Pill>
                   </td>
@@ -556,7 +419,7 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
             })}
             {!events.length && (
               <tr>
-                <td colSpan={7} className="text-ink-2">
+                <td colSpan={4} className="text-ink-2">
                   {needle ? `No recorded event matches “${q.trim()}”.` : 'No events recorded.'}
                 </td>
               </tr>
@@ -629,7 +492,7 @@ export function Overview() {
   const [region, setRegion] = useState<Region | null>(null)
   if (!snapshot) return null
   const ds = snapshot.dataset
-  return <Dashboard ds={ds} nowMs={nowMs} region={region} setRegion={setRegion} workspace={workspace} subjectId={subjectId} scenarioId={scenarioId} serverTime={snapshot.serverTime} links={snapshot.links} />
+  return <Dashboard ds={ds} nowMs={nowMs} region={region} setRegion={setRegion} workspace={workspace} subjectId={subjectId} scenarioId={scenarioId} serverTime={snapshot.serverTime} />
 }
 
 function Dashboard({
@@ -641,7 +504,6 @@ function Dashboard({
   subjectId,
   scenarioId,
   serverTime,
-  links,
 }: {
   ds: Dataset
   nowMs: number
@@ -651,11 +513,13 @@ function Dashboard({
   subjectId: string | null
   scenarioId: string | null
   serverTime: string
-  links: Record<string, LinkState>
 }) {
   const profile = useCrewProfile()
-  const linkedSubject = profile?.deviceId ? ds.devices[profile.deviceId]?.subjectId ?? null : null
-  const scoped = workspace === 'mission' && profile
+  const { health } = useData()
+  const simulated = useSimulatorSamples()
+  const pairedDevice = profile?.deviceId ?? (workspace === 'mission' ? watchSignIn()?.deviceId : undefined)
+  const linkedSubject = pairedDevice ? ds.devices[pairedDevice]?.subjectId ?? null : null
+  const scoped = workspace === 'mission' && (profile || pairedDevice)
   const crewData = scoped && !linkedSubject ? { ...ds, sessions: {}, events: {} } : ds
   const focus = resolveFocus(crewData, scoped ? linkedSubject : subjectId, scenarioId)
   const session = focus.session
@@ -663,10 +527,62 @@ function Dashboard({
   const otherOpen = sortEvents(Object.values(ds.events))
     .filter(isOpen)
     .filter((e) => e.eventId !== focus.event?.eventId).length
-  const hrCount = session ? session.measurements.filter((m) => m.indicator === 'HEART_RATE').length : 0
-  const sessionMode = session ? recordSourceMode(session, session.provenance.deviceId ? (links[session.provenance.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED') : null
   const regions = regionsFor(session, session ? linkedReadings(ds, session.sessionId) : [])
   const crew = focus.subjectId ? subjectLabel(focus.subjectId) : profile?.name ?? null
+  const attention = useAttentionSummary({
+    event: focus.event && isOpen(focus.event) ? focus.event : null,
+    session, dataset: ds, serverTime, deviceId: pairedDevice, simulated,
+  })
+  const selectedRegion = region ?? 'CHEST'
+  const recentChecks = focus.subjectId ? sessionsOf(crewData, focus.subjectId).slice(0, 5) : []
+  for (const r of ['HEAD', 'LEGS'] as const) {
+    const checksWithReports = recentChecks.filter((check) => check.symptoms.some((symptom) => symptomRegion(symptom) === r))
+    const latestReport = checksWithReports[0]
+    const symptomNames = [...new Set(latestReport?.symptoms.filter((symptom) => symptomRegion(symptom) === r).map((symptom) => SYMPTOM_NOUN[symptom.code]) ?? [])]
+    regions[r].items.push({
+      kind: 'symptom',
+      title: r === 'HEAD' ? 'Head symptom check-ins' : 'Leg symptom check-ins',
+      tone: checksWithReports.length ? 'coral' : 'muted',
+      detail: recentChecks.length
+        ? `${checksWithReports.length} of ${recentChecks.length} recent check-ins included a report.${latestReport ? ` Latest: ${symptomNames.join(', ')}   ${utcStamp(latestReport.startedAt)}.` : ''}`
+        : 'No check-ins recorded yet.',
+    })
+  }
+  const regionNotes: Record<Region, string> = {
+    HEAD: 'Look here for reported dizziness and other symptoms located at the head.',
+    CHEST: 'Compare pulse, breathing, oxygen and pressure here. Some of these readings are measured at the wrist.',
+    ARMS: 'Look here for wrist sensor readings and their quality.',
+    LEGS: 'Look here for reported symptoms or observations located at the legs.',
+  }
+  const matches = (label: string, r: Region) => r === 'CHEST'
+    ? /heart rate|pulse|respirat|breath|oxygen|spo2|pressure/i.test(label)
+    : r === 'ARMS' && /skin temperature|wrist/i.test(label)
+  for (const r of REGION_ORDER) {
+    const info = regions[r]
+    const current = attention.readings.filter(({ label }) => matches(label, r))
+    for (const reading of current) {
+      const flagged = ['review', 'priority'].includes(reading.status)
+      const title = `${reading.label}: ${reading.value} ${reading.unit}`.trim()
+      info.items.push({
+        kind: 'reading', title, tone: flagged ? 'amber' : 'cyan',
+        detail: `${reading.source}   ${utcTime(new Date(reading.time * 1000).toISOString())}${flagged ? '   Flagged for review' : ''}`,
+      })
+      if (info.state !== 'symptom' && (info.state === 'neutral' || flagged)) {
+        info.state = flagged ? 'caution' : 'data'
+        info.callout = title
+      }
+    }
+    for (const reading of attention.simulatedReadings.filter(({ label }) => matches(label, r))) {
+      const value = Number(reading.value.toFixed(1))
+      info.items.push({ kind: 'reading', title: reading.label, tone: 'cyan', detail: `Simulated   ${value > 0 ? '+' : ''}${value} ${reading.unit} from rest` })
+      if (info.state === 'neutral') {
+        info.state = 'data'
+        info.callout = 'Simulated measurements'
+      }
+    }
+    info.note ??= regionNotes[r]
+  }
+
 
   return (
     <div className="mission-health flex flex-col gap-5">
@@ -678,61 +594,68 @@ function Dashboard({
 
       <section className="mission-vitals" aria-label="Crew measurements">
         <div className="mission-vitals-right">
-          <WatchCharts recordedHeartRate={t.series} compact />
-          {focus.event?.reasonCodes.includes('WATCH_TELEMETRY_FLAG') && (
-            <section className="panel p-5">
-              <h2 className="faded-label text-base font-semibold">Readings that triggered the flag</h2>
-              <ul className="mt-2 space-y-2 text-ink-2">
-                {focus.event.evidence.filter(({ kind, note }) => kind === 'DEVICE' && note).map((item, index) => <li key={index}>{item.note}</li>)}
-              </ul>
-              <p className="mt-3 text-ink-2">{utcStamp(focus.event.createdAt)}</p>
-            </section>
-          )}
-        </div>
-        <div className="mission-vitals-body">
-          <BodyMap regions={regions} selected={region} onSelect={setRegion} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
-        </div>
-        <div className="mission-vitals-left">
-          <section className="panel attention-card p-5">
-            <h2 className="faded-label text-xl font-semibold">What needs attention</h2>
-            {focus.event && isOpen(focus.event) ? (
-              <>
-                <p className="mt-3 font-semibold">{focusLabel(focus.event)}</p>
-                <p className="mt-1 text-ink-2">{reasonLine(buildEventContext(focus.event, ds, serverTime))}</p>
-                <p className="mt-3 text-ink-2">Recorded {utcStamp(focus.event.createdAt)}</p>
-                <a className="btn btn-primary mt-4" href={href.event(focus.event.eventId)}>Check the evidence</a>
-              </>
-            ) : (
-              <>
-                <p className="mt-3 text-ink-2">{session ? 'No open review for this assessment.' : 'Waiting for watch readings or an assessment.'}</p>
-                <a className="mt-3 inline-block underline" href={session ? href.session(session.sessionId) : href.system}>{session ? 'Open assessment' : 'Check watch connection'}</a>
-              </>
+          <WatchCharts recordedHeartRate={t.series} simulated={simulated} compact />
+          <section className="panel flag-readings" aria-label="Readings that triggered the flag">
+            <h2 className="faded-label text-base font-semibold">Readings that triggered the flag</h2>
+            <ul className="flag-reading-rows">
+              {(attention.triggerReadings.length ? attention.triggerReadings.slice(0, 2) : ['No readings flagged']).map((reading) => (
+                <li key={reading} title={reading}>{reading}</li>
+              ))}
+            </ul>
+            {attention.triggerReadings.length > 2 && (
+              <details className="flag-reading-dropdown">
+                <summary>Show {attention.triggerReadings.length - 2} more</summary>
+                <ul>{attention.triggerReadings.slice(2).map((reading) => <li key={reading}>{reading}</li>)}</ul>
+              </details>
             )}
           </section>
-          <MissionAssistant key={profile?.id ?? 'default'} name={profile?.name} heartRate={t.hr?.value} recent={t.recent} />
+        </div>
+        <div className="mission-vitals-body">
+          <BodyMap regions={regions} selected={selectedRegion} onSelect={(r) => r && setRegion(r)} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
+        </div>
+        <div className="mission-vitals-left">
+          <AttentionSummary summary={attention} />
+          <MissionAssistant key={profile?.id ?? 'default'} summary={attention} name={profile?.name} />
         </div>
       </section>
-      {(region || regions.unplaced.length > 0) && (
-        <div aria-live="polite">
-          <RegionDetail info={region ? regions[region] : null} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
+      {!session && !focus.event && !t.hr && (workspace === 'demo' || !pairedDevice) && <EmptyWorkspace />}
+      <section aria-label="Body region evidence">
+        <div className="region-tabs" role="tablist" aria-label="Body regions">
+          {REGION_ORDER.map((r, i) => (
+            <button key={r} type="button" id={`body-tab-${r}`} role="tab" aria-selected={selectedRegion === r}
+              tabIndex={selectedRegion === r ? 0 : -1} aria-controls="body-region-evidence"
+              onClick={() => setRegion(r)}
+              onKeyDown={(e) => {
+                const next = e.key === 'ArrowRight' ? (i + 1) % REGION_ORDER.length
+                  : e.key === 'ArrowLeft' ? (i + REGION_ORDER.length - 1) % REGION_ORDER.length
+                  : e.key === 'Home' ? 0 : e.key === 'End' ? REGION_ORDER.length - 1 : null
+                if (next === null) return
+                e.preventDefault()
+                setRegion(REGION_ORDER[next])
+                const nextTab = e.currentTarget.parentElement?.children[next] as HTMLButtonElement | undefined
+                nextTab?.focus()
+              }}>
+              {regions[r].name}
+            </button>
+          ))}
         </div>
-      )}
-      {!session && !focus.event && !t.hr && <EmptyWorkspace />}
-      {workspace === 'demo' && <OnboardSimulatorCharts />}
+        <div id="body-region-evidence" role="tabpanel" tabIndex={0} aria-labelledby={`body-tab-${selectedRegion}`} aria-live="polite">
+          <RegionDetail showBadge={false} info={regions[selectedRegion]} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
+        </div>
+      </section>
+      <OnboardInstrumentTrends samples={simulated} deviceId={pairedDevice ?? undefined} />
       <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={serverTime} />
       <section className="grid gap-4" aria-labelledby="assessment-title">
         <h2 id="assessment-title" className="display faded-label text-[24px]">Recovery assessment</h2>
         <RecoveryTrend ds={crewData} focus={focus} t={t} />
-        <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
-        <details className="panel dashboard-disclosure">
-          <summary>Record details</summary>
-          <div className="dashboard-disclosure-content">
-            <RecordDetails t={t} nowMs={nowMs} session={session} mode={sessionMode} hrCount={hrCount} />
-          </div>
-        </details>
+        <div className="panel p-5">
+          <h3 className="font-semibold">Assessment</h3>
+          <p className="mt-2">{attention.interpretation}</p>
+          {attention.explanation && <p className="mt-1 text-sm text-ink-2">{attention.explanation}</p>}
+        </div>
       </section>
       <EventQueue ds={ds} focusId={focus.event?.eventId ?? null} />
-      {workspace === 'demo' && <div><TriggerButton /></div>}
+      {workspace === 'demo' && health?.network.bind !== 'HTTPS' && <div><TriggerButton /></div>}
     </div>
   )
 }

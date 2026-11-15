@@ -1,6 +1,10 @@
 # Credits and asset provenance
 
-Everything below ships inside the dashboard and loads from this computer. Nothing is fetched at run time.
+Original GravityGuard contributions are covered by the repository [license](../LICENSE). The assets and references below retain their own terms.
+
+## Astronaut on the welcome and mission pages
+- [Astronaut by Jungle Jim](https://sketchfab.com/3d-models/astronaut-by-jungle-jim-c775a977606a4e4e990afe783c6bc845) by [Jungle Jim](https://sketchfab.com/jungle_jim), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Suit colors and the shoulder patch were modified.
+- The model license does not cover rights to any insignia. See [NASA media and branding guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/).
 
 ## 3D spacesuit model: `dashboard/public/models/z2-suit.glb`
 - **Source:** NASA 3D Resources, "Z2 Spacesuit": https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Z2%20Spacesuit.
@@ -16,9 +20,6 @@ Everything below ships inside the dashboard and loads from this computer. Nothin
   The Draco geometry is unchanged. The result is 0.56 MB, down from 16.9 MB.
 - **Draco decoder:** `dashboard/public/draco/` is copied unchanged from three.js 0.181 (`examples/jsm/libs/draco`, Apache-2.0).
 
-## Astronaut shown in the dashboard
-**Astronaut by Jungle Jim** by Jungle Jim, licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). The dashboard version changes the suit colors and adds a shoulder patch. The Earth photograph below is used on the pairing card.
-
 ## Earth photograph: `dashboard/src/client/assets/earth-horizon.webp`
 - **Source:** NASA image iss072e340644, "An orbital sunrise crowns Earth's horizon", taken from the International Space Station on 18 November 2024 (NASA Image and Video Library).
 - **Rights:** NASA imagery is generally not subject to copyright in the United States.
@@ -31,13 +32,8 @@ The interface follows published systems; it was not invented for this project:
 - **Radix Colors** dark scales (https://www.radix-ui.com/colors, MIT): grey steps 1–12 for surfaces and text, and step 9 of red, amber, green, blue and violet for status marks.
 - **Tremor** (https://tremor.so, Apache-2.0): the KPI card, spark area chart, bar chart and progress bar, drawn with Recharts.
 
-## Code libraries
-Bundled into the app from npm:
-- **React** and **React DOM** 19.3.1 (MIT)
-- **three.js** 0.181.2 (MIT): the 3D spacesuit view, with its GLTF and Draco loaders
-- **Recharts** 3.10.1 (MIT): charts
-- **Lucide** icons, `lucide-react` 1.73.0 (ISC)
-- **Express** 5.3.0 (MIT): the local mission-computer API
-- **Zod** 4.6.7 (MIT): data-contract validation
 
-Build and test tools, not shipped in the app: Vite, Tailwind CSS, TypeScript, tsx, Vitest, Playwright, Supertest and concurrently.
+## Crew Guide
+- [NASA-STD-3001 Volume 1, Appendix E](https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/)
+- [NASA Human Research Roadmap evidence index](https://humanresearchroadmap.nasa.gov/evidence/)
+- The catalog has an individual NASA source link on every entry. See [NASA source and deployment notes](../dashboard/HOSTING.md).

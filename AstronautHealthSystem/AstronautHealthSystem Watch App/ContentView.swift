@@ -2,18 +2,23 @@ import CoreMotion
 import SwiftUI
 import WatchKit
 
-private let amber = Color(red: 1, green: 0.75, blue: 0.39)
-private let muted = Color(red: 0.68, green: 0.70, blue: 0.66)
+private let blue = Color(red: 0.61, green: 0.88, blue: 1)
+private let muted = Color(white: 0.32)
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("missionConsoleAddress") private var consoleAddress = ""
+    @AppStorage("watchAlertBuzz") private var buzz = true
+    @State private var page = Page.home
+    @State private var trends: [String: [TrendPoint]] = [:]
     @State private var addressDraft = ""
     @State private var editingAddress = false
+    @State private var showingNavigation = false
+    @State private var showingReview = false
+    @State private var selectedRegion: BodyRegion?
     @State private var pairing: Pairing?
     @State private var paired = false
     @State private var pairingBusy = false
-    @State private var showSharing = false
     @State private var shareReadings = false
     @State private var readHealth = false
     @State private var healthBusy = false
@@ -22,24 +27,32 @@ struct ContentView: View {
     @State private var latestSignal: ReviewSignal?
     @State private var outbox: [ReviewSignal] = []
     @State private var sessionMessage = ""
-    @State private var status = ""
     @State private var delivery = ""
     @State private var watchReadings: [TelemetryFrame.Reading] = []
     @State private var motionReadings: [TelemetryFrame.Reading] = []
     @State private var motion = CMMotionManager()
     @State private var biometrics = WatchBiometrics()
 
-    private enum Mode: String {
-        case demo = "SIMULATED FEED"
-        case onboard = "ONBOARD FEED"
-        case watch = "WATCH SENSORS"
+    private enum Page: String, CaseIterable {
+        case home = "Home"
+        case analytics = "Analytics"
+        case settings = "Settings"
+    }
+
+    private enum Mode: String, CaseIterable {
+        case watch = "Watch"
+        case demo = "Sim"
+    }
+
+    private struct TrendPoint {
+        let time: TimeInterval
+        let value: Double
     }
 
     private struct Pairing: Decodable {
         let code: String
         let watchToken: String
         let codeExpiresAt: TimeInterval
-        let consoleURL: URL?
 
         var formattedCode: String { code.prefix(5) + "-" + code.suffix(5) }
     }
@@ -72,71 +85,55 @@ struct ContentView: View {
     }
 
     private func gatewayURL(_ value: String?) -> URL? {
-        guard let value, let parts = URLComponents(string: value.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let value else { return nil }
+        let address = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !address.isEmpty,
+              var parts = URLComponents(string: address.contains("://") ? address : "https://\(address)"),
               let host = parts.host, !host.isEmpty,
               parts.scheme == "http" || parts.scheme == "https",
-              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
-              parts.path.isEmpty || parts.path == "/" else { return nil }
+              parts.user == nil, parts.password == nil else { return nil }
+        // Pair against the site's origin even when the user pastes a full page link.
+        parts.path = ""
+        parts.query = nil
+        parts.fragment = nil
         return parts.url
     }
 
-    private func pairingLink(for pairing: Pairing) -> URL? {
-        guard let origin = pairing.consoleURL ?? gateway,
-              var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) else { return nil }
-        // Older mission servers don't include their local browser address.
-        components.host = "127.0.0.1"
-        components.fragment = "pair=\(pairing.code)"
-        return components.url
-    }
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 9) {
-                Text("GRAVITYGUARD")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundStyle(amber)
-                    .accessibilityAddTraits(.isHeader)
-                Rectangle().fill(amber.opacity(0.55)).frame(height: 1).accessibilityHidden(true)
-                if let mode { monitoring(mode) } else { home }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-        }
-        .id(mode)
-        .background(Color(red: 0.065, green: 0.075, blue: 0.065).ignoresSafeArea())
-        .foregroundStyle(.white)
-        .sheet(isPresented: $editingAddress) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Console address").font(.headline)
-                    TextField("http://computer.local:4317", text: $addressDraft)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("Save address") {
-                        guard let url = gatewayURL(addressDraft) else { return }
-                        pairing = nil
-                        consoleAddress = url.absoluteString
-                        sessionMessage = ""
-                        editingAddress = false
+        Group {
+            if editingAddress {
+                addressPage
+            } else if let region = selectedRegion, paired {
+                regionPage(region)
+            } else if paired {
+                ZStack(alignment: .topTrailing) {
+                    if showingNavigation {
+                        navigationChoices
+                    } else if page == .home {
+                        bodyPage
+                    } else {
+                        VStack(spacing: 2) {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    if page == .analytics { analyticsPage } else { settingsPage }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 6)
+                            }
+                            .id(page)
+                            if page == .analytics { analyticsSelector }
+                        }
                     }
-                    .disabled(gatewayURL(addressDraft) == nil)
-                    Button("Use default address") {
-                        pairing = nil
-                        consoleAddress = ""
-                        sessionMessage = ""
-                        editingAddress = false
-                    }
+                    navigation
                 }
-                .padding()
+            } else {
+                ScrollView { onboarding.padding(.horizontal, 7) }
             }
         }
-        .confirmationDialog("Share watch measurements with the paired crew console?", isPresented: $showSharing) {
-            Button("Share with console") { shareReadings = true }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Available watch measurements will be sent during Watch Sensors and Onboard monitoring.")
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea())
+        .foregroundStyle(.black)
+        .persistentSystemOverlays(.hidden)
         .task(id: scenePhase == .active ? pairing?.watchToken : nil) {
             guard scenePhase == .active, let pairing else { return }
             await observePairing(pairing)
@@ -158,33 +155,81 @@ struct ContentView: View {
             if scenePhase != .active {
                 frames = []
                 motionReadings = []
-                status = "Monitoring paused"
             }
         }
     }
 
-    private var home: some View {
-        Group {
-            Text("Crew telemetry").font(.headline)
-            if paired {
-                Text("Console connected").font(.footnote).foregroundStyle(amber)
-                control("Disconnect console") { Task { await disconnect() } }
-                    .disabled(pairingBusy)
-            } else if let pairing, Date.now.timeIntervalSince1970 < pairing.codeExpiresAt {
-                Text(pairing.formattedCode)
-                    .font(.system(.headline, design: .monospaced, weight: .bold))
-                    .foregroundStyle(amber)
-                if let link = pairingLink(for: pairing) {
-                    ShareLink(item: link) {
-                        Text("Share pairing link")
-                            .font(.system(.footnote, design: .monospaced, weight: .semibold))
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(amber)
+    private var addressPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                pageTitle("Website address")
+                TextField("https://your-site.vercel.app", text: $addressDraft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(.black)
+                    .padding(6)
+                    .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 8))
+                control("Save address") {
+                    guard let url = gatewayURL(addressDraft) else { return }
+                    saveAddress(url.absoluteString)
+                }
+                .disabled(gatewayURL(addressDraft) == nil)
+                control("Use default") { saveAddress("") }
+                control("Cancel") { editingAddress = false }
+            }
+            .padding(.horizontal, 7)
+        }
+    }
+
+    private func saveAddress(_ address: String) {
+        pairing = nil
+        consoleAddress = address
+        sessionMessage = ""
+        editingAddress = false
+    }
+
+    private func regionPage(_ region: BodyRegion) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    pageTitle(region.rawValue)
+                    Spacer()
+                    Button {
+                        selectedRegion = nil
+                    } label: {
+                        Text("Close")
+                            .font(.caption2)
+                            .frame(minWidth: 42, minHeight: 36)
                     }
                     .buttonStyle(.plain)
-                    Text("Open on the console computer: \(link.host ?? "localhost"):\(link.port ?? 80).").font(.footnote)
+                    .accessibilityLabel("Close readings")
                 }
+                if mode == .demo {
+                    blackLabel("Simulation")
+                }
+                let readings = currentReadings.filter { region.includes($0.metric) }
+                if readings.isEmpty {
+                    Text("No readings").font(.caption2).foregroundStyle(muted)
+                } else {
+                    metricGroup(currentSource, readings: readings)
+                }
+            }
+            .padding(.horizontal, 7)
+        }
+    }
+
+    private var onboarding: some View {
+        VStack(spacing: 9) {
+            Text("GravityGuard")
+                .font(.system(.headline, design: .rounded))
+                .accessibilityAddTraits(.isHeader)
+            if let pairing, Date.now.timeIntervalSince1970 < pairing.codeExpiresAt {
+                Text(pairing.formattedCode)
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(.black)
+                Text("Enter this code on the dashboard.")
+                    .font(.caption2)
+                    .foregroundStyle(muted)
                 control("Get a new code") { Task { await createPairing() } }
                     .disabled(pairingBusy)
             } else {
@@ -193,25 +238,131 @@ struct ContentView: View {
                 }
                 .disabled(pairingBusy)
             }
-            if !paired {
-                control("Set console address") {
-                    addressDraft = gateway?.absoluteString ?? ""
-                    editingAddress = true
-                }
-                .disabled(pairingBusy)
-                if let gateway {
-                    Text(gateway.absoluteString).font(.caption2).foregroundStyle(muted)
-                }
+            control("Set website address") {
+                addressDraft = gateway?.absoluteString ?? ""
+                editingAddress = true
             }
+            .disabled(pairingBusy)
             if !sessionMessage.isEmpty {
                 Text(sessionMessage).font(.footnote).foregroundStyle(muted)
             }
-            control("Connect onboard") {
-                if paired { start(.onboard) } else { sessionMessage = "Pair the crew console first." }
+        }
+        .padding(.top, 4)
+    }
+
+    private var navigation: some View {
+        Button {
+            showingNavigation.toggle()
+        } label: {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.black)
+                .frame(width: 23, height: 23)
+                .background(Color(white: 0.93), in: Circle())
+                .frame(width: 35, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(showingNavigation ? "Close menu" : "Menu")
+    }
+
+    private var navigationChoices: some View {
+        ScrollView {
+            VStack(spacing: 5) {
+                pageTitle("Menu")
+                    .frame(minHeight: 32)
+                ForEach(Page.allCases, id: \.self) { destination in
+                    control(destination.rawValue) {
+                        selectedRegion = nil
+                        page = destination
+                        showingNavigation = false
+                    }
+                }
             }
-            control("Watch sensors") { start(.watch) }
-            control("Run simulation") { start(.demo) }
-            control(readHealth ? "Turn off health readings" : "Enable health readings") {
+            .padding(.horizontal, 7)
+        }
+    }
+
+    private var currentSource: String {
+        mode == .demo ? frames.first?.source ?? "Simulation" : "Watch sensors"
+    }
+
+    private var currentReadings: [TelemetryFrame.Reading] {
+        mode == .demo ? frames.first?.readings ?? [] : motionReadings + watchReadings
+    }
+
+    private var bodyPage: some View {
+        VStack(spacing: 2) {
+            if mode == .demo {
+                blackLabel("Simulation")
+            }
+            BodyFigure(flagged: latestSignal != nil) { region in
+                selectedRegion = region
+            }
+        }
+        .padding(.bottom, 2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var analyticsPage: some View {
+        Group {
+            pageTitle("Analytics").frame(minHeight: 32)
+            if currentReadings.isEmpty {
+                Text("No readings").font(.caption2).foregroundStyle(muted)
+            } else {
+                metricGroup(currentSource, readings: currentReadings)
+            }
+            if let latestSignal {
+                Button("Review signal") { showingReview.toggle() }
+                    .font(.footnote)
+                if showingReview {
+                    Text(latestSignal.evidence.joined(separator: " · ")).font(.caption2)
+                    Text(latestSignal.action).font(.caption2)
+                    if !delivery.isEmpty {
+                        Text(delivery).font(.caption2).foregroundStyle(muted)
+                    }
+                }
+            }
+        }
+    }
+
+    private var analyticsSelector: some View {
+        HStack(spacing: 3) {
+            ForEach(Mode.allCases, id: \.self) { source in
+                Button {
+                    if mode != source { start(source) }
+                } label: {
+                    Text(source.rawValue)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 11)
+                        .frame(minHeight: 27)
+                        .background(mode == source ? Color(white: 0.88) : .clear, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(source == .watch ? "Watch sensors" : "Simulation")
+                .accessibilityAddTraits(mode == source ? [.isSelected] : [])
+            }
+        }
+        .padding(2)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func blackLabel(_ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.black)
+    }
+
+    private var settingsPage: some View {
+        Group {
+            pageTitle("Settings").frame(minHeight: 32)
+            Label("Watch paired", systemImage: "checkmark.circle.fill")
+                .font(.footnote)
+                .foregroundStyle(.black)
+                .accessibilityIdentifier("watch-paired")
+            switchRow("Buzz for alerts", enabled: buzz) { buzz.toggle() }
+            switchRow("Health readings", enabled: readHealth) {
                 if readHealth {
                     readHealth = false
                     watchReadings = []
@@ -220,101 +371,99 @@ struct ContentView: View {
                 }
             }
             .disabled(healthBusy)
-            if paired {
-                control(shareReadings ? "Keep watch readings local" : "Share watch readings") {
-                    if shareReadings {
-                        shareReadings = false
-                        outbox = outbox.map { $0.withoutWatchContext() }
-                        if let token = pairing?.watchToken {
-                            Task {
-                                do {
-                                    _ = try await request("api/watch", method: "DELETE", token: token)
-                                } catch {
-                                    sessionMessage = "Sharing off. Console unavailable to clear its last snapshot."
-                                }
-                            }
-                        }
-                    } else {
-                        showSharing = true
-                    }
-                }
+            switchRow("Send to console", enabled: shareReadings) {
+                if shareReadings { stopSharing() } else { shareReadings = true }
+            }
+            control("Disconnect console") { Task { await disconnect() } }
+                .disabled(pairingBusy)
+            if !sessionMessage.isEmpty {
+                Text(sessionMessage).font(.caption2).foregroundStyle(muted)
             }
         }
     }
 
-    private func monitoring(_ mode: Mode) -> some View {
-        Group {
-            Text(mode.rawValue).font(.system(.caption2, design: .monospaced)).foregroundStyle(amber)
-            Text(status).font(.footnote).foregroundStyle(muted)
-            if let latestSignal {
-                Text("Review signal").font(.headline).foregroundStyle(amber)
-                Text(latestSignal.evidence.joined(separator: " · ")).font(.footnote)
-                Text(delivery).font(.caption2).foregroundStyle(muted)
-                Text(latestSignal.action).font(.footnote)
+    private func switchRow(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title).font(.footnote)
+                Spacer(minLength: 3)
+                Text(enabled ? "On" : "Off")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(muted)
             }
-            control("Stop monitoring") { self.mode = nil }
-            ForEach(frames, id: \.source) { frame in
-                Text(frame.source).font(.headline)
-                readings(frame.readings)
-            }
-            if mode != .demo {
-                Text("Apple Watch").font(.headline)
-                if let difference = pulseDifference() {
-                    Text("Pulse difference \(difference, format: .number.precision(.fractionLength(0))) bpm")
-                        .font(.footnote).foregroundStyle(amber)
-                }
-                if readHealth && watchReadings.isEmpty {
-                    Text("Waiting for permitted HealthKit samples.").font(.footnote).foregroundStyle(muted)
-                }
-                if motionReadings.isEmpty {
-                    Text("Watch motion unavailable.").font(.footnote).foregroundStyle(muted)
-                }
-                readings(motionReadings + watchReadings)
+            .frame(minHeight: 40)
+            .padding(.horizontal, 6)
+            .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 9))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(enabled ? "On" : "Off")
+    }
+
+    private func stopSharing() {
+        shareReadings = false
+        outbox = outbox.map { $0.withoutWatchContext() }
+        guard let token = pairing?.watchToken else { return }
+        Task {
+            do {
+                _ = try await request("api/watch", method: "DELETE", token: token)
+            } catch {
+                sessionMessage = "Couldn’t clear the console snapshot."
             }
         }
     }
 
-    private func readings(_ readings: [TelemetryFrame.Reading]) -> some View {
-        ForEach(readings, id: \.metric) { reading in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(reading.metric).font(.caption2).foregroundStyle(muted)
-                if reading.quality == "valid" {
-                    Text("\(reading.value.formatted(.number.precision(.fractionLength(0...2)))) \(reading.unit)")
-                        .font(.system(.title3, design: .monospaced, weight: .semibold))
-                    if let measuredAt = reading.measuredAt {
-                        Text(Date(timeIntervalSince1970: measuredAt), format: .dateTime.month().day().hour().minute())
-                            .font(.caption2).foregroundStyle(muted)
-                    }
-                    if reading.status != "nominal" {
-                        Text(reading.status.capitalized).font(.caption2).foregroundStyle(amber)
-                    }
-                } else {
-                    Text("Unreliable reading").font(.footnote).foregroundStyle(amber)
-                }
+    private func pageTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(.headline, design: .rounded))
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func metricGroup(_ source: String, readings: [TelemetryFrame.Reading]) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 5), GridItem(.flexible())], spacing: 5) {
+            ForEach(readings, id: \.metric) { reading in
+                MetricTile(reading: reading, values: trends[trendKey(source, reading)]?.map(\.value) ?? [])
             }
         }
+    }
+
+    private func actionLabel(_ label: String, primary: Bool) -> some View {
+        Text(label)
+            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity, minHeight: primary ? 58 : 44)
+            .padding(.horizontal, 5)
+            .background(primary ? blue : Color(white: 0.93),
+                        in: RoundedRectangle(cornerRadius: primary ? 22 : 16))
     }
 
     private func control(_ label: String, primary: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(.footnote, design: .monospaced, weight: .semibold))
-                .foregroundStyle(primary ? .black : .white)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .padding(.horizontal, 9)
-                .background(primary ? amber : .white.opacity(0.08))
-                .overlay { Rectangle().strokeBorder(amber.opacity(primary ? 0 : 0.28)) }
+        Button(action: action) { actionLabel(label, primary: primary) }
+            .buttonStyle(.plain)
+    }
+
+    private func trendKey(_ source: String, _ reading: TelemetryFrame.Reading) -> String {
+        "\(source)|\(reading.metric)|\(reading.unit)"
+    }
+
+    private func recordTrends(_ readings: [TelemetryFrame.Reading], source: String, at time: TimeInterval) {
+        for reading in readings where reading.quality == "valid" {
+            let key = trendKey(source, reading)
+            let stamp = reading.measuredAt ?? time
+            guard stamp > (trends[key]?.last?.time ?? -.infinity) else { continue }
+            trends[key, default: []].append(.init(time: stamp, value: reading.value))
+            if trends[key, default: []].count > 18 { trends[key]?.removeFirst() }
         }
-        .buttonStyle(.plain)
     }
 
     private func start(_ selection: Mode) {
         frames = []
+        trends = [:]
         motionReadings = []
         watchReadings = []
         latestSignal = nil
+        showingReview = false
         delivery = ""
-        status = "Waiting for readings"
         mode = selection
     }
 
@@ -322,7 +471,7 @@ struct ContentView: View {
     private func createPairing() async {
         guard !pairingBusy else { return }
         guard let gateway else {
-            sessionMessage = "Enter the address shown under Watch integration on the dashboard."
+            sessionMessage = "Enter the website address first, then get a pairing code."
             return
         }
         pairingBusy = true
@@ -332,7 +481,7 @@ struct ContentView: View {
             guard let healthData = try? await request("api/v1/health"),
                   let health = try? JSONDecoder().decode(ConsoleHealth.self, from: healthData),
                   health.service == "gravityguard-mission-computer" else {
-                sessionMessage = "Mission Dashboard unavailable at this address. Check the address and start the console."
+                sessionMessage = "Can’t reach the dashboard. Check the website address."
                 return
             }
             if let previous = pairing {
@@ -358,7 +507,12 @@ struct ContentView: View {
             do {
                 let data = try await request("api/device", token: pairing.watchToken)
                 try Task.checkCancellation()
-                paired = try JSONDecoder().decode(PairingState.self, from: data).paired
+                let connected = try JSONDecoder().decode(PairingState.self, from: data).paired
+                if connected && !paired {
+                    page = .home
+                    start(.watch)
+                }
+                paired = connected
                 if !paired && Date.now.timeIntervalSince1970 >= pairing.codeExpiresAt {
                     sessionMessage = "Code expired. Generate another."
                     return
@@ -371,7 +525,7 @@ struct ContentView: View {
                 shareReadings = false
                 outbox = []
                 sessionMessage = "Pairing expired. Generate a new code."
-                if mode == .onboard { mode = nil }
+                mode = nil
                 return
             } catch {
                 try? await Task.sleep(for: .seconds(2))
@@ -396,7 +550,8 @@ struct ContentView: View {
         paired = false
         shareReadings = false
         outbox = []
-        sessionMessage = "Console disconnected."
+        mode = nil
+        sessionMessage = ""
     }
 
     @MainActor
@@ -409,7 +564,7 @@ struct ContentView: View {
             readHealth = true
             sessionMessage = "Health readings enabled where permitted."
         } catch {
-            sessionMessage = "HealthKit access unavailable."
+            sessionMessage = "Sensor access unavailable."
         }
     }
 
@@ -428,29 +583,21 @@ struct ContentView: View {
             let now = Date.now
             motionReadings = readMotion(at: now)
             do {
-                let next: [TelemetryFrame]
-                switch mode {
-                case .demo:
-                    next = [demoFrame(step: step)]
-                case .watch:
-                    next = []
-                case .onboard:
-                    guard let token else { return }
-                    let data = try await request("api/telemetry", token: token)
-                    next = try JSONDecoder().decode([TelemetryFrame].self, from: data)
-                        .filter { $0.version == 1 && !$0.simulated && $0.isFresh(at: .now) }
-                }
+                let next = mode == .demo ? [demoFrame(step: step)] : []
                 try Task.checkCancellation()
                 frames = next
-                status = mode == .watch ? "On-device monitoring" :
-                    next.isEmpty ? "Waiting for fresh onboard data" : "Receiving telemetry"
+                if mode != .demo {
+                    recordTrends(motionReadings + watchReadings, source: "Watch sensors", at: now.timeIntervalSince1970)
+                }
                 for frame in next {
+                    recordTrends(frame.readings, source: frame.source, at: frame.observedAt)
                     let wrist = motionReadings.first?.value
                     let pulse = watchReadings.first { $0.metric == "Heart rate" }
-                    if let signal = rules[frame.source, default: SignalRules()]
+                    if var signal = rules[frame.source, default: SignalRules()]
                         .evaluate(frame, wristMotionG: wrist, watchPulse: pulse, now: .now) {
+                        signal.hapticRequested = buzz
                         latestSignal = signal
-                        WKInterfaceDevice.current().play(.notification)
+                        if buzz { WKInterfaceDevice.current().play(.notification) }
                         if token != nil {
                             outbox.append(shareReadings ? signal : signal.withoutWatchContext())
                             if outbox.count > 100 { outbox.removeFirst() }
@@ -465,14 +612,13 @@ struct ContentView: View {
                 } else if let token, shareReadings, step.isMultiple(of: 5) {
                     let values = motionReadings + watchReadings
                     if !values.isEmpty {
-                        let snapshot = TelemetryFrame(version: 1, source: "Apple Watch", observedAt: now.timeIntervalSince1970,
+                        let snapshot = TelemetryFrame(version: 1, source: "Watch sensors", observedAt: now.timeIntervalSince1970,
                                                       simulated: false, readings: values)
                         try? await publish(snapshot, token: token)
                     }
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                status = "Feed unavailable"
                 frames = []
             }
             if let token { await flushSignals(token: token) }
@@ -492,19 +638,6 @@ struct ContentView: View {
             .init(metric: "Wrist rotation", value: sqrt(r.x * r.x + r.y * r.y + r.z * r.z),
                   unit: "rad/s", quality: "valid", status: "nominal", measuredAt: now.timeIntervalSince1970)
         ]
-    }
-
-    private func pulseDifference() -> Double? {
-        let now = Date.now.timeIntervalSince1970
-        guard let watch = watchReadings.first(where: { $0.metric == "Heart rate" && $0.isRecent(at: now, window: 15) }),
-              let onboard = frames.lazy
-                .filter({ $0.isFresh(at: Date(timeIntervalSince1970: now)) })
-                .flatMap(\.readings)
-                .first(where: { $0.metric.lowercased() == "heart rate" && $0.quality == "valid" &&
-                    $0.unit.lowercased() == "bpm" && ($0.measuredAt == nil || $0.isRecent(at: now, window: 15)) }) else {
-            return nil
-        }
-        return abs(watch.value - onboard.value)
     }
 
     private func publish(_ frame: TelemetryFrame, token: String) async throws {
@@ -551,8 +684,9 @@ struct ContentView: View {
                 .init(metric: "Skin temperature", value: 34.1, unit: "°C", quality: "valid", status: "nominal"),
                 .init(metric: "Systolic blood pressure", value: 118, unit: "mmHg", quality: "valid", status: "nominal"),
                 .init(metric: "Tidal volume", value: 480, unit: "mL", quality: "valid", status: "nominal"),
-                .init(metric: "Suit pressure", value: 4.3, unit: "psia", quality: "valid", status: "nominal"),
-                .init(metric: "Primary oxygen tank pressure", value: 820, unit: "psia", quality: "valid", status: "nominal")
+                .init(metric: "Environmental noise exposure", value: 58, unit: "dBA", quality: "valid", status: "nominal"),
+                .init(metric: "Wrist motion", value: 0.12, unit: "g", quality: "valid", status: "nominal"),
+                .init(metric: "Steps in latest sample", value: 36, unit: "steps", quality: "valid", status: "nominal")
             ]
         )
     }

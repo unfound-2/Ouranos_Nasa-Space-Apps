@@ -9,7 +9,7 @@ export type Route =
   | { name: 'event'; id: string }
   | { name: 'session'; id: string }
   | { name: 'system' }
-  | { name: 'guide' }
+  | { name: 'guide'; topic?: string }
   | { name: 'missing'; path: string }
 
 export function parseRoute(hash: string): Route {
@@ -18,7 +18,7 @@ export function parseRoute(hash: string): Route {
   if (parts.length === 0) return { name: 'overview' }
   if (parts[0] === 'pair' && parts.length === 1) return { name: 'pair' }
   if (parts[0] === 'crew' && parts.length === 1) return { name: 'crew' }
-  if (parts[0] === 'guide' && parts.length === 1) return { name: 'guide' }
+  if (parts[0] === 'guide' && parts.length === 1) return { name: 'guide', topic: new URLSearchParams(hash.split('?')[1]).get('topic') ?? undefined }
   if (parts[0] === 'system' && parts.length === 1) return { name: 'system' }
   if (parts[0] === 'events' && parts.length === 1) return { name: 'events' }
   if (parts[0] === 'events' && parts.length === 2) return { name: 'event', id: decodeURIComponent(parts[1]) }
@@ -45,6 +45,7 @@ export const href = {
   session: (id: string) => `#/sessions/${encodeURIComponent(id)}`,
   system: '#/system',
   guide: '#/guide',
+  guideTopic: (topic: string) => `#/guide?topic=${encodeURIComponent(topic)}`,
 }
 
 export function navigate(to: string) {

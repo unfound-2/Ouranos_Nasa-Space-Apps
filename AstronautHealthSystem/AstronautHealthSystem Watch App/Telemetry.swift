@@ -38,12 +38,13 @@ struct ReviewSignal: Codable, Identifiable {
     let evidence: [String]
     let wristMotionG: Double?
     let action: String
+    var hapticRequested: Bool? = nil
 
     static let verifyAction = "Review the flagged channels, verify the readings with the source instrument, and share the verified results with the crew medical officer."
 
     func withoutWatchContext() -> Self {
         .init(id: id, createdAt: createdAt, frame: frame, evidence: evidence,
-              wristMotionG: nil, action: Self.verifyAction)
+              wristMotionG: nil, action: Self.verifyAction, hapticRequested: hapticRequested)
     }
 }
 
