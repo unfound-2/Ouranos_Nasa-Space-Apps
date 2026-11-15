@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { createCloudApp } from '../src/server/cloud-app'
+import { createCloudApp } from '../src/server/cloud-app.js'
 
 const app = createCloudApp({
   url: process.env.SUPABASE_URL ?? 'https://ohbufsembuzekdnwlpsd.supabase.co',

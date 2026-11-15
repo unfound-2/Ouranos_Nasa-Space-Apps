@@ -1,10 +1,10 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import express, { type Request } from 'express'
-import demoFixture from '../../fixtures/simulated/demo-bundle.json'
-import { EVENT_SCHEMA, ReviewActionSchema, type StoredEvent } from '../shared/contract'
-import { ActionError, applyHeartbeat, applyReviewAction, emptyDataset, ingestRecords, linkState, type Datasets } from '../shared/dataset'
-import { loadDemo } from '../shared/demo'
-import { WatchFrameSchema, WatchSignalSchema, type WatchFrame, type WatchSignal } from '../shared/watch-link'
+import demoFixture from '../../fixtures/simulated/demo-bundle.json' with { type: 'json' }
+import { EVENT_SCHEMA, ReviewActionSchema, type StoredEvent } from '../shared/contract.js'
+import { ActionError, applyHeartbeat, applyReviewAction, emptyDataset, ingestRecords, linkState, type Datasets } from '../shared/dataset.js'
+import { loadDemo } from '../shared/demo.js'
+import { WatchFrameSchema, WatchSignalSchema, type WatchFrame, type WatchSignal } from '../shared/watch-link.js'
 
 const cookieName = '__Host-gg_watch'
 const pairMillis = 5 * 60_000

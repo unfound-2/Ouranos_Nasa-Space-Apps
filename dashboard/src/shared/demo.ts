@@ -10,8 +10,8 @@
  *   E  the computer's VERIFY_SOURCE alert cannot be delivered: WATCH_UNREACHABLE
  *   F  an event acknowledged on the (simulated) watch but not reviewed by a medical officer
  */
-import { BUNDLE_SCHEMA, EVENT_SCHEMA, SESSION_SCHEMA } from './contract'
-import { emptyDataset, expandPayload, ingestRecords, runDataChecks, type Datasets, type DeviceRecord } from './dataset'
+import { BUNDLE_SCHEMA, EVENT_SCHEMA, SESSION_SCHEMA } from './contract.js'
+import { emptyDataset, expandPayload, ingestRecords, runDataChecks, type Datasets, type DeviceRecord } from './dataset.js'
 
 type Q = 'VALID' | 'QUESTIONABLE' | 'INVALID' | 'MISSING'
 type V = number | null | { v: number; q: Q }

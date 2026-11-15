@@ -5,7 +5,7 @@
  * prototype (completeness, freshness, display intervals). None of them is a clinical threshold,
  * and nothing here estimates risk, diagnoses a condition or clears anyone for duty.
  */
-import type { PhaseT, StoredMeasurement, StoredSession } from './contract'
+import type { PhaseT, StoredMeasurement, StoredSession } from './contract.js'
 
 export const RULES = {
   /** Valid samples needed in a phase before its median is reported (PRD product rule). */

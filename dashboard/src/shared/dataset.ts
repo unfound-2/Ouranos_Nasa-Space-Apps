@@ -8,7 +8,7 @@
  *
  * Nothing here makes a clinical decision. Events record what a rule saw and what people did.
  */
-import { externalReadingFindings, type QualityFinding } from './analysis'
+import { externalReadingFindings, type QualityFinding } from './analysis.js'
 import {
   BUNDLE_SCHEMA,
   deriveEventStatus,
@@ -31,7 +31,7 @@ import {
   type StoredMeasurement,
   type StoredSession,
   type Symptom,
-} from './contract'
+} from './contract.js'
 
 export type Workspace = 'mission' | 'demo'
 
