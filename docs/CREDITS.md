@@ -27,3 +27,14 @@ The interface follows published systems; it was not invented for this project:
 - **Geist Sans and Geist Mono** fonts (SIL Open Font License 1.1), via `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`.
 - **Radix Colors** dark scales (https://www.radix-ui.com/colors, MIT): grey steps 1–12 for surfaces and text, and step 9 of red, amber, green, blue and violet for status marks.
 - **Tremor** (https://tremor.so, Apache-2.0): the KPI card, spark area chart, bar chart and progress bar, drawn with Recharts.
+
+## Code libraries
+Bundled into the app from npm:
+- **React** and **React DOM** 19.3.1 (MIT)
+- **three.js** 0.181.2 (MIT): the 3D spacesuit view, with its GLTF and Draco loaders
+- **Recharts** 3.10.1 (MIT): charts
+- **Lucide** icons, `lucide-react` 1.73.0 (ISC)
+- **Express** 5.3.0 (MIT): the local mission-computer API
+- **Zod** 4.6.7 (MIT): data-contract validation
+
+Build and test tools, not shipped in the app: Vite, Tailwind CSS, TypeScript, tsx, Vitest, Playwright, Supertest and concurrently.
