@@ -5,9 +5,11 @@ import type { IngestPathT, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, type Dataset } from '../../shared/dataset'
 import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp } from '../../shared/format'
 import { Disclosure, Empty, Pill, SimTag } from '../components/ui'
+import { MonitoringSystems } from '../components/devices/MonitoringSystems'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { eventsOf, REVIEW_META, sessionsOf, subjectLabel, subjectsOf, symptomCheckText } from '../lib/view'
+import './crew-systems.css'
 
 export interface SessionRow {
   s: StoredSession
@@ -390,6 +392,7 @@ export function CrewHealth() {
   const b = baseline?.result ?? null
   return (
     <div className="flex flex-col gap-5">
+      <MonitoringSystems />
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
           <h1 className="display text-[28px] text-ink">Recovery history</h1>

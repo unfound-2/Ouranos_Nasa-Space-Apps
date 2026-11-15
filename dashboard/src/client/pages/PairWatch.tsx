@@ -4,7 +4,7 @@ import { api, request } from '../lib/api'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { rememberSimulator, rememberWatch, takeWatchPairingCode, watchSignIn } from '../lib/watch-pairing'
-import { currentCrew, saveCrew, type CrewProfile } from '../lib/crew-profile'
+import { currentCrew, saveCrew, withSystem, withWatch, type CrewProfile } from '../lib/crew-profile'
 import { OuranosMark } from '../components/OuranosMark'
 import './pair-watch.css'
 
@@ -17,7 +17,9 @@ export function PairWatch() {
   const active = currentCrew() ?? (previousSignIn ? { ...previousSignIn, id: previousSignIn.deviceId } : null)
   const sync = mode === 'sync' && active !== null
   const add = mode === 'add'
-  const [name, setName] = useState(sync ? active.name : '')
+  // Another monitoring system for the signed-in crew member: no new crew member, no new sign-in.
+  const system = mode === 'system'
+  const [name, setName] = useState(sync || system ? active?.name ?? '' : '')
   const [setup, setSetup] = useState<{ deviceId: string | null; demo: boolean } | null>(null)
   const [history, setHistory] = useState('')
   const [limitations, setLimitations] = useState('')
@@ -33,22 +35,29 @@ export function PairWatch() {
 
   async function pair(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!name.trim() || !code.trim() || pending) return
+    if ((!system && !name.trim()) || !code.trim() || pending) return
     setPending('watch')
     setError('')
     try {
       const paired = await request<{ deviceId: string; adapterToken?: string }>('POST', '/pairing/redeem', { code }, '/api')
+      if (system) {
+        if (!active) return
+        saveCrew(withSystem(active, { deviceId: paired.deviceId }))
+        await refresh()
+        navigate(href.crew)
+        return
+      }
       rememberWatch(name.trim(), paired.deviceId, paired.adapterToken ?? '')
       setWorkspace('mission')
       if (sync || (active && !add)) {
-        saveCrew({ ...active, name: name.trim(), deviceId: paired.deviceId })
+        saveCrew(withWatch({ ...active, name: name.trim() }, paired.deviceId))
         await refresh()
         navigate(href.overview)
       } else {
         setSetup({ deviceId: paired.deviceId, demo: false })
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not pair the watch.')
+      setError(err instanceof Error ? err.message : system ? 'Could not pair the system.' : 'Could not pair the watch.')
     } finally {
       setPending(null)
     }
@@ -109,6 +118,33 @@ export function PairWatch() {
           <button type="button" className="text-ink-2 underline" onClick={() => finishSetup()}>Skip questions</button>
         </form>
       </section>
+    </main>
+  )
+
+  if (system) return (
+    <main className="pair-page">
+      <OuranosMark size="lg" tagline={TAGLINE} />
+      <section className="pair-card" aria-labelledby="pair-title">
+        <img className="pair-card-image" src={earth} alt="" />
+        <img className="pair-card-image pair-card-image-blur" src={earth} alt="" />
+        <h1 id="pair-title" className="faded-label">Pair another monitoring system</h1>
+        {active ? (
+          <form onSubmit={pair}>
+            <p className="text-sm text-ink-2">Adds a chest strap, blood pressure cuff, suit biomonitor or other system to {active.name}. Systems already paired stay paired.</p>
+            <label>
+              <span className="faded-label">What’s the system’s pairing code?</span>
+              <input className="pair-code" autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} placeholder="ABCDE-12345" value={code} onChange={(event) => setCode(event.target.value)} maxLength={24} required />
+            </label>
+            <button className="watch-cta" disabled={pending !== null || !code.trim()}>
+              <span>{pending === 'watch' ? 'Pairing…' : 'Pair system'}</span>
+            </button>
+          </form>
+        ) : (
+          <p className="text-sm text-ink-2">Sign in first: pair a watch or run the simulator, then add more monitoring systems from Crew Health.</p>
+        )}
+      </section>
+      <a className="text-ink-2 underline" href={active ? href.crew : href.pair}>{active ? 'Back to Crew Health' : 'Pair a watch'}</a>
+      {error && <p role="alert" className="pair-error">{error}</p>}
     </main>
   )
 
