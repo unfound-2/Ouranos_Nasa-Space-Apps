@@ -1,34 +1,33 @@
-"""GRAVITYGUARD astronaut shroud and strap mount for the 40 mm Apple Watch SE.
+"""OURANOS: astronaut shroud for the 40 mm Apple Watch SE (aluminum, Ion-X glass).
 
-Parametric build123d model (build123d 0.13.0). Rebuild everything with:
+Parametric build123d model (build123d 0.13.0). The chain-link band is chain.py.
+Rebuild everything with:
     uv venv .venv && uv pip install --python .venv/bin/python build123d==0.13.0
-    .venv/bin/python band.py
-It writes STL and STEP files to out/, print-ready STLs to out/print/, and runs
-interference checks against a rough watch stand-in.
+    .venv/bin/python band.py && .venv/bin/python chain.py
+Both write STL and STEP files to out/, print-ready STLs to out/print/, and run
+interference checks.
 
 PARTS (out/print/)
-  gg_fit_test.stl       4 mm slice of the shell at the bezel. Print this first.
-  gg_shell.stl          the shroud: octagonal bezel, crown-side and speaker openings,
-                        12 o'clock strap slot, 6 o'clock D-ring. Prints face-down.
-  gg_backplate_*.stl    slide-in back plate in five fits: looser_m06, looser_m03,
-                        nominal, tighter_p03, tighter_p06 (bearing pad -0.6 to +0.6 mm).
+  ouranos_fit_test.stl     slice of the shell at the bezel (fit check).
+  ouranos_shell.stl        the shroud: octagonal bezel engraved OURANOS, crown-side and
+                           speaker openings, crush ribs, hinge lugs at 12 and 6 o'clock.
+                           Prints face-down.
+  ouranos_backplate_*.stl  slide-in back plate in five fits: looser_m06, looser_m03,
+                           nominal, tighter_p03, tighter_p06 (bearing pad -0.6 to +0.6 mm).
+  ouranos_band_*.stl       the chain band and its hook (see chain.py).
 
 PRINT (PLA, Elegoo Neptune 4 Pro, 0.4 mm nozzle)
-  0.2 mm layers, 6 walls, 40 % gyroid infill (plates come out solid), no supports,
-  no brim, nozzle 210 C, bed 60 C. Parts are already oriented. The strap bars and
-  the side openings are short bridges; keep bridge fan on.
+  0.2 mm layers, 4 walls, 40 % gyroid infill, no supports, no brim, Elegoo PLA
+  profile temperatures. Parts are already oriented.
 
 FIT
-  1. Press the watch face-first into gg_fit_test. It should go in with a light drag,
-     and the lip should frame the screen evenly. Too tight: raise CLEAR by 0.1.
-     Rattles side to side: lower CLEAR by 0.1. Then rebuild.
-  2. Watch in the shell (face-down), then slide a back plate in from the side
-     opposite the crown until both arms click. Start with nominal. Watch moves
-     front to back: try tighter_p03, then tighter_p06. Plate won't go in: looser.
-  3. Strap: a hook-and-loop strap 20 to 25 mm wide (1 in fits the 26.5 mm slot),
-     at least 250 mm long. Loop the fixed end through the 12 o'clock slot and press
-     it back onto itself; wrap the wrist; pass the free end through the 6 o'clock
-     D-ring and fold it back. Works one-handed and with gloves, over a sleeve too.
+  Fit test 1 (2026-11-14) printed loose, with the crown and button inside the
+  opening; crush ribs were added after it (RIB_SQUEEZE). Ribs too tight: shave them.
+  1. Watch in the shell face-down, then slide a back plate in from the side opposite
+     the crown until both arms click. Start with nominal. Watch moves front to back:
+     tighter_p03, then tighter_p06. Plate won't go in: looser.
+  2. Band: put each end link's knuckle between a pair of lug knuckles, push a piece
+     of 1.75 mm filament through all three, trim it, and cap both ends with the 3D pen.
   To charge: slide the plate out, or try the charger through the sensor window.
 
 WHAT STAYS OPEN FOR THE SOFTWARE
@@ -43,20 +42,23 @@ Published (apple.com/apple-watch-se/specs, same for every SE generation):
 Everything marked EST is an estimate that the fit test checks.
 
 AI DISCLOSURE (NASA Space Apps SI rules)
-  Sriyan chose the part and its requirements: a band for the 40 mm SE that hides
-  the Apple Watch look, a glove-friendly hook-and-loop strap through a D-ring, PLA,
-  printed on his Neptune 4 Pro. Claude (Anthropic) in Claude Code wrote this code on
-  2026-11-14 during the event and made the mechanical choices: the slide-in back
-  plate and its in-plane latch arms, the 45 degree lugs, the octagonal bezel, the
-  opening sizes and the fit variants. No outside 3D model was used. The engraved
-  name uses the system Arial font through build123d's Text.
+  Sriyan chose the part and its requirements: a shroud for the 40 mm SE that hides
+  the Apple Watch look, the name OURANOS, a print-in-place chain-link band with a
+  big glove hook for a wrist under 160 mm, PLA on his Neptune 4 Pro, assembly with
+  his 3D pen. Claude (Anthropic) in Claude Code wrote this code on 2026-11-14 and
+  2026-11-15 during the event and made the mechanical choices: the slide-in back
+  plate and its in-plane latch arms, the crush ribs, the teardrop hinge lugs with
+  filament pins, the octagonal bezel, the opening sizes and the fit variants. No
+  outside 3D model was used. The engraved name uses the system Arial font through
+  build123d's Text.
 """
 from build123d import (
-    Align, Axis, Box, Cylinder, Mode, Plane, Polygon, Pos, Rot, Text,
-    RectangleRounded, Sketch, extrude, export_step, export_stl, fillet, Locations,
-    BuildPart, BuildSketch, add, chamfer, Part,
+    Align, Axis, Box, Circle, Cylinder, Plane, Polygon, Pos, Rot, Text,
+    RectangleRounded, extrude, export_step, export_stl, fillet, loft,
+    BuildPart, BuildSketch,
 )
 from pathlib import Path
+import math
 
 # ---------- watch (published + EST) ----------
 WATCH_W = 34.0        # X, published
@@ -73,6 +75,8 @@ BUTTON_FROM_TOP = 24.5
 # ---------- fit and print ----------
 CLEAR = 0.25          # XY gap per side between watch and shell
 CAV_R = 8.0           # cavity corner radius, deliberately below WATCH_R so corners never bind
+RIB_SQUEEZE = 0.10    # crush ribs reach this far past the watch's published width (fit test 1 felt loose)
+RIB_Z = (0.6, 6.5)    # rib height band: where the curved case sides are widest
 WALL = 2.4            # side wall (6 lines of a 0.4 mm nozzle)
 LIP_T = 1.2           # front lip thickness over the glass
 LIP_GAP = 0.15        # lip underside above the glass
@@ -86,12 +90,15 @@ GROOVE_CLEAR = 0.20   # extra height and depth in the grooves
 RAIL_BELOW = 0.6      # end-wall material under the plate edges (kept thin so the sensor reaches skin)
 FIT_STEPS = (-0.6, -0.3, 0.0, 0.3, 0.6)   # back plate bearing-pad offsets to print and try
 
-STRAP_W = 26.5        # strap opening: fits 1 in (25.4 mm), 22 mm and 20 mm straps
-ANCHOR_SLOT = 4.0     # 12 o'clock slot (strap loops through and sticks to itself)
-DRING_SLOT = 5.5      # 6 o'clock D-ring slot (strap passes through and folds back)
-STRAP_BAR = 4.0       # strap bar width: about 21 MPa in PLA at a 50 N pull (2.5 mm would be about 53 MPa)
-LUG_T = 3.0           # lug thickness at its tip
-LUG_SIDE = 3.0        # lug side rails beside the slot
+NAME = "OURANOS"      # engraved on the 6 o'clock band of the bezel
+
+# Hinge lugs for the chain band. Pins are pieces of 1.75 mm filament capped with a 3D pen.
+LUG_KNUCKLE_R = 2.6   # shell knuckle radius
+LUG_AXIS_OFF = 2.8    # hinge axis distance beyond the end wall (band knuckle 2.0 + 0.4 gap + margin)
+LUG_OUT = 13.0        # outer edge of the side knuckles (x)
+END_KNUCKLE_W = 12.0  # width of the band's end-link knuckle that sits between them
+HINGE_GAP = 0.4       # print-in-place and fit clearance at hinges
+PIN_HOLE_D = 2.0      # shell hole for a 1.75 mm filament pin
 
 # ---------- derived ----------
 CAV_W = WATCH_W + 2 * CLEAR
@@ -122,44 +129,95 @@ def slab(sketch, z0, z1):
     return Pos(0, 0, z0) * extrude(sketch, amount=z1 - z0)
 
 
-def lug(sign, slot, bar, corner_r):
-    """Wedge lug on the 12 (sign=+1) or 6 (sign=-1) o'clock end.
+def teardrop(r, cy, cz, up=1):
+    """2D teardrop in a YZ sketch: circle r at (cy, cz) with a 45 degree point toward +z (up=1) or -z (up=-1).
 
-    Plan: a root web, the strap slot, then the strap bar (bar mm wide), with the
-    outer corners rounded by corner_r (a large radius gives the D-ring end its D).
-    Side: the front face slopes at 45 degrees from the end wall to the tip, so the
-    shell prints face-down without supports (the bar bridges between the rails).
+    Horizontal holes print without supports when the point faces the print's +Z.
     """
-    width = STRAP_W + 2 * LUG_SIDE
+    k = r / math.sqrt(2)
+    tip = Polygon((cy - k, cz + up * k), (cy + k, cz + up * k), (cy, cz + up * r * math.sqrt(2)), align=None)
+    return Pos(cy, cz) * Circle(r) + tip
+
+
+def hinge_axis():
+    """(y, z) of the 12 o'clock lug hinge axis, as worn. The 6 o'clock one is (-y, z)."""
+    return OUT_H / 2 + LUG_AXIS_OFF, Z_BOT + LUG_KNUCKLE_R
+
+
+def hinge_lug(sign):
+    """Two side knuckles on the 12 (sign=+1) or 6 (sign=-1) o'clock end wall.
+
+    Side profile: a teardrop around the hinge axis whose 45 degree top runs back up to
+    the end wall, so the shell still prints face-down without supports. The band's
+    end link sits in the gap between the knuckles; a filament pin runs through all three.
+    """
     y_wall = OUT_H / 2
-    y0 = y_wall - 0.5                         # overlap into the wall
-    tip = y_wall + 1.0 + slot + bar
-    tip_top = Z_BOT + LUG_T
-    root_top = min(Z_TOP - 1.0, tip_top + (tip - y_wall))
-    prof = Polygon(
-        (y0, Z_BOT), (tip, Z_BOT), (tip, tip_top),
-        (tip - (root_top - tip_top), root_top), (y0, root_top),
-        align=None,
-    )
-    wedge = extrude(Plane.YZ * prof, amount=width / 2, both=True)
-    plan = Pos(0, y0, Z_BOT) * extrude(RectangleRounded(width, 2 * (tip - y0), corner_r), amount=root_top - Z_BOT)
-    body = wedge & plan
-    body -= Pos(0, y_wall + 1.0 + slot / 2, Z_BOT - 1) * Box(
-        STRAP_W, slot, 40, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    ya, zc = hinge_axis()
+    r = LUG_KNUCKLE_R
+    k = r / math.sqrt(2)
+    zap = zc + r * math.sqrt(2)                 # apex of the teardrop, above the axis
+    y0 = y_wall - 0.5                           # overlap into the wall
+    prof = Polygon((y0, Z_BOT), (ya, Z_BOT), (ya, zap), (y0, zap + (ya - y0)), align=None)
+    prof += Polygon((ya, zc), (ya + k, zc + k), (ya, zap), align=None)
+    prof += Pos(ya, zc) * Circle(r)
+    x_in = END_KNUCKLE_W / 2 + HINGE_GAP
+    width = LUG_OUT - x_in
+    lug = None
+    for sx in (-1, 1):
+        kn = Pos(sx * (x_in + width / 2), 0, 0) * extrude(Plane.YZ * prof, amount=width / 2, both=True)
+        lug = kn if lug is None else lug + kn
+    # Pin hole: teardrop pointing worn -Z, which is print +Z when the shell prints face-down
+    lug -= extrude(Plane.YZ * teardrop(PIN_HOLE_D / 2, ya, zc, up=-1), amount=LUG_OUT + 1, both=True)
     if sign < 0:
-        body = Rot(0, 0, 180) * body
-    return body
+        lug = Rot(0, 0, 180) * lug
+    return lug
+
+
+def crush_ribs():
+    """Six small vertical ribs on the cavity walls that squash as the watch goes in.
+
+    Each is a triangle 0.9 mm wide at the wall, reaching CLEAR + RIB_SQUEEZE into
+    the cavity, so it takes up the side play. Too tight: shave with a knife.
+    Left wall at y = +/-10.5 (between the speaker opening and the corner curve);
+    end walls at x = +/-6. The crown side stays open; the ribs push the watch
+    gently toward it.
+    """
+    reach = CLEAR + RIB_SQUEEZE
+    z0, z1 = RIB_Z
+
+    def tri(*pts):
+        # extrude follows the face normal, so list corners counter-clockwise (normal +Z)
+        (ax, ay), (bx, by), (cx, cy) = pts
+        if (bx - ax) * (cy - ay) - (by - ay) * (cx - ax) < 0:
+            pts = pts[::-1]
+        return Polygon(*pts, align=None)
+
+    xw, yw = CAV_W / 2, CAV_H / 2
+    tris = []
+    for y in (-10.5, 10.5):
+        tris.append(tri((-xw - 0.3, y - 0.45), (-xw - 0.3, y + 0.45), (-xw + reach, y)))
+    for x in (-6.0, 6.0):
+        for sy in (-1, 1):
+            tris.append(tri((x - 0.45, sy * (yw + 0.3)), (x + 0.45, sy * (yw + 0.3)), (x, sy * (yw - reach))))
+    ribs = None
+    for t in tris:
+        r = slab(t, z0, z1)
+        bb = r.bounding_box()
+        assert abs(bb.min.Z - z0) < 1e-6 and abs(bb.max.Z - z1) < 1e-6, "rib extruded the wrong way"
+        ribs = r if ribs is None else ribs + r
+    return ribs
 
 
 def shell():
     outer = slab(octagon(OUT_W, OUT_H, CORNER_CHAMFER), Z_BOT, Z_TOP)
     part = outer
-    part += lug(+1, ANCHOR_SLOT, STRAP_BAR, corner_r=2.5)
-    part += lug(-1, DRING_SLOT, STRAP_BAR, corner_r=6.0)
+    part += hinge_lug(+1)
+    part += hinge_lug(-1)
 
     # Watch cavity, from the bottom up to the lip underside
     cavity = slab(RectangleRounded(CAV_W, CAV_H, CAV_R), Z_BOT - 1, Z_FRONT_GLASS + LIP_GAP)
     part -= cavity
+    part += crush_ribs()
     # Display window, with a 45 degree bevel so edge swipes still work
     win = slab(RectangleRounded(WINDOW_W, WINDOW_H, WINDOW_R), Z_FRONT_GLASS, Z_TOP + 1)
     part -= win
@@ -169,7 +227,6 @@ def shell():
             RectangleRounded(WINDOW_W, WINDOW_H, WINDOW_R)
         with BuildSketch(Plane.XY.offset(Z_TOP + 0.01)):
             RectangleRounded(WINDOW_W + 2 * bevel, WINDOW_H + 2 * bevel, WINDOW_R + bevel)
-        from build123d import loft
         loft()
     part -= b.part
 
@@ -200,7 +257,7 @@ def shell():
 
     # Name on the 6 o'clock band of the bezel, engraved 0.6 mm
     band_mid = -(WINDOW_H / 2 + (OUT_H / 2 - WINDOW_H / 2) / 2)
-    txt = Text("GRAVITYGUARD", font_size=3.6)
+    txt = Text(NAME, font_size=4.4)
     part -= Pos(0, band_mid, Z_TOP - 0.6) * extrude(txt, amount=1.0)
     return part
 
@@ -248,7 +305,7 @@ def back_plate(fit=0.0):
 
 
 def fit_test():
-    """A 4 mm slice of the shell at the lip, to check the outline and corner radius in 15 minutes."""
+    """A slice of the shell at the lip, to check the outline and corner radius quickly."""
     s = shell()
     cut = Pos(0, 0, Z_FRONT_GLASS - 3.0) * Box(200, 200, 50, align=(Align.CENTER, Align.CENTER, Align.MIN))
     return s & cut
@@ -265,10 +322,10 @@ def watch_dummy():
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     sh = shell()
-    parts = {"gg_shell": sh, "gg_fit_test": fit_test()}
+    parts = {"ouranos_shell": sh, "ouranos_fit_test": fit_test()}
     for f in FIT_STEPS:
         tag = "nominal" if f == 0 else (f"tighter_{f:+.1f}" if f > 0 else f"looser_{f:+.1f}")
-        parts[f"gg_backplate_{tag}".replace("+", "p").replace("-", "m").replace(".", "")] = back_plate(f)
+        parts[f"ouranos_backplate_{tag}".replace("+", "p").replace("-", "m").replace(".", "")] = back_plate(f)
     for name, p in parts.items():
         export_stl(p, str(OUT / f"{name}.stl"))
         export_step(p, str(OUT / f"{name}.step"))
@@ -281,7 +338,7 @@ if __name__ == "__main__":
     (OUT / "print").mkdir(exist_ok=True)
     for name, p in parts.items():
         q = p
-        if name in ("gg_shell", "gg_fit_test"):
+        if name in ("ouranos_shell", "ouranos_fit_test"):
             q = Rot(180, 0, 0) * p
         bb = q.bounding_box()
         q = Pos(-bb.center().X, -bb.center().Y, -bb.min.Z) * q
@@ -290,7 +347,8 @@ if __name__ == "__main__":
     # Interference checks against the EST watch stand-in (volumes in mm3; 0 means no clash)
     w = watch_dummy()
     plate_in_place = Pos(0, 0, PLATE_BOT) * back_plate(0.0)
-    print(f"clash shell/watch      {(sh & w).volume:8.3f} mm3")
+    rib_squeeze = (crush_ribs() & w).volume
+    print(f"clash shell/watch      {(sh & w).volume - rib_squeeze:8.3f} mm3 (plus {rib_squeeze:.3f} mm3 of designed crush-rib squeeze)")
     print(f"clash plate/watch      {(plate_in_place & w).volume:8.3f} mm3")
     print(f"clash shell/plate      {(sh & plate_in_place).volume:8.3f} mm3 (bumps sit in their notches)")
     print(f"sensor dome bottom {-DOME:+.2f}  plate bottom {PLATE_BOT:+.2f}  shell bottom {Z_BOT:+.2f}  "
