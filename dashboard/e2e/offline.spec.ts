@@ -29,7 +29,7 @@ test('every page works with all non-local traffic blocked', async ({ page }) => 
   expect(errors).toEqual([])
   // Fonts are bundled: each face actually loads with every non-local request blocked.
   // (document.fonts.check() is true for a family that does not exist, so load() is used instead.)
-  for (const font of ['600 16px "Mona Sans Variable"', '640 16px "Hubot Sans Variable"', '400 16px "JetBrains Mono"']) {
+  for (const font of ['600 16px "Geist Variable"', '400 16px "Geist Mono Variable"']) {
     const faces = await page.evaluate(async (f) => (await document.fonts.load(f)).map((x) => x.status), font)
     expect(faces.length, font).toBeGreaterThan(0)
     expect(faces.every((x) => x === 'loaded'), font).toBe(true)

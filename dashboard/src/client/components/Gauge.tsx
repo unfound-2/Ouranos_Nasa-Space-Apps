@@ -1,277 +1,157 @@
 import { useId, type ReactNode } from 'react'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { Tone } from '../lib/view'
 import type { RingValue } from './Ring'
 import { TONE } from './ui'
 
 /*
- * Instruments in the style of the team's references: a dial with ticks and a needle (the Ts-3002
- * console), ring gauges, glowing line bars and dotted column bars (the NASA dashboard). Every one
- * shows a real recorded value or says plainly that there is none; none of them invents a score.
+ * Dashboard pieces modelled on Tremor (tremor.so, Apache-2.0): the KPI card, the spark area chart,
+ * the bar chart and the progress bar, drawn with Recharts like Tremor itself. Every one shows a
+ * recorded value or says plainly that there is none.
  */
 
-const polar = (cx: number, cy: number, r: number, deg: number) => {
-  const a = ((deg - 90) * Math.PI) / 180
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
-}
-const arc = (cx: number, cy: number, r: number, from: number, to: number) => {
-  const s = polar(cx, cy, r, from)
-  const e = polar(cx, cy, r, to)
-  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${e.x} ${e.y}`
-}
-
-/** A dial: 240 degrees of track, tick marks, a needle at the value, the reading in the middle. */
-export function Dial({
-  value,
-  min,
-  max,
-  unit,
+/** Tremor KPI card: label, metric, one line of context, then an optional chart or bar. */
+export function Kpi({
   label,
-  caption,
-  tone = 'cyan',
-  unavailable = 'No reading',
-  size = 168,
-  majorStep,
+  value,
+  unit,
+  sub,
+  mark,
+  children,
   testId,
+  href,
 }: {
-  value: number | null
-  min: number
-  max: number
-  unit: string
   label: string
-  caption?: ReactNode
-  tone?: Tone
-  unavailable?: string
-  size?: number
-  /** Distance between labelled ticks, in the value's unit. */
-  majorStep?: number
+  value: ReactNode
+  unit?: string
+  sub?: ReactNode
+  mark?: ReactNode
+  children?: ReactNode
   testId?: string
+  href?: string
 }) {
-  const id = useId()
-  const c = size / 2
-  const r = size / 2 - 16
-  const from = -120
-  const to = 120
-  const color = TONE[tone].stroke
-  const v = value === null ? null : Math.min(max, Math.max(min, value))
-  const deg = v === null ? null : from + ((v - min) / (max - min)) * (to - from)
-  const step = majorStep ?? (max - min) / 4
-  const majors: number[] = []
-  for (let t = min; t <= max + 1e-9; t += step) majors.push(t)
-  const minors: number[] = []
-  for (let t = min; t <= max + 1e-9; t += step / 5) minors.push(t)
-  const angle = (t: number) => from + ((t - min) / (max - min)) * (to - from)
   return (
-    <figure className="flex min-w-0 flex-col items-center" data-testid={testId}>
-      <svg
-        width={size}
-        height={size * 0.86}
-        viewBox={`0 0 ${size} ${size * 0.86}`}
-        role="img"
-        aria-label={`${label}: ${value === null ? unavailable : `${value} ${unit}`}`}
-        className="overflow-visible"
-      >
-        <defs>
-          <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2.4" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        {minors.map((t, i) => {
-          const a = polar(c, c, r + 9, angle(t))
-          const b = polar(c, c, r + 5, angle(t))
-          return <line key={`m${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgb(238 243 250 / 0.16)" strokeWidth={1} />
-        })}
-        {majors.map((t, i) => {
-          const a = polar(c, c, r + 11, angle(t))
-          const b = polar(c, c, r + 3, angle(t))
-          return <line key={`M${i}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgb(238 243 250 / 0.42)" strokeWidth={1.25} />
-        })}
-        <path d={arc(c, c, r - 4, from, to)} fill="none" stroke="rgb(238 243 250 / 0.08)" strokeWidth={3} strokeLinecap="round" />
-        {deg !== null && deg > from && <path d={arc(c, c, r - 4, from, deg)} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" filter={`url(#${id}-glow)`} />}
-        {deg !== null && (
-          <g>
-            <line x1={polar(c, c, 14, deg).x} y1={polar(c, c, 14, deg).y} x2={polar(c, c, r - 12, deg).x} y2={polar(c, c, r - 12, deg).y} stroke={color} strokeWidth={2} strokeLinecap="round" filter={`url(#${id}-glow)`} />
-            <circle cx={c} cy={c} r={4} fill="var(--color-void)" stroke={color} strokeWidth={1.5} />
-          </g>
-        )}
-        <text x={c} y={c + r * 0.52} textAnchor="middle" className="figure" fill={value === null ? 'var(--color-ink-3)' : 'var(--color-ink)'} fontSize={value === null ? size * 0.13 : size * 0.17}>
-          {value === null ? 'N/A' : value}
-        </text>
-        <text x={c} y={c + r * 0.52 + 15} textAnchor="middle" fill="var(--color-ink-3)" fontSize={10.5} fontWeight={500}>
-          {value === null ? unavailable : unit}
-        </text>
-      </svg>
-      <figcaption className="-mt-1 text-center">
-        <div className="text-[12.5px] font-semibold text-ink">{label}</div>
-        {caption && <div className="mt-0.5 max-w-[22ch] text-[11px] leading-snug text-ink-3">{caption}</div>}
-      </figcaption>
-    </figure>
+    <section className="panel flex min-w-0 flex-col px-5 pt-4 pb-5" data-testid={testId}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="micro">{label}</span>
+        {mark}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="figure text-[28px] text-ink">{value}</span>
+        {unit && <span className="unit text-[14px]">{unit}</span>}
+      </div>
+      {sub && <div className="mt-1 min-h-5 truncate text-[13px] text-ink-2">{sub}</div>}
+      {children && <div className="mt-auto pt-4">{children}</div>}
+      {href && (
+        <a href={href} className="absolute inset-0 rounded-[12px]" aria-label={`Open ${label.toLowerCase()}`}>
+          <span className="sr-only">Open {label}</span>
+        </a>
+      )}
+    </section>
   )
 }
 
-/** A ring for a ratio of two counts, e.g. 5 of 5 protocol steps. N/A with the reason otherwise. */
-export function RingGauge({
-  value,
-  tone = 'cyan',
-  label,
-  caption,
-  unavailable = 'Insufficient data',
-  size = 112,
-  testId,
-}: {
-  value: RingValue | null
-  tone?: Tone
-  label: string
-  caption?: ReactNode
-  unavailable?: string
-  size?: number
-  testId?: string
-}) {
-  const id = useId()
-  const stroke = 5
-  const r = size / 2 - stroke - 4
-  const circ = 2 * Math.PI * r
-  const c = size / 2
-  const color = TONE[tone].stroke
+/** Tremor progress bar: a thin track filled to the fraction of two counts. */
+export function Progress({ value, tone = 'cyan', label }: { value: RingValue | null; tone?: Tone; label: string }) {
   const pct = value ? Math.round(value.fraction * 100) : null
   return (
-    <figure className="flex min-w-0 flex-col items-center gap-2 text-center" data-testid={testId}>
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label}: ${value ? `${value.numerator} of ${value.denominator}, ${pct} percent` : unavailable}`}>
-          <defs>
-            <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.6" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <circle cx={c} cy={c} r={r + 7} fill="none" stroke="rgb(238 243 250 / 0.06)" strokeWidth={1} strokeDasharray="1 4" />
-          <circle cx={c} cy={c} r={r} fill="none" stroke="rgb(238 243 250 / 0.08)" strokeWidth={stroke} />
-          {value && value.fraction > 0 && (
-            <circle
-              cx={c}
-              cy={c}
-              r={r}
-              fill="none"
-              stroke={color}
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={circ}
-              strokeDashoffset={circ * (1 - Math.min(1, value.fraction))}
-              transform={`rotate(-90 ${c} ${c})`}
-              filter={`url(#${id}-glow)`}
-            />
-          )}
-        </svg>
-        <div className="absolute inset-0 grid place-items-center">
-          {value ? (
-            <div>
-              <div className="figure text-ink" style={{ fontSize: Math.round(size * 0.22) }}>
-                {pct}
-                <span className="unit ml-0.5 text-[0.5em]">%</span>
-              </div>
-              <div className="mt-1 text-[11px] text-ink-3 tnum">
-                {value.numerator} / {value.denominator}
-              </div>
-            </div>
-          ) : (
-            <div className="px-3">
-              <div className="figure text-ink-3" style={{ fontSize: Math.round(size * 0.16) }}>
-                N/A
-              </div>
-              <div className="mt-1 text-[10px] leading-tight text-ink-3">{unavailable}</div>
-            </div>
-          )}
-        </div>
+    <div>
+      <div
+        className="h-1.5 overflow-hidden rounded-[2px] bg-raised"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={value?.denominator ?? 0}
+        aria-valuenow={value?.numerator ?? 0}
+        aria-valuetext={value ? `${value.numerator} of ${value.denominator}` : 'Not available'}
+      >
+        {value && value.fraction > 0 && <div className="h-full" style={{ width: `${Math.min(100, value.fraction * 100)}%`, background: TONE[tone].stroke }} />}
       </div>
-      <figcaption>
-        <div className="text-[12.5px] font-semibold text-ink">{label}</div>
-        {caption && <div className="mt-0.5 max-w-[20ch] text-[11px] leading-snug text-ink-3">{caption}</div>}
-      </figcaption>
-    </figure>
-  )
-}
-
-/** A label, a thin glowing line filled to the fraction, and the value: the reference's "by purpose" rows. */
-export function BarRow({ label, value, fraction, tone = 'cyan', detail, testId }: { label: ReactNode; value: ReactNode; fraction: number | null; tone?: Tone; detail?: ReactNode; testId?: string }) {
-  const color = TONE[tone].stroke
-  const f = fraction === null ? null : Math.min(1, Math.max(0, fraction))
-  return (
-    <div className="min-w-0" data-testid={testId}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-[12.5px] text-ink-2">{label}</span>
-        <span className="shrink-0 text-[13px] font-semibold text-ink tnum">{value}</span>
+      <div className="mt-2 flex justify-between text-[12px] text-ink-3 tnum">
+        <span>{value ? `${value.numerator} of ${value.denominator}` : 'Not available'}</span>
+        <span>{pct === null ? '' : `${pct}%`}</span>
       </div>
-      <div className="relative mt-2 h-[2px] rounded-full bg-white/[0.08]" aria-hidden>
-        {f !== null && f > 0 && (
-          <>
-            <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${f * 100}%`, background: `linear-gradient(90deg, color-mix(in oklab, ${color} 25%, transparent), ${color})`, boxShadow: `0 0 8px ${color}` }} />
-            <div className="absolute top-1/2 h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ left: `${f * 100}%`, background: color, boxShadow: `0 0 10px ${color}` }} />
-          </>
-        )}
-      </div>
-      {detail && <div className="mt-1.5 text-[11px] text-ink-3">{detail}</div>}
     </div>
   )
 }
 
-export interface ColumnDatum {
+/** Tremor SparkAreaChart: a small area line with no axes, for the trend behind a metric. */
+export function Spark({ data, tone = 'cyan', height = 44, ariaLabel }: { data: { x: number; y: number }[]; tone?: Tone; height?: number; ariaLabel: string }) {
+  const id = useId().replace(/:/g, '')
+  const color = TONE[tone].stroke
+  if (data.length < 2) return <div className="grid text-[12px] text-ink-3" style={{ height }}>Not enough readings for a trend</div>
+  return (
+    <div role="img" aria-label={ariaLabel} style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="x" type="number" domain={['dataMin', 'dataMax']} hide />
+          <YAxis domain={['dataMin - 4', 'dataMax + 4']} hide />
+          <Area type="linear" dataKey="y" stroke={color} strokeWidth={1.5} fill={`url(#${id}-fill)`} isAnimationActive={false} dot={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+export interface BarDatum {
   key: string
   label: string
-  /** null draws an empty column: no value was recorded. */
+  /** null: nothing to plot (too few readings). */
   value: number | null
   display: string
   tone?: Tone
-  /** Emphasise this column, e.g. the latest session. */
   current?: boolean
   href?: string
+  note?: string
 }
 
-/** Columns filled with a dot grid and capped with a glowing dot (the reference's "by country" chart). */
-export function DottedColumns({ data, max, height = 132, ariaLabel }: { data: ColumnDatum[]; max: number; height?: number; ariaLabel: string }) {
-  const id = useId()
+function BarTip({ active, payload }: { active?: boolean; payload?: { payload: BarDatum }[] }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
   return (
-    <div role="img" aria-label={ariaLabel} className="flex items-end gap-3">
-      <svg width="0" height="0" className="absolute" aria-hidden>
-        <defs>
-          <pattern id={`${id}-dots`} width="6" height="6" patternUnits="userSpaceOnUse">
-            <rect x="1" y="1" width="2.2" height="2.2" rx="0.6" fill="rgb(238 243 250 / 0.22)" />
-          </pattern>
-        </defs>
-      </svg>
-      {data.map((d) => {
-        const color = TONE[d.tone ?? 'cyan'].stroke
-        const h = d.value === null || max <= 0 ? 0 : Math.max(10, (Math.max(0, d.value) / max) * (height - 18))
-        const col = (
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <span className={`text-[11px] tnum ${d.current ? 'font-semibold text-ink' : 'text-ink-3'}`}>{d.display}</span>
-            <svg width={32} height={height} viewBox={`0 0 32 ${height}`} aria-hidden className="overflow-visible">
-              <rect x="2" y="0" width="28" height={height} rx="9" fill="rgb(255 255 255 / 0.025)" stroke="rgb(150 180 220 / 0.1)" />
-              {h > 0 && (
-                <>
-                  <rect x="2" y={height - h} width="28" height={h} rx="9" fill={`url(#${id}-dots)`} stroke={d.current ? color : 'rgb(150 180 220 / 0.22)'} />
-                  <circle cx="16" cy={height - h + 8} r="4.2" fill={color} style={{ filter: `drop-shadow(0 0 5px ${color})` }} />
-                </>
-              )}
-            </svg>
-            <span className={`max-w-full truncate text-[11px] ${d.current ? 'text-ink' : 'text-ink-3'}`}>{d.label}</span>
-          </div>
-        )
-        return d.href ? (
-          <a key={d.key} href={d.href} className="flex min-w-0 flex-1 rounded-[10px] transition-colors hover:bg-white/[0.03]" aria-label={`${d.label}: ${d.display}`}>
-            {col}
-          </a>
-        ) : (
-          <div key={d.key} className="flex min-w-0 flex-1">
-            {col}
-          </div>
-        )
-      })}
+    <div className="rounded-[6px] border border-line bg-panel px-3 py-2 text-[12px] shadow-[0_8px_24px_rgb(0_0_0/0.5)]">
+      <div className="font-medium text-ink">{d.label}</div>
+      <div className="mt-0.5 text-ink-2 tnum">{d.display}</div>
+      {d.note && <div className="mt-0.5 text-ink-3">{d.note}</div>}
+    </div>
+  )
+}
+
+/** Tremor BarChart: thin bars, dashed horizontal grid, no axis lines, a plain tooltip. */
+export function Bars({ data, height = 168, unit, ariaLabel, onSelect }: { data: BarDatum[]; height?: number; unit?: string; ariaLabel: string; onSelect?: (d: BarDatum) => void }) {
+  const rows = data.map((d) => ({ ...d, plot: d.value ?? 0 }))
+  return (
+    <div role="img" aria-label={ariaLabel} style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 4, right: 0, bottom: 0, left: -12 }} barCategoryGap="28%">
+          <CartesianGrid vertical={false} stroke="#1f1f1f" strokeDasharray="3 3" />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#8f8f8f', fontSize: 12 }} dy={6} interval={0} />
+          <YAxis tickLine={false} axisLine={false} tick={{ fill: '#8f8f8f', fontSize: 12 }} width={44} tickFormatter={(v: number) => `${v > 0 ? '+' : ''}${v}${unit ? '' : ''}`} allowDecimals={false} />
+          <ReferenceLine y={0} stroke="#2e2e2e" />
+          <Tooltip content={<BarTip />} cursor={{ fill: 'rgb(255 255 255 / 0.04)' }} isAnimationActive={false} />
+          <Bar
+            dataKey="plot"
+            radius={[3, 3, 0, 0]}
+            maxBarSize={30}
+            isAnimationActive={false}
+            onClick={(entry: unknown) => {
+              const d = (entry as { payload?: BarDatum }).payload
+              if (d && onSelect) onSelect(d)
+            }}
+            style={{ cursor: onSelect ? 'pointer' : 'default' }}
+          >
+            {rows.map((d) => (
+              <Cell key={d.key} fill={TONE[d.tone ?? 'cyan'].stroke} fillOpacity={d.value === null ? 0 : d.current ? 1 : 0.55} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }

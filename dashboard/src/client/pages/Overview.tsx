@@ -1,5 +1,5 @@
-import { ArrowRight, CheckCircle2, FileUp, FlaskConical, Radio, Search, X } from 'lucide-react'
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ArrowRight, FileUp, Search } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { comparePhases, externalReadingFindings, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type Dataset, type LinkState } from '../../shared/dataset'
@@ -9,7 +9,7 @@ import type { WatchLinkSnapshot } from '../../shared/watch-link'
 import { EvidenceList, KindMark } from '../components/Astronaut'
 import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
-import { BarRow, Dial, DottedColumns, RingGauge, type ColumnDatum } from '../components/Gauge'
+import { Bars, Kpi, Progress, Spark, type BarDatum } from '../components/Gauge'
 import { CornerLink, Empty, Panel, Pill, SimTag, TONE } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
@@ -50,33 +50,33 @@ const LEGEND: { state: RegionInfo['state']; label: string; tone: Tone }[] = [
 
 export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unplaced: string[] }) {
   return (
-    <div className="well px-4 py-3.5" data-testid="region-detail">
+    <div className="rounded-[8px] border border-hair bg-panel-2 px-4 py-3.5" data-testid="region-detail">
       {info ? (
         <>
           <div className="flex items-center justify-between gap-3">
-            <div className="text-[13px] font-semibold text-ink">{info.name}</div>
+            <div className="text-[14px] font-medium text-ink">{info.name}</div>
             <Pill tone={LEGEND.find((l) => l.state === info.state)!.tone}>{LEGEND.find((l) => l.state === info.state)!.label}</Pill>
           </div>
           {info.items.length ? (
-            <ul className="mt-2.5 space-y-2">
+            <ul className="mt-3 space-y-2.5">
               {info.items.map((it, i) => (
                 <li key={i}>
-                  <div className={`text-[12px] font-semibold ${TONE[it.tone].text}`}>{it.title}</div>
-                  <div className="text-[12.5px] text-ink-2">{it.detail}</div>
+                  <div className="text-[13px] font-medium text-ink">{it.title}</div>
+                  <div className="text-[13px] text-ink-2">{it.detail}</div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[12.5px] text-ink-3">No evidence recorded for this region.</p>
+            <p className="mt-2 text-[13px] text-ink-2">No evidence recorded for this region.</p>
           )}
-          {info.note && <p className="rule mt-3 pt-2.5 text-[11.5px] text-ink-3">{info.note}</p>}
+          {info.note && <p className="rule mt-3 pt-3 text-[13px] text-ink-2">{info.note}</p>}
         </>
       ) : (
         <>
-          <div className="text-[12.5px] text-ink-2">Select a region for the record behind it. Markers show where evidence was recorded, not a diagnosis.</div>
-          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className="text-[13px] text-ink-2">Select a region for the record behind it. Marks show where evidence was recorded, not a diagnosis.</div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {LEGEND.map((l) => (
-              <span key={l.state} className="flex items-center gap-1.5 text-[11.5px] text-ink-3">
+              <span key={l.state} className="flex items-center gap-2 text-[13px] text-ink-2">
                 <KindMark state={l.state} />
                 {l.label}
               </span>
@@ -84,12 +84,12 @@ export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unpl
           </div>
         </>
       )}
-      {unplaced.length > 0 && <p className="mt-3 text-[11.5px] text-ink-3">Also reported without a location: {unplaced.join(', ')}.</p>}
+      {unplaced.length > 0 && <p className="mt-3 text-[13px] text-ink-2">Also reported without a location: {unplaced.join(', ')}.</p>}
     </div>
   )
 }
 
-/** The astronaut evidence map with its findings and detail. Selection can be driven from outside. */
+/** The body evidence map with its findings and detail. Selection can be driven from outside. */
 export function CrewReport({
   ds,
   session,
@@ -123,7 +123,7 @@ export function TriggerButton() {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col items-start gap-1.5">
       <button
         className="btn btn-sim"
         data-testid="trigger-sim"
@@ -141,9 +141,10 @@ export function TriggerButton() {
           }
         }}
       >
-        <Radio size={14} /> Trigger simulated watch event
+        <span className="status-mark bg-violet" aria-hidden />
+        Trigger simulated watch event
       </button>
-      {err && <span className="text-[11.5px] text-coral">{err}</span>}
+      {err && <span className="text-[13px] text-ink-2">{err}</span>}
     </div>
   )
 }
@@ -173,89 +174,94 @@ function resolveFocus(ds: Dataset, subjectId: string | null, scenarioId: string 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 
 // ---------------------------------------------------------------------------
-// The review focus strip
+// 1. The alert: the one thing that needs a person
 
 function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Focus; otherOpen: number; nowIso: string }) {
   const e = focus.event
   if (!e) {
     return (
-      <div className="panel flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-4" data-testid="hero-alert">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 shrink-0 text-mint" size={18} />
-          <div>
-            <div className="text-[13.5px] font-semibold text-ink">No review event</div>
-            <p className="mt-0.5 max-w-[80ch] text-[12.5px] text-ink-2">
-              {focus.scenario
-                ? `${focus.scenario.title}. ${focus.scenario.summary}`
-                : `No open review event for ${focus.subjectId ? subjectLabel(focus.subjectId) : 'this crew member'}. A review records that someone looked at the evidence; it is not a medical clearance.`}
-            </p>
-          </div>
+      <div className="panel p-6" data-testid="hero-alert">
+        <div className="flex items-center gap-2.5">
+          <span className="status-mark bg-mint" aria-hidden />
+          <span className="font-mono text-[12px] font-medium text-ink">NO OPEN EVENT</span>
         </div>
-        {otherOpen > 0 && (
-          <a className="btn btn-ghost btn-sm" href={href.events}>
-            {plural(otherOpen, 'open event')} for other crew
-          </a>
-        )}
+        <h2 className="mt-4 text-[24px] font-semibold tracking-[-0.02em] text-ink">No review event</h2>
+        <p className="mt-1 max-w-[62ch] text-[15px] text-ink-2">
+          {focus.scenario
+            ? `${focus.scenario.title}. ${focus.scenario.summary}`
+            : `No open review event for ${focus.subjectId ? subjectLabel(focus.subjectId) : 'this crew member'}. A review records that someone looked at the evidence; it is not a medical clearance.`}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {focus.session && (
+            <a className="btn btn-primary" href={href.session(focus.session.sessionId)}>
+              Session readings <ArrowRight size={16} />
+            </a>
+          )}
+          {otherOpen > 0 && (
+            <a className="btn btn-ghost" href={href.events}>
+              {plural(otherOpen, 'open event')} for other crew
+            </a>
+          )}
+        </div>
       </div>
     )
   }
   const ctx = buildEventContext(e, ds, nowIso)
   const cat = CATEGORY_META[e.category]
   const tone: Tone = e.review.state === 'REVIEWED' || e.review.state === 'CLOSED' ? 'mint' : cat.tone
-  const t = TONE[tone]
   const ack = ackLabel(e)
-  const open = isOpen(e)
   return (
-    <div className={`panel overflow-hidden ${open ? t.border : ''}`} data-testid="hero-alert" style={open ? { boxShadow: `0 0 0 1px color-mix(in oklab, ${t.stroke} 18%, transparent), 0 18px 50px -30px ${t.stroke}` } : undefined}>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-          <span className={`rounded-full px-3 py-[5px] text-[11px] font-bold tracking-[0.08em] ${t.solid}`} data-testid="focus-label">
-            {focusLabel(e)}
-          </span>
-          {e.isSimulated && <SimTag />}
-          <h2 className="display text-[18px] text-ink">{eventTitle(ctx)}</h2>
-          <span className="text-[14px] text-ink-2">
-            <span className="hidden text-ink-3 sm:inline">· </span>
-            <span data-testid="focus-reason">{reasonLine(ctx)}</span>
-          </span>
-        </div>
-        <dl className="flex flex-wrap gap-x-7 gap-y-1.5">
-          <div>
-            <dt className="micro">Created</dt>
-            <dd className="text-[12.5px] text-ink tnum">{utcStamp(e.createdAt).slice(5)}</dd>
-          </div>
-          <div>
-            <dt className="micro">Source</dt>
-            <dd className="text-[12.5px] text-ink">{ORIGIN_LABEL[e.origin.kind]}</dd>
-          </div>
-          <div>
-            <dt className="micro">On the watch</dt>
-            <dd className={`text-[12.5px] ${TONE[ack.tone].text}`}>{ack.text}</dd>
-          </div>
-          <div>
-            <dt className="micro">Review</dt>
-            <dd className={`text-[12.5px] ${TONE[REVIEW_META[e.review.state].tone].text}`}>{REVIEW_META[e.review.state].label}</dd>
-          </div>
-        </dl>
-        <div className="flex items-center gap-2">
-          {otherOpen > 0 && (
-            <a className="btn btn-ghost btn-sm" href={href.events}>
-              {plural(otherOpen, 'other open event')}
-            </a>
-          )}
-          <CornerLink href={href.event(e.eventId)} label="Open this event's evidence" />
-        </div>
+    <div className="panel p-6" data-testid="hero-alert">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className={`status-mark ${TONE[tone].dot}`} aria-hidden />
+        <span className="font-mono text-[12px] font-medium text-ink" data-testid="focus-label">
+          {focusLabel(e)}
+        </span>
+        {e.isSimulated && <SimTag />}
+        <span className="ml-auto font-mono text-[12px] text-ink-3">{e.eventId}</span>
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-1.5 text-[11px] text-ink-3">
-        <span className="tnum">{e.eventId}</span>
-        <span className="hidden sm:inline">A review records that someone looked at the evidence. It is not a diagnosis.</span>
+      <h2 className="mt-4 text-[24px] leading-8 font-semibold tracking-[-0.02em] text-ink">{eventTitle(ctx)}</h2>
+      <p className="mt-1 text-[16px] text-ink-2">
+        <span data-testid="focus-reason">{reasonLine(ctx)}</span>
+      </p>
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-hair pt-5 sm:grid-cols-4">
+        <div>
+          <dt className="micro">Created</dt>
+          <dd className="mt-1 font-mono text-[13px] text-ink">{utcStamp(e.createdAt).slice(5)}</dd>
+        </div>
+        <div>
+          <dt className="micro">Source</dt>
+          <dd className="mt-1 text-[14px] text-ink">{ORIGIN_LABEL[e.origin.kind]}</dd>
+        </div>
+        <div>
+          <dt className="micro">On the watch</dt>
+          <dd className="mt-1">
+            <Pill tone={ack.tone}>{ack.text}</Pill>
+          </dd>
+        </div>
+        <div>
+          <dt className="micro">Review</dt>
+          <dd className="mt-1">
+            <Pill tone={REVIEW_META[e.review.state].tone}>{REVIEW_META[e.review.state].label}</Pill>
+          </dd>
+        </div>
+      </dl>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <a className="btn btn-primary" href={href.event(e.eventId)} data-testid="open-evidence">
+          Open evidence <ArrowRight size={16} />
+        </a>
+        {otherOpen > 0 && (
+          <a className="btn btn-ghost" href={href.events}>
+            {plural(otherOpen, 'other open event')}
+          </a>
+        )}
       </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Telemetry
+// 2. Key metrics
 
 interface HeartRateObservation {
   value: number
@@ -314,170 +320,70 @@ function useTelemetry(ds: Dataset, focus: Focus, nowMs: number) {
   const device = focus.subjectId ? subjectDevice(ds, focus.subjectId) : null
   const link = device ? ((snapshot?.links[device.deviceId] as LinkState | undefined) ?? 'NOT_PAIRED') : 'NOT_PAIRED'
   const latestSession = sessionsOf(ds, focus.subjectId)[0] ?? null
-  return { s, e, rings, hr, recent, c, recorded, valid, check, steps, excluded, extFlags, device, link, latestSession }
+  const validIds = new Set(c ? [...c.rest.valid, ...c.recovery.valid].map((m) => m.measurementId) : [])
+  const series = s
+    ? s.measurements
+        .filter((m) => validIds.has(m.measurementId) && typeof m.value === 'number')
+        .map((m) => ({ x: Date.parse(m.measuredAt), y: m.value as number }))
+        .sort((a, b) => a.x - b.x)
+    : []
+  return { s, e, rings, hr, recent, c, recorded, valid, check, steps, excluded, extFlags, device, link, latestSession, series }
 }
 
 type Telemetry = ReturnType<typeof useTelemetry>
 
-/** Left column: the latest heart rate on a dial, with this check's phase medians. */
-function HeartRateCard({ t }: { t: Telemetry }) {
-  const { hr, recent, c, s } = t
+function KeyMetrics({ ds, focus, t }: { ds: Dataset; focus: Focus; t: Telemetry }) {
+  const { hr, recent, c, steps, check, rings, e, series } = t
+  const sessions = sessionsOf(ds, focus.subjectId).slice(0, 6).reverse()
+  const bars: BarDatum[] = sessions.map((s) => {
+    const d = comparePhases(s).observedDelta
+    return {
+      key: s.sessionId,
+      label: shortDate(s.startedAt),
+      value: d,
+      display: d === null ? 'Too few readings to compare' : `${signed(d)} bpm, recovery − rest`,
+      tone: s.symptoms.length ? 'coral' : 'cyan',
+      current: s.sessionId === focus.session?.sessionId,
+      href: href.session(s.sessionId),
+      note: s.symptoms.length ? 'A symptom was reported in this check' : undefined,
+    }
+  })
   return (
-    <Panel title="Heart rate" meta={hr ? <Pill tone={recent ? hr.modeTone : 'muted'}>{recent ? hr.mode : 'No recent data'}</Pill> : undefined} bodyClassName="px-5 pt-1 pb-5">
-      <div data-testid="strip-hr" className="flex flex-col items-center">
-        <Dial
-          value={hr ? hr.value : null}
-          min={40}
-          max={180}
-          majorStep={20}
-          unit="bpm"
-          tone={hr && recent ? 'cyan' : 'muted'}
-          label={hr ? (recent ? 'Latest heart rate' : 'Last recorded heart rate') : 'Latest heart rate'}
-          unavailable="No valid reading"
-          caption={hr ? `${utcStamp(hr.at).slice(5)} · ${hr.source} · ${hr.mode}` : 'No valid heart-rate reading on record'}
-          size={176}
-        />
-      </div>
-      <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4 text-center">
-        <div>
-          <dt className="micro">Rest median</dt>
-          <dd className="figure mt-1 text-[18px] text-ink">{c?.restMedian ?? '--'}</dd>
-        </div>
-        <div>
-          <dt className="micro">Recovery</dt>
-          <dd className="figure mt-1 text-[18px] text-ink">{c?.recoveryMedian ?? '--'}</dd>
-        </div>
-        <div>
-          <dt className="micro">Difference</dt>
-          <dd className="figure mt-1 text-[18px] text-ink">{c?.observedDelta != null ? signed(c.observedDelta) : '--'}</dd>
-        </div>
-      </dl>
-      <p className="mt-2 text-center text-[11px] text-ink-3">{s ? 'bpm, this check · descriptive, not a clinical threshold' : 'No check recorded'}</p>
-    </Panel>
-  )
-}
-
-/** Left column: the three ratios that are fully explained by their counts. */
-function ChecksCard({ t }: { t: Telemetry }) {
-  return (
-    <Panel title="Record checks" bodyClassName="px-4 pt-1 pb-5">
-      <div className="grid grid-cols-3 gap-1">
-        <RingGauge value={t.rings.completeness} tone="mint" label="Protocol" caption="Steps in the record" unavailable="No check recorded" size={86} />
-        <RingGauge value={t.rings.coverage} tone="cyan" label="HR coverage" caption="10 s intervals with a reading" unavailable="Phase times incomplete" size={86} />
-        <RingGauge value={t.rings.review} tone="neutral" label="Review" caption={`Checklist items, v${REVIEW_CHECKLIST.version}`} unavailable="No event to review" size={86} />
-      </div>
-    </Panel>
-  )
-}
-
-function Readout({ label, value, detail, tone, testId }: { label: string; value: string; detail: string; tone?: Tone; testId?: string }) {
-  const color = !tone || tone === 'neutral' ? 'text-ink' : tone === 'muted' ? 'text-ink-3' : TONE[tone].text
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-2" data-testid={testId}>
-      <span className="text-[12.5px] text-ink-2">{label}</span>
-      <span className={`text-right text-[13px] font-semibold ${color}`}>{value}</span>
-      <span className="col-span-2 truncate text-[11px] text-ink-3" title={detail}>
-        {detail}
-      </span>
-    </div>
-  )
-}
-
-/** Bottom row: readings as glowing line bars, then the status readouts. */
-function ReadingsCard({ t, nowMs }: { t: Telemetry; nowMs: number }) {
-  const { s, e, c, recorded, valid, check, steps, excluded, extFlags, device, link, latestSession } = t
-  const phase = (p: NonNullable<typeof c>['rest']) => {
-    const n = p.valid.length + p.excluded.length
-    return { n, v: p.valid.length, f: n ? p.valid.length / n : null }
-  }
-  const rest = c ? phase(c.rest) : null
-  const rec = c ? phase(c.recovery) : null
-  return (
-    <section className="panel flex min-w-0 flex-col" aria-label="Mission telemetry" data-testid="telemetry">
-      <header className="pane-head">
-        <h2 className="label">Readings</h2>
-        {s && <CornerLink href={href.session(s.sessionId)} label="Open the session readings" />}
-      </header>
-      <div className="flex flex-1 flex-col gap-4 px-5 pt-2 pb-4" data-testid="measurement-strip">
-        <BarRow label="Valid heart-rate readings" value={s ? `${valid} / ${recorded}` : '--'} fraction={s && recorded ? valid / recorded : null} tone="cyan" />
-        <BarRow label="Rest phase, valid" value={rest ? `${rest.v} / ${rest.n}` : '--'} fraction={rest?.f ?? null} tone="cyan" />
-        <BarRow label="Recovery phase, valid" value={rec ? `${rec.v} / ${rec.n}` : '--'} fraction={rec?.f ?? null} tone="cyan" />
-        <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
-          <Readout
-            label="Source quality"
-            value={!s ? '--' : excluded.length || extFlags ? `${excluded.length + extFlags} flagged` : 'All valid'}
-            detail={
-              !s
-                ? 'No check recorded'
-                : excluded.length
-                  ? `${plural(excluded.length, 'reading')} left out of the medians${extFlags ? ` · ${plural(extFlags, 'external flag')}` : ''}`
-                  : extFlags
-                    ? `${plural(extFlags, 'external reading')} flagged for source review`
-                    : 'Every heart-rate reading used'
-            }
-            tone={!s ? 'muted' : excluded.length || extFlags ? 'amber' : 'mint'}
-          />
-          <Readout testId="strip-check" label="Session progress" value={check.value} detail={steps ? `${steps.done} of ${steps.total} protocol steps · ${check.sub}` : check.sub} tone={s ? 'mint' : 'muted'} />
-          <Readout
-            label="Review state"
-            value={e ? REVIEW_META[e.review.state].label : '--'}
-            detail={e ? (e.review.reviewer ? `Reviewer: ${e.review.reviewer}` : `${STATUS_META[e.status].label} · ${ackLabel(e).text}`) : 'No event for this check'}
-            tone={e ? REVIEW_META[e.review.state].tone : 'muted'}
-          />
-          <Readout
-            label="Last assessment"
-            value={latestSession ? utcStamp(latestSession.startedAt).slice(5, 16) + 'Z' : '--'}
-            detail={latestSession ? `${latestSession.summary ? `Watch summary: ${latestSession.summary.status.replace(/_/g, ' ').toLowerCase()}` : 'No watch summary'} · ${ago(latestSession.startedAt, nowMs)}` : 'No assessment recorded'}
-          />
-          <Readout
-            label="Watch reachability"
-            value={LINK_META[link].label}
-            detail={device ? `${device.deviceModel ?? device.deviceId} · last contact ${ago(device.lastSeenAt, nowMs)}` : 'No watch has checked in for this crew member'}
-            tone={LINK_META[link].tone}
-          />
-        </div>
-      </div>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key metrics">
+      <Kpi
+        testId="strip-hr"
+        label={hr && !recent ? 'Last recorded heart rate' : 'Latest heart rate'}
+        value={hr ? hr.value : '--'}
+        unit={hr ? 'bpm' : undefined}
+        mark={hr ? <Pill tone={recent ? hr.modeTone : 'muted'}>{recent ? hr.mode : 'No recent data'}</Pill> : undefined}
+        sub={hr ? `${utcStamp(hr.at).slice(5)} · ${hr.source}` : 'No valid heart-rate reading on record'}
+      >
+        <Spark data={series} tone="cyan" ariaLabel={`Valid heart-rate readings in this check: ${series.length}`} />
+      </Kpi>
+      <Kpi
+        label="Recovery − rest"
+        value={c?.observedDelta != null ? signed(c.observedDelta) : '--'}
+        unit={c?.observedDelta != null ? 'bpm' : undefined}
+        sub={c?.observedDelta != null ? `This check · medians ${c.recoveryMedian} and ${c.restMedian}` : 'Too few readings in this check'}
+        mark={<CornerLink href={href.crew} label="Open recovery history" />}
+      >
+        <Bars data={bars} height={96} ariaLabel={`Recovery minus rest for the last ${plural(bars.length, 'check')}`} onSelect={(d) => d.href && navigate(d.href)} />
+      </Kpi>
+      <Kpi label="Protocol steps" value={steps ? `${steps.done} / ${steps.total}` : '--'} sub={steps ? `${check.value} · ${check.sub}` : check.sub}>
+        <Progress value={rings.completeness} tone="mint" label="Protocol steps in the record" />
+      </Kpi>
+      <Kpi label="Review checklist" value={rings.review ? `${rings.review.numerator} / ${rings.review.denominator}` : '--'} sub={e ? `${REVIEW_META[e.review.state].label} · checklist v${REVIEW_CHECKLIST.version}` : 'No event to review'}>
+        <Progress value={rings.review} tone="neutral" label="Review checklist items" />
+      </Kpi>
     </section>
   )
 }
 
-/** Bottom row: recovery minus rest for each recorded check of this crew member, oldest first. */
-function RecoveryColumns({ ds, focus }: { ds: Dataset; focus: Focus }) {
-  const sessions = sessionsOf(ds, focus.subjectId).slice(0, 6).reverse()
-  const rows = sessions.map((s) => ({ s, d: comparePhases(s).observedDelta }))
-  const max = Math.max(10, ...rows.map((r) => r.d ?? 0))
-  const data: ColumnDatum[] = rows.map(({ s, d }) => ({
-    key: s.sessionId,
-    label: shortDate(s.startedAt),
-    value: d,
-    display: d === null ? '--' : signed(d),
-    tone: s.symptoms.length ? 'coral' : 'cyan',
-    current: s.sessionId === focus.session?.sessionId,
-    href: href.session(s.sessionId),
-  }))
-  return (
-    <Panel title="Recovery − rest by session" href={href.crew} hrefLabel="Open recovery history" bodyClassName="px-5 pt-1 pb-5">
-      {data.length ? (
-        <>
-          <div className="mb-3 flex items-baseline gap-2">
-            <span className="figure text-[30px] text-ink">{rows.at(-1)?.d != null ? signed(rows.at(-1)!.d!) : '--'}</span>
-            <span className="text-[12px] text-ink-3">bpm, latest check · {plural(rows.length, 'check')}</span>
-          </div>
-          <DottedColumns data={data} max={max} height={128} ariaLabel={`Recovery minus rest heart rate for ${plural(rows.length, 'check')}`} />
-          <p className="mt-3 text-[11px] text-ink-3">Coral: a symptom was reported in that check. "--": too few readings to compare.</p>
-        </>
-      ) : (
-        <p className="text-[12.5px] text-ink-3">No recorded checks for this crew member.</p>
-      )}
-    </Panel>
-  )
-}
-
 // ---------------------------------------------------------------------------
-// Mission timeline, in the reference's "Releases" style
+// 3. Timeline
 
-const TL_TONE: Record<TimelineItem['tone'], string> = {
-  neutral: 'bg-ink-3',
+const TL_MARK: Record<TimelineItem['tone'], string> = {
+  neutral: 'bg-line-strong',
   data: 'bg-cyan',
   symptom: 'bg-coral',
   event: 'bg-violet',
@@ -502,27 +408,26 @@ function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; o
     <section className="panel flex min-w-0 flex-col" aria-label="Mission timeline" data-testid="timeline">
       <header className="pane-head">
         <h2 className="label">Mission timeline</h2>
-        <span className="chip tnum">{items.length ? shortDate(items[0].at) : 'No steps'}</span>
+        <span className="font-mono text-[12px] text-ink-3">{items.length ? `${utcStamp(items[0].at).slice(0, 10)} UTC` : ''}</span>
       </header>
       {items.length ? (
-        <ol className="flex flex-col px-3 pt-1 pb-3">
+        <ol className="flex flex-col px-2 pb-3">
           {items.map((i, idx) => {
             const sym = i.kind === 'SYMPTOM' ? symptomFor(i.at) : null
             const linked = sym ? symptomRegion(sym) : null
             const active = linked !== null && linked === selectedRegion
             return (
-              <li key={`${i.kind}-${idx}`} className="relative">
-                {idx < items.length - 1 && <span className="absolute top-[24px] bottom-[-12px] left-[87px] w-px bg-white/[0.08]" aria-hidden />}
+              <li key={`${i.kind}-${idx}`}>
                 <button
-                  className={`grid w-full grid-cols-[64px_12px_minmax(0,1fr)] items-start gap-x-3 rounded-[12px] px-2 py-[7px] text-left transition-colors hover:bg-white/[0.04] ${active ? 'bg-cyan/[0.08]' : ''}`}
+                  className={`grid w-full grid-cols-[72px_10px_minmax(0,1fr)] items-baseline gap-x-3 rounded-[6px] px-3 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised' : ''}`}
                   onClick={() => act(i)}
                   data-testid={`tl-${i.kind}`}
                 >
-                  <span className="chip h-[22px] justify-center px-1.5 text-[10.5px] tnum">{utcTime(i.at).replace(' UTC', '').slice(0, 8)}</span>
-                  <span className={`mt-[7px] h-2 w-2 rounded-full ${TL_TONE[i.tone]}`} aria-hidden />
+                  <span className="font-mono text-[12px] text-ink-3">{utcTime(i.at).replace(' UTC', '')}</span>
+                  <span className={`status-mark ${TL_MARK[i.tone]}`} aria-hidden />
                   <span className="min-w-0">
-                    <span className="block truncate text-[12.5px] font-medium text-ink">{i.label}</span>
-                    {i.detail && <span className="block truncate text-[11px] text-ink-3">{i.detail}</span>}
+                    <span className="block text-[14px] text-ink">{i.label}</span>
+                    {i.detail && <span className="block truncate text-[13px] text-ink-2">{i.detail}</span>}
                   </span>
                 </button>
               </li>
@@ -530,112 +435,112 @@ function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; o
           })}
         </ol>
       ) : (
-        <p className="px-5 pb-4 text-[13px] text-ink-3">No recorded activity for this crew member.</p>
+        <p className="px-5 pb-5 text-[14px] text-ink-2">No recorded activity for this crew member.</p>
       )}
     </section>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Search over the records (not an assistant: it matches text in the stored events)
+// 4. Record details: every reading, its quality and where it came from
 
-function RecordSearch({ ds }: { ds: Dataset }) {
-  const [q, setQ] = useState('')
-  const [open, setOpen] = useState(false)
-  const id = useId()
-  const box = useRef<HTMLDivElement>(null)
-  const results = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    if (!needle) return []
-    return sortEvents(Object.values(ds.events))
-      .filter((e) =>
-        [e.eventId, e.sessionId ?? '', subjectLabel(e.subjectId), CATEGORY_META[e.category].label, STATUS_META[e.status].label, ORIGIN_LABEL[e.origin.kind], ...e.reasonCodes].some((f) => f.toLowerCase().includes(needle)),
-      )
-      .slice(0, 6)
-  }, [q, ds])
-  const show = open && q.trim().length > 0
+function Row({ label, value, detail, testId }: { label: string; value: ReactNode; detail?: string; testId?: string }) {
   return (
-    <div
-      ref={box}
-      className="relative w-full max-w-[520px]"
-      onBlur={(e) => {
-        if (!box.current?.contains(e.relatedTarget as Node | null)) setOpen(false)
-      }}
-    >
-      <div className="field flex h-11 items-center gap-2.5 rounded-full pr-2 pl-4">
-        <Search size={15} className="shrink-0 text-ink-3" aria-hidden />
-        <input
-          className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-ink-3"
-          placeholder="Search events, crew, reason codes"
-          value={q}
-          role="combobox"
-          aria-expanded={show}
-          aria-controls={`${id}-list`}
-          aria-label="Search recorded events"
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQ(e.target.value)
-            setOpen(true)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setQ('')
-              setOpen(false)
-            }
-            if (e.key === 'Enter' && results[0]) navigate(href.event(results[0].eventId))
-          }}
-        />
-        {q && (
-          <button className="icon-btn icon-btn-sm" onClick={() => setQ('')} aria-label="Clear search">
-            <X size={13} />
-          </button>
-        )}
-      </div>
-      {show && (
-        <ul id={`${id}-list`} role="listbox" className="panel absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden py-1.5">
-          {results.length ? (
-            results.map((e) => {
-              const cat = CATEGORY_META[e.category]
-              return (
-                <li key={e.eventId} role="option" aria-selected={false}>
-                  <a href={href.event(e.eventId)} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-4 py-2 hover:bg-white/[0.05]">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TONE[cat.tone].dot}`} aria-hidden />
-                      <span className={`truncate text-[12.5px] font-semibold ${TONE[cat.tone].text}`}>{cat.label}</span>
-                      {e.isSimulated && <SimTag />}
-                      <span className="truncate text-[12px] text-ink-2">{subjectLabel(e.subjectId)}</span>
-                    </span>
-                    <span className="text-[11px] text-ink-3 tnum">{utcStamp(e.createdAt).slice(5)}</span>
-                    <span className="col-span-2 truncate text-[11px] text-ink-3">
-                      {e.eventId} · {e.reasonCodes.join(', ')}
-                    </span>
-                  </a>
-                </li>
-              )
-            })
-          ) : (
-            <li className="px-4 py-2.5 text-[12.5px] text-ink-3">No recorded event matches “{q.trim()}”.</li>
-          )}
-        </ul>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 border-b border-hair px-5 py-3 last:border-b-0" data-testid={testId}>
+      <span className="text-[14px] text-ink-2">{label}</span>
+      <span className="text-right text-[14px] text-ink tnum">{value}</span>
+      {detail && (
+        <span className="col-span-2 mt-0.5 truncate text-[13px] text-ink-3" title={detail}>
+          {detail}
+        </span>
       )}
     </div>
   )
 }
 
+function RecordDetails({ t, nowMs, session, mode, hrCount }: { t: Telemetry; nowMs: number; session: StoredSession | null; mode: string | null; hrCount: number }) {
+  const { s, e, rings, c, recorded, valid, check, steps, excluded, extFlags, device, link, latestSession } = t
+  const phase = (p: NonNullable<typeof c>['rest']) => `${p.valid.length} / ${p.valid.length + p.excluded.length}`
+  return (
+    <section className="panel min-w-0" aria-label="Mission telemetry" data-testid="telemetry">
+      <header className="pane-head">
+        <h2 className="label">Record details</h2>
+        {s && <CornerLink href={href.session(s.sessionId)} label="Open the session readings" />}
+      </header>
+      <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-hair" data-testid="measurement-strip">
+        <div>
+          <Row label="HR coverage" value={rings.coverage ? `${rings.coverage.numerator} / ${rings.coverage.denominator}` : 'N/A'} detail={rings.coverage ? '10 s intervals with a valid reading' : s ? 'Phase times incomplete' : 'No check recorded'} />
+          <Row label="Valid heart-rate readings" value={s ? `${valid} / ${recorded}` : '--'} detail={s ? 'Valid of recorded readings' : 'No check recorded'} />
+          <Row label="Rest phase, valid" value={c ? phase(c.rest) : '--'} />
+          <Row label="Recovery phase, valid" value={c ? phase(c.recovery) : '--'} />
+          <Row
+            label="Source quality"
+            value={!s ? '--' : <Pill tone={excluded.length || extFlags ? 'amber' : 'mint'}>{excluded.length || extFlags ? `${excluded.length + extFlags} flagged` : 'All valid'}</Pill>}
+            detail={
+              !s
+                ? 'No check recorded'
+                : excluded.length
+                  ? `${plural(excluded.length, 'reading')} left out of the medians${extFlags ? ` · ${plural(extFlags, 'external flag')}` : ''}`
+                  : extFlags
+                    ? `${plural(extFlags, 'external reading')} flagged for source review`
+                    : 'Every heart-rate reading used'
+            }
+          />
+        </div>
+        <div>
+          <Row testId="strip-check" label="Session progress" value={check.value} detail={steps ? `${steps.done} of ${steps.total} protocol steps · ${check.sub}` : check.sub} />
+          <Row
+            label="Review state"
+            value={e ? <Pill tone={REVIEW_META[e.review.state].tone}>{REVIEW_META[e.review.state].label}</Pill> : '--'}
+            detail={e ? (e.review.reviewer ? `Reviewer: ${e.review.reviewer}` : `${STATUS_META[e.status].label} · ${ackLabel(e).text}`) : 'No event for this check'}
+          />
+          <Row
+            label="Last assessment"
+            value={latestSession ? <span className="font-mono text-[13px]">{utcStamp(latestSession.startedAt).slice(5, 16)}Z</span> : '--'}
+            detail={latestSession ? `${latestSession.summary ? `Watch summary: ${latestSession.summary.status.replace(/_/g, ' ').toLowerCase()}` : 'No watch summary'} · ${ago(latestSession.startedAt, nowMs)}` : 'No assessment recorded'}
+          />
+          <Row
+            label="Watch reachability"
+            value={<Pill tone={LINK_META[link].tone}>{LINK_META[link].label}</Pill>}
+            detail={device ? `${device.deviceModel ?? device.deviceId} · last contact ${ago(device.lastSeenAt, nowMs)}` : 'No watch has checked in for this crew member'}
+          />
+          <div data-testid="provenance">
+            <Row
+              label="Sensor provenance"
+              value={session ? (session.measurements[0]?.source.device ?? session.provenance.deviceId ?? 'Unknown device') : '--'}
+              detail={session ? `${mode} · ${plural(hrCount, 'heart-rate reading')}, ${valid} valid · received ${session.provenance.receivedAt ? utcStamp(session.provenance.receivedAt).slice(5) : '--'}` : 'No session recorded for this crew member.'}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ---------------------------------------------------------------------------
-// Event queue
+// 5. Event queue (the search filters it; it matches text in stored events, nothing more)
 
 function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
-  const events = sortEvents(Object.values(ds.events))
-  const open = events.filter(isOpen).length
+  const [q, setQ] = useState('')
+  const all = useMemo(() => sortEvents(Object.values(ds.events)), [ds])
+  const open = all.filter(isOpen).length
+  const needle = q.trim().toLowerCase()
+  const events = needle
+    ? all.filter((e) => [e.eventId, e.sessionId ?? '', subjectLabel(e.subjectId), CATEGORY_META[e.category].label, STATUS_META[e.status].label, ORIGIN_LABEL[e.origin.kind], ...e.reasonCodes].some((f) => f.toLowerCase().includes(needle)))
+    : all.slice(0, 8)
   return (
-    <section className="panel overflow-hidden" aria-label="Health event queue">
-      <header className="pane-head">
+    <section className="panel min-w-0 overflow-hidden" aria-label="Health event queue">
+      <header className="pane-head flex-wrap">
         <h2 className="label">Health event queue</h2>
-        <span className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-4">
           <Pill tone={open ? 'coral' : 'muted'}>{open} open</Pill>
+          <label className="relative">
+            <span className="sr-only">Search events</span>
+            <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-3" aria-hidden />
+            <input className="field h-8 w-[240px] max-w-full pl-8 text-[13px]" placeholder="Search events, crew, reason codes" value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
           <CornerLink href={href.events} label="Open the full event history" />
-        </span>
+        </div>
       </header>
       <div className="overflow-x-auto px-2 pb-2">
         <table className="data-table">
@@ -651,7 +556,7 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
             </tr>
           </thead>
           <tbody data-testid="event-feed">
-            {events.slice(0, 8).map((e) => {
+            {events.map((e) => {
               const cat = CATEGORY_META[e.category]
               const st = STATUS_META[e.status]
               const ack = ackLabel(e)
@@ -660,19 +565,19 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
                 <tr key={e.eventId} className="row-link" data-selected={e.eventId === focusId} onClick={() => navigate(href.event(e.eventId))}>
                   <td>
                     <a href={href.event(e.eventId)} data-testid={`event-row-${e.eventId}`} className="flex min-w-0 items-center gap-2.5" onClick={(ev) => ev.stopPropagation()}>
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${isOpen(e) ? TONE[cat.tone].dot : 'bg-ink-3'}`} aria-hidden />
-                      <span className={`truncate text-[12.5px] font-semibold ${isOpen(e) ? 'text-ink' : 'text-ink-2'}`}>{cat.label}</span>
+                      <span className={`status-mark ${isOpen(e) ? TONE[cat.tone].dot : 'bg-line-strong'}`} aria-hidden />
+                      <span className="truncate font-medium text-ink">{cat.label}</span>
                       {e.isSimulated && <SimTag />}
                     </a>
-                    <span className="mt-0.5 block truncate pl-[18px] text-[11px] text-ink-3 md:hidden">
+                    <span className="mt-1 block truncate pl-[18px] text-[13px] text-ink-2 md:hidden">
                       {subjectLabel(e.subjectId)} · {utcStamp(e.createdAt).slice(5)} · {ack.text}
                     </span>
                   </td>
                   <td className="hidden text-ink-2 md:table-cell">{subjectLabel(e.subjectId)}</td>
-                  <td className="hidden text-ink-2 tnum md:table-cell">{utcStamp(e.createdAt).slice(5)}</td>
-                  <td className="hidden max-w-[260px] truncate text-[11.5px] text-ink-3 lg:table-cell">{e.reasonCodes.join(', ')}</td>
-                  <td className={`hidden max-w-[240px] truncate lg:table-cell ${TONE[ack.tone].text}`}>{ack.text}</td>
-                  <td className={`hidden xl:table-cell ${TONE[rv.tone].text}`}>{rv.label}</td>
+                  <td className="hidden font-mono text-[13px] text-ink-2 md:table-cell">{utcStamp(e.createdAt).slice(5)}</td>
+                  <td className="hidden max-w-[260px] truncate font-mono text-[12px] text-ink-2 lg:table-cell">{e.reasonCodes.join(', ')}</td>
+                  <td className="hidden max-w-[260px] truncate text-ink-2 lg:table-cell">{ack.text}</td>
+                  <td className="hidden text-ink-2 xl:table-cell">{rv.label}</td>
                   <td>
                     <Pill tone={st.tone}>{st.label}</Pill>
                   </td>
@@ -681,8 +586,8 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
             })}
             {!events.length && (
               <tr>
-                <td colSpan={7} className="text-ink-3">
-                  No events recorded.
+                <td colSpan={7} className="text-ink-2">
+                  {needle ? `No recorded event matches “${q.trim()}”.` : 'No events recorded.'}
                 </td>
               </tr>
             )}
@@ -700,10 +605,11 @@ function EmptyWorkspace() {
   const { workspace, setWorkspace, actions } = useData()
   const [busy, setBusy] = useState(false)
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 py-10">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 py-10">
       <div>
-        <h1 className="display text-[28px] text-ink">Mission health</h1>
-        <p className="mt-1 text-[12.5px] text-ink-2">{workspace === 'demo' ? 'Simulated demo' : 'Mission records'} · onboard health monitoring and evidence review</p>
+        <div className="eyebrow">Mission overview</div>
+        <h1 className="display mt-3 text-[40px] text-ink">Mission health</h1>
+        <p className="mt-2 text-[14px] text-ink-2">{workspace === 'demo' ? 'Simulated demo' : 'Mission records'} · onboard health monitoring and evidence review</p>
       </div>
       {workspace === 'mission' ? (
         <Empty
@@ -711,10 +617,11 @@ function EmptyWorkspace() {
           action={
             <div className="flex flex-wrap gap-3">
               <a className="btn btn-primary" href={href.system}>
-                <FileUp size={15} /> Connect or import a watch
+                <FileUp size={16} /> Connect or import a watch
               </a>
               <button className="btn btn-sim" onClick={() => setWorkspace('demo')}>
-                <FlaskConical size={15} /> Open simulated demo
+                <span className="status-mark bg-violet" aria-hidden />
+                Open simulated demo
               </button>
             </div>
           }
@@ -738,7 +645,8 @@ function EmptyWorkspace() {
                 }
               }}
             >
-              <FlaskConical size={15} /> Load simulated scenarios
+              <span className="status-mark bg-violet" aria-hidden />
+              Load simulated scenarios
             </button>
           }
         >
@@ -751,62 +659,6 @@ function EmptyWorkspace() {
 
 // ---------------------------------------------------------------------------
 // Page
-
-function Provenance({ session, mode, hrCount, validCount }: { session: StoredSession | null; mode: string | null; hrCount: number; validCount: number }) {
-  return (
-    <Panel title="Sensor provenance" href={session ? href.session(session.sessionId) : undefined} hrefLabel="Open the session readings" bodyClassName="px-5 pt-1 pb-5">
-      <div className="flex flex-col gap-2 text-[12px]" data-testid="provenance">
-        {session ? (
-          <>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-ink-3">Device</span>
-              <span className="truncate text-right text-ink">{session.measurements[0]?.source.device ?? session.provenance.deviceId ?? 'Unknown device'}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-ink-3">Source</span>
-              <span className={session.isSimulated ? 'text-violet' : 'text-ink'}>{mode}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-ink-3">Readings</span>
-              <span className="text-ink tnum">
-                {plural(hrCount, 'heart-rate reading')}, {validCount} valid
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-ink-3">Received</span>
-              <span className="text-ink tnum">{session.provenance.receivedAt ? utcStamp(session.provenance.receivedAt).slice(5) : '--'}</span>
-            </div>
-            <a className="mt-1 self-start text-[12px] text-cyan hover:underline" href={href.session(session.sessionId)}>
-              Session readings
-            </a>
-          </>
-        ) : (
-          <span className="text-ink-3">No session recorded for this crew member.</span>
-        )}
-      </div>
-    </Panel>
-  )
-}
-
-function Hero({ children, action, search }: { children: ReactNode; action: ReactNode; search: ReactNode }) {
-  return (
-    <div className="relative flex min-w-0 flex-col items-center">
-      {/* a cold glow and a horizon arc behind the figure, static, clipped to the hero */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-x-0 top-[6%] h-[78%] bg-[radial-gradient(closest-side,rgb(70_140_255/0.16),rgb(70_140_255/0.05)_55%,transparent)]" />
-        <div
-          className="absolute inset-x-[2%] top-[56%] h-[46%] rounded-[50%] border-t border-cyan/30 [mask-image:linear-gradient(90deg,transparent,black_22%,black_78%,transparent)]"
-          style={{ boxShadow: 'inset 0 18px 40px -26px rgb(124 200 255 / 0.5)' }}
-        />
-      </div>
-      <div className="relative w-full">{children}</div>
-      <div className="relative mt-2 flex w-full flex-col items-center gap-4">
-        {action}
-        {search}
-      </div>
-    </div>
-  )
-}
 
 export function Overview() {
   const { snapshot, workspace, subjectId, scenarioId } = useData()
@@ -842,70 +694,58 @@ function Dashboard({
   const focus = resolveFocus(ds, subjectId, scenarioId)
   const session = focus.session
   const t = useTelemetry(ds, focus, nowMs)
-  const openAll = sortEvents(Object.values(ds.events)).filter(isOpen)
-  const otherOpen = openAll.filter((e) => e.eventId !== focus.event?.eventId).length
+  const otherOpen = sortEvents(Object.values(ds.events))
+    .filter(isOpen)
+    .filter((e) => e.eventId !== focus.event?.eventId).length
   const hrCount = session ? session.measurements.filter((m) => m.indicator === 'HEART_RATE').length : 0
   const sessionMode = session ? recordSourceMode(session, session.provenance.deviceId ? (links[session.provenance.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED') : null
   const regions = regionsFor(session, session ? linkedReadings(ds, session.sessionId) : [])
   const crew = focus.subjectId ? subjectLabel(focus.subjectId) : null
 
-  const heroAction = focus.event ? (
-    <a className="btn btn-hero" href={href.event(focus.event.eventId)} data-testid="open-evidence">
-      Open evidence <ArrowRight size={15} />
-    </a>
-  ) : session ? (
-    <a className="btn btn-hero" href={href.session(session.sessionId)}>
-      Session readings <ArrowRight size={15} />
-    </a>
-  ) : null
-
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <div className="eyebrow mb-1.5">Mission overview</div>
-          <h1 className="display text-[28px] text-ink">Mission health</h1>
-          <p className="mt-1 text-[12.5px] text-ink-2">
-            {crew ?? 'No crew selected'} · gravity recovery check · latest {session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'} ·{' '}
-            <span className={workspace === 'demo' ? 'text-violet' : 'text-ink'}>{workspace === 'demo' ? 'simulated demo' : (sessionMode ?? 'no records')}</span>
-            {focus.scenario && <span className="text-violet"> · scenario {focus.scenario.id}</span>}
-          </p>
+    <div className="flex flex-col gap-6">
+      <section className="grid items-center gap-x-10 gap-y-6 lg:min-h-[600px] lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <div>
+            <div className="eyebrow">Mission overview</div>
+            <h1 className="display mt-3 text-[40px] text-ink">Mission health</h1>
+            <p className="mt-2 text-[14px] text-ink-2">
+              {crew ?? 'No crew selected'} · gravity recovery check · latest <span className="font-mono text-[13px]">{session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'}</span> · {workspace === 'demo' ? 'simulated demo' : (sessionMode ?? 'no records')}
+              {focus.scenario && <span> · scenario {focus.scenario.id}</span>}
+            </p>
+          </div>
+          <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={serverTime} />
+          {workspace === 'demo' && <TriggerButton />}
         </div>
-        {workspace === 'demo' && <TriggerButton />}
-      </header>
-
-      <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={serverTime} />
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,330px)_minmax(0,1fr)_minmax(0,350px)]">
-        <div className="xl:col-start-2 xl:row-start-1">
-          <Hero action={heroAction} search={<RecordSearch ds={ds} />}>
-            <div className="mb-1 flex items-center justify-center gap-2 text-[12px] text-ink-3">
-              <span>Body evidence map</span>
-              <span aria-hidden>·</span>
-              <span className="text-ink-2">{crew ?? '--'}</span>
-              {session?.isSimulated && <SimTag />}
-            </div>
-            <BodyMap regions={regions} selected={region} onSelect={setRegion} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
-          </Hero>
+        <div className="relative min-w-0">
+          <BodyMap regions={regions} selected={region} onSelect={setRegion} label={`Evidence map for ${crew ?? 'crew member'}`} size="hero" />
         </div>
-        <div className="flex min-w-0 flex-col gap-5 xl:col-start-3 xl:row-start-1">
-          <Panel title="Recorded evidence" meta={crew ? <span className="flex items-center gap-2 text-[12px] text-ink-2">{crew}{session?.isSimulated && <SimTag />}</span> : undefined} bodyClassName="flex flex-col gap-3 px-4 pt-1 pb-4">
-            <EvidenceList regions={regions} selected={region} onSelect={setRegion} title={null} />
+      </section>
+
+      <KeyMetrics ds={ds} focus={focus} t={t} />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Panel
+          title="Evidence by region"
+          meta={
+            crew ? (
+              <span className="flex items-center gap-3 text-[13px] text-ink-2">
+                {crew}
+                {session?.isSimulated && <SimTag />}
+              </span>
+            ) : undefined
+          }
+          bodyClassName="flex flex-col gap-4 px-2 pb-5"
+        >
+          <EvidenceList regions={regions} selected={region} onSelect={setRegion} title={null} />
+          <div className="px-3">
             <RegionDetail info={region ? regions[region] : null} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
-          </Panel>
-          <Provenance session={session} mode={sessionMode} hrCount={hrCount} validCount={t.valid} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-5 xl:col-start-1 xl:row-start-1">
-          <HeartRateCard t={t} />
-          <ChecksCard t={t} />
-        </div>
+          </div>
+        </Panel>
+        <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-3">
-        <RecoveryColumns ds={ds} focus={focus} />
-        <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
-        <ReadingsCard t={t} nowMs={nowMs} />
-      </section>
+      <RecordDetails t={t} nowMs={nowMs} session={session} mode={sessionMode} hrCount={hrCount} />
 
       <EventQueue ds={ds} focusId={focus.event?.eventId ?? null} />
     </div>

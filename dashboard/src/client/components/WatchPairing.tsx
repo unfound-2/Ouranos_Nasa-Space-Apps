@@ -9,15 +9,15 @@ import { Secret } from './Secret'
 
 const READING_TONE: Record<WatchFrame['readings'][number]['status'], string> = {
   nominal: 'text-ink-2',
-  review: 'text-amber',
-  priority: 'text-coral',
+  review: 'text-ink',
+  priority: 'text-ink',
 }
 
 function Frame({ frame }: { frame: WatchFrame }) {
   const status = frame.simulated ? 'SIMULATED DEMO' : 'LATEST RECEIVED'
   return (
     <div className={`well px-4 py-3.5 ${frame.simulated ? 'sim-hatch' : ''}`}>
-      <div className={`text-[11px] font-semibold tracking-[0.08em] ${frame.simulated ? 'text-violet' : 'text-ink'}`}>
+      <div className={`text-[11px] font-semibold tracking-[0.08em] ${frame.simulated ? 'text-ink' : 'text-ink'}`}>
         {frame.source} · {status}
       </div>
       <ul className="mt-2.5 grid gap-x-5 gap-y-2.5 sm:grid-cols-2">
@@ -136,7 +136,7 @@ export function WatchPairing({ workspace }: { workspace: Workspace }) {
           <p className="mt-1 text-[11.5px] text-ink-3">Only needed by the onboard instrument adapter (adapter.mjs). It is not kept: reloading this page clears it.</p>
         </div>
       )}
-      {feedError && <p className="text-[12px] text-coral">Live watch readings are unavailable.</p>}
+      {feedError && <p className="text-[12px] text-ink">Live watch readings are unavailable.</p>}
       {frames.map(({ key, frame }) => (
         <Frame key={key} frame={frame} />
       ))}

@@ -38,7 +38,7 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
       className="group block rounded-[4px] border border-hair bg-void/30 px-4 py-3.5 transition-colors hover:border-line hover:bg-raised/60"
     >
       <div className="flex items-start gap-3">
-        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE[SEVERITY_META[e.severity].tone].dot} ${e.status === 'REVIEWED' || e.status === 'CLOSED' ? 'opacity-40' : ''}`} aria-hidden />
+        <span className={`status-mark mt-1.5 ${TONE[SEVERITY_META[e.severity].tone].dot} ${e.status === 'REVIEWED' || e.status === 'CLOSED' ? 'opacity-40' : ''}`} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className={`truncate text-[11.5px] font-bold uppercase tracking-[0.04em] ${TONE[cat.tone].text}`}>{cat.label}</span>
@@ -52,7 +52,7 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {e.reasonCodes.map((c) => (
-              <span key={c} className="rounded-md border border-line bg-void/50 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-2">
+              <span key={c} className="font-mono text-[12px] text-ink-2">
                 {c}
               </span>
             ))}
@@ -64,7 +64,7 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
               </div>
               <div className={`truncate ${TONE[ack.tone].text}`}>{ack.text}</div>
               <div className={`truncate ${TONE[review.tone].text}`}>{review.label}</div>
-              <div className={`truncate ${ev.ok ? 'text-ink-2' : 'text-amber'}`}>{ev.text}</div>
+              <div className={`truncate ${ev.ok ? 'text-ink-2' : 'text-ink'}`}>{ev.text}</div>
             </dl>
           )}
         </div>
@@ -100,7 +100,7 @@ export function Timeline({ items, empty = 'Nothing recorded yet.' }: { items: Ti
             </div>
             <div className="relative flex justify-center">
               {idx < items.length - 1 && <span className="absolute top-3 bottom-[-6px] w-px bg-line" aria-hidden />}
-              <span className={`relative mt-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-panel ${TONE_DOT[i.tone]}`} aria-hidden />
+              <span className={`status-mark relative mt-1.5 ring-4 ring-panel ${TONE_DOT[i.tone]}`} aria-hidden />
             </div>
             <div className="min-w-0">
               <div className="text-[12.5px] font-bold text-ink">{i.label}</div>

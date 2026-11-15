@@ -141,7 +141,7 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
                   <div className="rounded-[3px] border border-line bg-panel px-3.5 py-2.5 shadow-[0_6px_20px_rgb(20_24_29/0.14)]">
                     <div className="text-[13px] font-semibold text-ink tnum">{signed(p.v)} bpm recovery − rest</div>
                     <div className="mt-1 text-[11px] text-ink-2 tnum">{utcStamp(p.at)}</div>
-                    {p.symptom && <div className="mt-1 text-[11px] text-coral">{p.symptoms}</div>}
+                    {p.symptom && <div className="mt-1 text-[11px] text-ink">{p.symptoms}</div>}
                     <div className="mt-1 font-mono text-[10px] text-ink-3">{p.id}</div>
                   </div>
                 )
@@ -155,9 +155,9 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
                 <g style={{ cursor: 'pointer' }}>
                   <circle cx={props.cx} cy={props.cy} r={12} fill="transparent" />
                   {props.payload?.symptom ? (
-                    <circle cx={props.cx} cy={props.cy} r={5.5} fill={C.panel} stroke={C.coral} strokeWidth={2.25} style={{ filter: 'drop-shadow(0 0 4px rgb(255 97 112 / 0.8))' }} />
+                    <circle cx={props.cx} cy={props.cy} r={5.5} fill={C.panel} stroke={C.coral} strokeWidth={2.25} />
                   ) : (
-                    <circle cx={props.cx} cy={props.cy} r={5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px rgb(124 200 255 / 0.85))' }} />
+                    <circle cx={props.cx} cy={props.cy} r={5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} />
                   )}
                 </g>
               )}
@@ -209,7 +209,7 @@ export function SessionsTable({ rows, ds }: { rows: SessionRow[]; ds: Dataset })
               <td className="font-semibold tnum">{r.delta === null ? <span className="font-normal text-ink-3">N/A</span> : `${signed(r.delta)} bpm`}</td>
               <td>
                 {r.s.symptomCheck.status === 'REPORTED' ? (
-                  <span className="text-coral">{r.s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ')}</span>
+                  <span className="text-ink">{r.s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ')}</span>
                 ) : (
                   <span className="text-ink-3">{symptomCheckText(r.s)}</span>
                 )}
@@ -227,7 +227,7 @@ export function SessionsTable({ rows, ds }: { rows: SessionRow[]; ds: Dataset })
                   <span className="text-ink-3">None</span>
                 )}
               </td>
-              <td>{r.flags.length ? <span className="text-amber">{r.flags.join(' · ')}</span> : <span className="text-ink-3">No flags</span>}</td>
+              <td>{r.flags.length ? <span className="text-ink">{r.flags.join(' · ')}</span> : <span className="text-ink-3">No flags</span>}</td>
               <td className="text-[11.5px] text-ink-2">{recordSourceMode(r.s, 'NOT_PAIRED') === 'SIMULATED DEMO' ? 'Simulated' : (r.s.provenance.ingestPath ?? '--').replace(/_/g, ' ').toLowerCase()}</td>
             </tr>
           ))}
@@ -336,19 +336,19 @@ function SymptomHistory({ rows }: { rows: SessionRow[] }) {
       {items.map(({ r, x }) => (
         <li key={x.symptomId} className="py-2.5 first:pt-0">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            <span className="text-[12.5px] font-semibold text-coral">{SYMPTOM_LABEL[x.code]}</span>
+            <span className="text-[12.5px] font-semibold text-ink">{SYMPTOM_LABEL[x.code]}</span>
             <span className="text-[11px] text-ink-3 tnum">{utcStamp(x.reportedAt)}</span>
           </div>
           <div className="mt-0.5 text-[11.5px] text-ink-2">
             {x.reportedBy === 'SELF_REPORTED' ? 'Self-reported' : 'Crew observed'}
             {x.phase ? ` · ${x.phase.toLowerCase()} phase` : ''} · {subjectLabel(r.s.subjectId)} ·{' '}
-            <a href={href.session(r.s.sessionId)} className="text-cyan hover:underline">
+            <a href={href.session(r.s.sessionId)} className="text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
               session
             </a>
             {r.events.map((e) => (
               <span key={e.eventId}>
                 {' · '}
-                <a href={href.event(e.eventId)} className="text-cyan hover:underline">
+                <a href={href.event(e.eventId)} className="text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
                   event {REVIEW_META[e.review.state].label.toLowerCase()}
                 </a>
               </span>
@@ -406,11 +406,11 @@ export function CrewHealth() {
           </div>
           <div>
             <dt className="micro">Symptom reports</dt>
-            <dd className={`text-[14px] font-semibold tnum ${symptomCount ? 'text-coral' : 'text-ink'}`}>{symptomCount}</dd>
+            <dd className={`text-[14px] font-semibold tnum ${symptomCount ? 'text-ink' : 'text-ink'}`}>{symptomCount}</dd>
           </div>
           <div>
             <dt className="micro">Baseline</dt>
-            <dd className={`text-[14px] font-semibold ${b?.status === 'ESTABLISHED' ? 'text-mint' : 'text-ink'}`}>
+            <dd className={`text-[14px] font-semibold ${b?.status === 'ESTABLISHED' ? 'text-ink' : 'text-ink'}`}>
               {!subjectId ? 'Per person' : b?.status === 'ESTABLISHED' ? 'Established' : 'Not established'}
             </dd>
           </div>

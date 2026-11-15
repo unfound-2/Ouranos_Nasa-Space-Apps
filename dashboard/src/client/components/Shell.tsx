@@ -1,4 +1,4 @@
-import { ChevronDown, Cpu, FlaskConical, Network, RadioTower, ShieldAlert, Watch } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { subjectDevice, type SourceMode } from '../../shared/dataset'
 import { ago, utcStamp } from '../../shared/format'
@@ -8,20 +8,18 @@ import { DEMO_SCENARIOS, scenarioById } from '../lib/scenarios'
 import { bannerSourceMode, defaultSubject, LINK_META, SOURCE_META, subjectsOf, type Tone } from '../lib/view'
 import { TONE } from './ui'
 
-/** An orbit around a heartbeat trace. */
-export function LogoMark({ size = 34 }: { size?: number }) {
+/** A monochrome tile with a heartbeat trace (Vercel-style: light mark, no colour). */
+export function LogoMark({ size = 28 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 34 34" aria-hidden>
-      <circle cx="17" cy="17" r="15.5" fill="rgb(124 200 255 / 0.06)" stroke="rgb(124 200 255 / 0.45)" />
-      <ellipse cx="17" cy="17" rx="15.5" ry="6" fill="none" stroke="rgb(124 200 255 / 0.22)" transform="rotate(-24 17 17)" />
-      <path d="M7.5 18h4.5l2-5 3.5 9 2.5-6.5 1.5 2.5h5" fill="none" stroke="#eef3fa" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="29.2" cy="11.6" r="1.6" fill="var(--color-cyan)" />
+    <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden>
+      <rect width="28" height="28" rx="6" fill="#ededed" />
+      <path d="M5 15h4l2-5 3 9 2.5-6 1.5 2H23" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 /** The page width used by the header, the pages and the footer. */
-export const CONTAINER = 'mx-auto w-full max-w-[1560px] px-4 sm:px-6'
+export const CONTAINER = 'mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8'
 
 const NAV: { key: Route['name'][]; label: string; to: string }[] = [
   { key: ['overview'], label: 'Mission Overview', to: href.overview },
@@ -44,32 +42,21 @@ export function CommandBar({ route }: { route: Route }) {
   }, [ds, subjectId, subjects, setSubjectId])
 
   return (
-    <div className="border-b border-white/[0.06] bg-void/75 backdrop-blur-xl">
-      <div className={`${CONTAINER} flex flex-wrap items-center gap-x-6 gap-y-2 py-3 lg:h-[68px] lg:flex-nowrap lg:py-0`}>
-        <a href={href.overview} className="flex shrink-0 items-center gap-3" aria-label="GRAVITYGUARD mission overview">
+    <div className="border-b border-line bg-void">
+      <div className={`${CONTAINER} flex h-16 items-center gap-4`}>
+        <a href={href.overview} className="flex min-w-0 items-center gap-3" aria-label="GRAVITYGUARD mission overview">
           <LogoMark />
-          <div className="leading-tight">
-            <div className="display text-[14px] tracking-[0.1em] text-ink">GRAVITYGUARD</div>
-            <div className="text-[11px] text-ink-3">Autonomous crew health system</div>
-          </div>
+          <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink">GRAVITYGUARD</span>
+          <span className="hidden text-line-strong sm:inline" aria-hidden>
+            /
+          </span>
+          <span className="hidden truncate text-[14px] text-ink-2 sm:inline">Crew health review</span>
         </a>
-
-        <nav aria-label="Main" className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto px-1 py-1 lg:order-none lg:mx-auto lg:w-auto">
-          {NAV.map((n) => {
-            const active = n.key.includes(route.name)
-            return (
-              <a key={n.label} href={n.to} aria-current={active ? 'page' : undefined} className="nav-pill">
-                {n.label}
-              </a>
-            )
-          })}
-        </nav>
-
-        <label className="ml-auto flex shrink-0 items-center gap-3 lg:ml-0">
-          <span className="micro hidden xl:inline">Active crew</span>
+        <label className="ml-auto flex shrink-0 items-center gap-3">
+          <span className="micro hidden lg:inline">Active crew</span>
           <span className="relative">
             <select
-              className="field h-9 min-h-9 appearance-none rounded-full pr-9 pl-4 text-[12.5px] font-medium"
+              className="field h-8 appearance-none pr-8 pl-3 text-[14px]"
               value={subjectId ?? ''}
               onChange={(e) => {
                 setScenarioId(null)
@@ -86,34 +73,47 @@ export function CommandBar({ route }: { route: Route }) {
                 </option>
               ))}
             </select>
-            <ChevronDown size={14} className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-ink-3" aria-hidden />
+            <ChevronDown size={14} className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-ink-2" aria-hidden />
           </span>
         </label>
       </div>
+      <nav aria-label="Main" className={`${CONTAINER} -mb-px flex overflow-x-auto`}>
+        <div className="-ml-3 flex">
+          {NAV.map((n) => {
+            const active = n.key.includes(route.name)
+            return (
+              <a key={n.label} href={n.to} aria-current={active ? 'page' : undefined} className="nav-pill">
+                {n.label}
+              </a>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }
 
-/** A compact readout chip. It re-plays a one-off flash only when its value actually changes. */
+/** A readout in the status line: label, then the value. It flashes once when the value changes. */
 function RailReadout({ icon, label, value, tone, title, testId }: { icon: ReactNode; label: string; value: string; tone: Tone; title: string; testId?: string }) {
   return (
-    <span className="chip" title={title}>
-      <span className="text-ink-3">{icon}</span>
-      <span className="sr-only">{label}</span>
-      <span key={value} className={`state-flash rounded-[4px] text-[11.5px] font-medium tnum ${tone === 'neutral' ? 'text-ink' : TONE[tone].text}`} data-testid={testId}>
+    <span className="inline-flex items-center gap-2 text-[13px] whitespace-nowrap" title={title}>
+      {icon}
+      <span className="text-ink-2">{label}</span>
+      <span key={value} className="state-flash rounded-[3px] text-ink tnum" data-testid={testId}>
         {value}
       </span>
+      {tone !== 'neutral' && tone !== 'muted' && <span className={`status-mark ${TONE[tone].dot}`} aria-hidden />}
     </span>
   )
 }
 
-const MODE_DOT: Record<SourceMode, string> = {
+const MODE_MARK: Record<SourceMode, string> = {
   'LIVE DEVICE': 'bg-mint',
   'SAVED DEVICE DATA': 'bg-cyan',
   'MANUALLY ENTERED': 'bg-cyan',
   IMPORTED: 'bg-cyan',
   'SIMULATED DEMO': 'bg-violet',
-  UNAVAILABLE: 'bg-ink-3',
+  UNAVAILABLE: 'bg-line-strong',
 }
 
 function ScenarioPicker() {
@@ -124,7 +124,7 @@ function ScenarioPicker() {
       <span className="sr-only">Scenario</span>
       <span className="relative">
         <select
-          className="field h-8 min-h-8 appearance-none rounded-full border-violet/45 bg-violet/[0.06] pr-8 pl-3.5 text-[12px] font-medium"
+          className="field h-8 appearance-none pr-8 pl-3 text-[13px]"
           value={current?.id ?? ''}
           aria-label="Simulated scenario"
           data-testid="scenario-picker"
@@ -141,13 +141,13 @@ function ScenarioPicker() {
             </option>
           ))}
         </select>
-        <ChevronDown size={13} className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-violet" aria-hidden />
+        <ChevronDown size={13} className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-ink-2" aria-hidden />
       </span>
     </label>
   )
 }
 
-/** The persistent data-source strip. It is part of the sticky header on every page. */
+/** The persistent data-source line. It is part of the sticky header on every page. */
 export function StatusRail() {
   const { snapshot, error, workspace, setWorkspace, subjectId, refresh, latencyMs, setScenarioId } = useData()
   const now = useNow(5000)
@@ -156,11 +156,11 @@ export function StatusRail() {
 
   if (error) {
     return (
-      <div role="status" data-testid="source-banner" className="border-b border-coral/50 bg-coral/[0.14]">
-        <div className={`${CONTAINER} flex flex-wrap items-center gap-3 py-2`}>
-          <ShieldAlert size={15} className="text-coral" />
-          <span className="text-[12px] font-bold tracking-[0.1em] text-coral uppercase">Local API unavailable</span>
-          <span className="text-[12.5px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
+      <div role="status" data-testid="source-banner" className="border-b border-coral/40 bg-[rgb(229_72_77/0.1)]">
+        <div className={`${CONTAINER} flex flex-wrap items-center gap-3 py-2.5`}>
+          <span className="status-mark bg-coral" aria-hidden />
+          <span className="text-[13px] font-medium text-ink uppercase">Local API unavailable</span>
+          <span className="text-[13px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
           <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
             Retry
           </button>
@@ -186,34 +186,30 @@ export function StatusRail() {
   const demo = workspace === 'demo'
 
   return (
-    <div
-      role="status"
-      data-testid="source-banner"
-      className={`border-b backdrop-blur-xl ${demo ? 'border-violet/35 bg-[linear-gradient(90deg,rgb(165_139_255/0.17),rgb(165_139_255/0.05)_60%,rgb(4_6_10/0.7))]' : 'border-white/[0.06] bg-void/60'}`}
-    >
-      <div className={`${CONTAINER} flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2`}>
-        <span className="flex items-center gap-2">
-          {demo ? <FlaskConical size={14} className="text-violet" /> : <span className={`h-2 w-2 rounded-full ${mode ? MODE_DOT[mode] : 'bg-ink-3'}`} aria-hidden />}
-          {!demo && <span className="micro hidden sm:inline">Data source</span>}
-          <span className={`text-[11.5px] font-bold tracking-[0.12em] uppercase ${demo ? 'text-violet' : meta ? TONE[meta.tone].text : 'text-ink-3'}`} data-testid="source-mode" title={meta?.hint}>
+    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet/50 bg-[rgb(110_86_207/0.12)]' : 'border-line bg-void'}`}>
+      <div className={`${CONTAINER} flex flex-wrap items-center gap-x-6 gap-y-2 py-2.5`}>
+        <span className="flex items-center gap-2.5">
+          <span className={`status-mark ${demo ? 'bg-violet' : mode ? MODE_MARK[mode] : 'bg-line-strong'}`} aria-hidden />
+          {!demo && <span className="text-[13px] text-ink-2">Data source</span>}
+          <span className="font-mono text-[12px] font-medium text-ink uppercase" data-testid="source-mode" title={meta?.hint}>
             {demo ? 'Simulated demo' : (mode ?? 'Connecting')}
           </span>
-          {demo && <span className="hidden text-[12px] text-ink-2 sm:inline">No astronaut data</span>}
+          {demo && <span className="hidden text-[13px] text-ink-2 sm:inline">No astronaut data</span>}
         </span>
         {demo && <ScenarioPicker />}
 
-        <span className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-1">
-          <RailReadout icon={<Watch size={13} />} label="Watch" value={linkMeta.label} tone={linkMeta.tone} title={linkMeta.hint} testId="watch-state" />
+        <span className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-1.5">
+          <RailReadout icon={null} label="Watch" value={linkMeta.label} tone={linkMeta.tone} title={linkMeta.hint} testId="watch-state" />
           <RailReadout
-            icon={<RadioTower size={13} />}
+            icon={null}
             label="Last sync"
             value={lastSync ? utcStamp(lastSync).slice(5) : '--'}
             tone="neutral"
             title={lastSync ? `Last record received over live sync: ${utcStamp(lastSync)} (${ago(lastSync, now)})` : 'No record has arrived over live sync'}
           />
-          <RailReadout icon={<Cpu size={13} />} label="Onboard" value={snapshot ? `Online · ${latencyMs ?? '--'} ms` : 'Connecting'} tone="neutral" title="The mission-computer API on this machine" />
+          <RailReadout icon={null} label="Onboard" value={snapshot ? `Online · ${latencyMs ?? '--'} ms` : 'Connecting'} tone="neutral" title="The mission-computer API on this machine" />
           <RailReadout
-            icon={<Network size={13} />}
+            icon={null}
             label="Network"
             value={external.count > 0 ? `${external.count} external` : online ? 'Internet not used' : 'Offline · local'}
             tone={external.count > 0 ? 'amber' : 'neutral'}
@@ -221,7 +217,7 @@ export function StatusRail() {
           />
           {demo ? (
             <button
-              className="btn btn-ghost btn-sm ml-1.5"
+              className="btn btn-ghost btn-sm"
               onClick={() => {
                 setScenarioId(null)
                 setWorkspace('mission')
@@ -230,7 +226,8 @@ export function StatusRail() {
               Exit demo
             </button>
           ) : (
-            <button className="btn btn-sim btn-sm ml-1.5" onClick={() => setWorkspace('demo')}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setWorkspace('demo')}>
+              <span className="status-mark bg-violet" aria-hidden />
               Open simulated demo
             </button>
           )}
@@ -244,12 +241,15 @@ export function StatusRail() {
 export function Footer() {
   return (
     <footer className={`${CONTAINER} pb-10`}>
-      <div className="rule flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-5 text-[12px] text-ink-3">
+      <div className="rule flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-6 text-[13px] text-ink-2">
         <span className="max-w-[90ch]">
           GRAVITYGUARD organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
         </span>
-        <span>Contract v1 · all times UTC · runs offline</span>
+        <span className="font-mono text-[12px]">Contract v1 · UTC · offline</span>
       </div>
+      <p className="mt-3 text-[12px] text-ink-3">
+        Spacesuit model: NASA 3D Resources (Z2 suit). Earth photograph: NASA, ISS crew image iss072e340644. Both free of copyright; NASA does not endorse this project.
+      </p>
     </footer>
   )
 }

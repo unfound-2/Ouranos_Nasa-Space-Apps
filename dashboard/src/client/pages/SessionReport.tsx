@@ -76,7 +76,7 @@ export function SessionReport({ id }: { id: string }) {
               <ul className="space-y-1.5">
                 {s.symptoms.map((x) => (
                   <li key={x.symptomId} className="text-[12.5px]">
-                    <span className="font-bold text-coral">{SYMPTOM_LABEL[x.code]}</span>{' '}
+                    <span className="font-bold text-ink">{SYMPTOM_LABEL[x.code]}</span>{' '}
                     <span className="text-ink-2">
                       — {x.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'reported by a crew observer'} {utcStamp(x.reportedAt)}
                     </span>
@@ -103,7 +103,7 @@ export function SessionReport({ id }: { id: string }) {
                   </li>
                 ))}
                 {findings.map((f, i) => (
-                  <li key={i} className="text-[12px] text-amber">
+                  <li key={i} className="text-[12px] text-ink">
                     {f.reasonCode}: {f.detail}
                   </li>
                 ))}

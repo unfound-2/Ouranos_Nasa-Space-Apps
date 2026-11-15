@@ -13,9 +13,9 @@ npm start            # http://127.0.0.1:4317, keep this terminal open
 
 In the browser (Chrome, 1440×900 window, zoom 100%):
 
-1. Open http://127.0.0.1:4317. Click **Open simulated demo** in the status bar. The violet SIMULATED DEMO strip under the navigation must be visible.
+1. Open http://127.0.0.1:4317. Click **Open simulated demo** in the status bar. The violet SIMULATED DEMO banner under the navigation must be visible.
 2. Go to **System Status** → **Reset simulated scenarios** (puts the six scenarios back; earlier triggers and reviews are cleared from the demo workspace only).
-3. Click **Mission Overview**. The **Scenario** menu in the violet strip should read **Latest activity**. To show one case on purpose, pick it there (A–F); every scenario is simulated.
+3. Click **Mission Overview**. The **Scenario** menu in the violet banner should read **Latest activity**. To show one case on purpose, pick it there (A–F); every scenario is simulated.
 
 If the watch app is sending real data (see `docs/WATCH_INTEGRATION.md`), use path A below instead of the simulated trigger. Decide before recording; do not mix them in one shot.
 
@@ -31,7 +31,7 @@ If the watch app is sending real data (see `docs/WATCH_INTEGRATION.md`), use pat
 
 Turning Wi-Fi off does not affect `127.0.0.1`, so the dashboard keeps working. Turn it back on afterwards.
 
-The 3D crew member on the Overview turns when you drag it (or use **Front / Back**); it never moves by itself. Its numbered markers are the same regions as the evidence list beside it. If the browser has no WebGL it shows the 2D drawing instead, with the same markers.
+The 3D crew member on the Overview is NASA's Z2 spacesuit model (see `docs/CREDITS.md`). It turns only when you drag it; it never moves by itself. Its numbered markers are the same regions as the evidence list below it. If the browser has no WebGL it shows the 2D drawing instead, with the same markers.
 
 ## Path A: real watch over Wi-Fi (only if it has been tested)
 

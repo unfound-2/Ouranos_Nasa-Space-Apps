@@ -52,7 +52,7 @@ const UsedDot = ({ cx = 0, cy = 0, payload }: ShapeProps) => (
   <g style={{ cursor: 'pointer' }}>
     <SelRing cx={cx} cy={cy} payload={payload} />
     <circle cx={cx} cy={cy} r={11} fill="transparent" />
-    <circle cx={cx} cy={cy} r={4.5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px rgb(124 200 255 / 0.85))' }} />
+    <circle cx={cx} cy={cy} r={4.5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} />
   </g>
 )
 const ExcludedDot = ({ cx = 0, cy = 0, payload }: ShapeProps) => (
@@ -83,7 +83,7 @@ function HrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
         {p.m.phase ? `${p.m.phase.toLowerCase()} phase` : 'no phase'} · quality {p.m.quality.toLowerCase()}
       </div>
       <div className="text-[11.5px] text-ink-3">{p.m.source.device ?? p.m.source.kind}</div>
-      {p.reason && <div className="mt-1 text-[11.5px] text-amber">Left out of the median: {p.reason.toLowerCase()}</div>}
+      {p.reason && <div className="mt-1 text-[11.5px] text-ink">Left out of the median: {p.reason.toLowerCase()}</div>}
       <div className="mt-1 font-mono text-[10px] text-ink-3">{p.m.measurementId}</div>
     </div>
   )
@@ -282,7 +282,7 @@ export function HrChart({
                     <td>{p.m.phase ?? '--'}</td>
                     <td className="font-mono">{p.m.value === null ? '--' : `${p.m.value} bpm`}</td>
                     <td>{p.m.quality}</td>
-                    <td className={p.kind === 'used' ? 'text-cyan' : 'text-amber'}>{p.kind === 'used' ? 'Yes' : `No · ${p.reason?.toLowerCase()}`}</td>
+                    <td className={p.kind === 'used' ? 'text-ink' : 'text-ink-2'}>{p.kind === 'used' ? 'Yes' : `No · ${p.reason?.toLowerCase()}`}</td>
                     <td className="text-ink-2">{p.m.source.device ?? p.m.source.kind}</td>
                     <td className="font-mono text-[11px] text-ink-3">{p.m.measurementId}</td>
                   </tr>

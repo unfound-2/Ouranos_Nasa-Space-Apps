@@ -51,8 +51,8 @@ function Marker({ state, x, y, active }: { state: RegionInfo['state']; x: number
   if (state === 'symptom')
     return (
       <g>
-        {active && <circle className="astro-pulse" cx={x} cy={y} r={9} fill="none" stroke={k.color} strokeWidth={1.5} />}
-        <circle cx={x} cy={y} r={7.5} fill={k.color} stroke="var(--color-panel)" strokeWidth={2} />
+        {active && <rect className="astro-pulse" x={x - 9} y={y - 9} width={18} height={18} rx={3} fill="none" stroke={k.color} strokeWidth={1.5} />}
+        <rect x={x - 7} y={y - 7} width={14} height={14} rx={3} fill={k.color} stroke="var(--color-panel)" strokeWidth={2} />
       </g>
     )
   return (
@@ -76,11 +76,10 @@ function Marker({ state, x, y, active }: { state: RegionInfo['state']; x: number
 export function KindMark({ state }: { state: RegionInfo['state'] }) {
   const k = KIND[state]
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="shrink-0">
-      {state === 'symptom' && <circle cx="6" cy="6" r="4.5" fill={k!.color} />}
-      {state === 'data' && <rect x="2.4" y="2.4" width="7.2" height="7.2" fill={k!.color} transform="rotate(45 6 6)" />}
-      {state === 'caution' && <rect x="2.6" y="2.6" width="6.8" height="6.8" fill="none" stroke={k!.color} strokeWidth="1.6" transform="rotate(45 6 6)" />}
-      {state === 'neutral' && <line x1="2" y1="6" x2="10" y2="6" stroke="var(--color-ink-3)" strokeWidth="1.5" />}
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className="shrink-0">
+      {(state === 'symptom' || state === 'data') && <rect x="1" y="1" width="8" height="8" rx="2" fill={k!.color} />}
+      {state === 'caution' && <rect x="1.75" y="1.75" width="6.5" height="6.5" rx="1.5" fill="none" stroke={k!.color} strokeWidth="1.5" />}
+      {state === 'neutral' && <rect x="1" y="1" width="8" height="8" rx="2" fill="none" stroke="var(--color-line-strong)" strokeWidth="1.5" />}
     </svg>
   )
 }
@@ -216,9 +215,9 @@ export function EvidenceList({
   const blank = REGION_ORDER.filter((r) => !marked.includes(r))
   return (
     <div className="min-w-0" data-testid="evidence-list">
-      {title && <div className="micro mb-1.5 px-2">{title}</div>}
+      {title && <div className="micro mb-2 px-3">{title}</div>}
       {marked.length ? (
-        <ol className="flex flex-col gap-1">
+        <ol className="flex flex-col divide-y divide-hair">
           {marked.map((r) => {
             const info = regions[r]
             const k = KIND[info.state]!
@@ -231,22 +230,21 @@ export function EvidenceList({
                   data-testid={`callout-${r}`}
                   aria-pressed={active}
                   onClick={() => onSelect(active ? null : r)}
-                  className={`grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 rounded-[12px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan/45 bg-cyan/[0.07]' : 'border-transparent hover:border-white/10 hover:bg-white/[0.035]'}`}
+                  className={`grid w-full grid-cols-[14px_minmax(0,1fr)] gap-x-3 px-3 py-3 text-left transition-colors ${active ? 'bg-raised' : 'hover:bg-panel-2'}`}
                 >
-                  <span className="pt-[3px]">
+                  <span className="pt-[5px]">
                     <KindMark state={info.state} />
                   </span>
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-                      <span className="text-[12.5px] font-semibold text-ink">
-                        {REGION_NO[r]} · {info.name}
+                      <span className="text-[14px] font-medium text-ink">
+                        <span className="mr-1.5 font-mono text-[12px] text-ink-3">{REGION_NO[r]}</span>
+                        {info.name}
                       </span>
-                      <span className="text-[10.5px] font-bold tracking-[0.04em]" style={{ color: k.color }}>
-                        {k.tag}
-                      </span>
+                      <span className="font-mono text-[11px] text-ink-2">{k.tag}</span>
                     </span>
-                    <span className="mt-0.5 block text-[12px] font-medium text-ink">{info.callout}</span>
-                    {sub && <span className="block text-[11.5px] leading-snug text-ink-3">{sub}</span>}
+                    <span className="mt-1 block text-[13px] text-ink">{info.callout}</span>
+                    {sub && <span className="mt-0.5 block text-[13px] leading-snug text-ink-2">{sub}</span>}
                   </span>
                 </button>
               </li>
@@ -254,10 +252,10 @@ export function EvidenceList({
           })}
         </ol>
       ) : (
-        <p className="px-2 py-2 text-[12px] text-ink-3">Nothing recorded for any region.</p>
+        <p className="px-3 py-3 text-[13px] text-ink-2">Nothing recorded for any region.</p>
       )}
       {marked.length > 0 && blank.length > 0 && (
-        <p className="mt-1.5 px-2 text-[11.5px] text-ink-3">No evidence: {blank.map((r) => `${REGION_NO[r]} ${regions[r].name.toLowerCase()}`).join(', ')}</p>
+        <p className="mt-2 px-3 text-[13px] text-ink-2">No evidence: {blank.map((r) => `${REGION_NO[r]} ${regions[r].name.toLowerCase()}`).join(', ')}</p>
       )}
     </div>
   )

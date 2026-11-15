@@ -52,7 +52,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
   }
   if (!r.found)
     return (
-      <div className="text-[12px] text-amber">
+      <div className="text-[12px] text-ink">
         Cited {r.kind.toLowerCase()} {r.ref.refId ? <span className="font-mono">{r.ref.refId}</span> : null} is not available ·{' '}
         {r.reason === 'SESSION_NOT_RECEIVED' ? 'the session record has not been received' : 'not found in the stored records'}
       </div>
@@ -61,7 +61,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
     case 'SYMPTOM':
       return (
         <div className="text-[12.5px]">
-          <span className="font-semibold text-coral">{SYMPTOM_LABEL[r.symptom.code]}</span>
+          <span className="font-semibold text-ink">{SYMPTOM_LABEL[r.symptom.code]}</span>
           <span className="text-ink-2"> — {r.symptom.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'crew-observed'} at {utcTime(r.symptom.reportedAt)}</span>
           {r.symptom.phase && <span className="text-ink-3"> · {r.symptom.phase.toLowerCase()} phase</span>}
           {r.symptom.note && <div className="text-[12px] text-ink-3">“{r.symptom.note}”</div>}
@@ -139,7 +139,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
             return (
               <li key={code} className="well px-3.5 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-[3px] border border-line px-1.5 py-0.5 text-[11px] font-semibold text-ink">{code}</span>
+                  <span className="font-mono text-[12px] font-medium text-ink">{code}</span>
                   <span className="text-[12.5px] text-ink">{info.known ? info.label : 'Unrecognised code'}</span>
                 </div>
                 <p className="mt-1.5 text-[12px] text-ink-3">{info.meaning}</p>
@@ -154,17 +154,17 @@ function Narrative({ ctx }: { ctx: EventContext }) {
 
       <Section index="03" title="What can we actually conclude?">
         <div data-testid="conclusions">
-          <div className="micro text-mint">The record shows</div>
+          <div className="micro text-ink">The record shows</div>
           <ul className="mt-2.5 space-y-2">
             {concl.supported.map((t, i) => (
               <li key={i} className="flex gap-2.5 text-[12.5px] leading-snug text-ink">
-                <Check size={14} className="mt-0.5 shrink-0 text-mint" aria-hidden />
+                <Check size={14} className="mt-0.5 shrink-0 text-ink" aria-hidden />
                 {t}
               </li>
             ))}
             {!concl.supported.length && <li className="text-[12.5px] text-ink-3">Nothing that supports a conclusion.</li>}
           </ul>
-          <div className="micro rule mt-4 pt-4 text-amber">The record cannot show</div>
+          <div className="micro rule mt-4 pt-4 text-ink">The record cannot show</div>
           <ul className="mt-2.5 space-y-2">
             {concl.unsupported.map((t, i) => (
               <li key={i} className="flex gap-2.5 text-[12.5px] leading-snug text-ink-2">
@@ -214,7 +214,7 @@ function MeasurementInspector({ m, c, links }: { m: StoredMeasurement | null; c:
       <ProvenanceRow k="Phase">{m.phase ? m.phase.toLowerCase() : 'not tagged'}</ProvenanceRow>
       <ProvenanceRow k="Quality">
         {m.quality.toLowerCase()}
-        {excl && <span className="text-amber"> · {EXCLUSION_LABEL[excl.reason].toLowerCase()}</span>}
+        {excl && <span className="text-ink"> · {EXCLUSION_LABEL[excl.reason].toLowerCase()}</span>}
       </ProvenanceRow>
       <ProvenanceRow k="Device">{m.source.device ?? 'not recorded'}</ProvenanceRow>
       <ProvenanceRow k="Sensor">{m.source.sensor ?? 'not recorded'}</ProvenanceRow>
@@ -233,7 +233,7 @@ function WatchSummaryCheck({ session, c }: { session: StoredSession; c: PhaseCom
   if (!s) return <p className="text-[11.5px] text-ink-3">The watch sent no summary of its own for this session.</p>
   const same = s.restMedianBpm === c.restMedian && s.recoveryMedianBpm === c.recoveryMedian && s.deltaBpm === c.observedDelta
   return (
-    <p className={`text-[11.5px] ${same ? 'text-ink-3' : 'text-amber'}`} data-testid="summary-check">
+    <p className={`text-[11.5px] ${same ? 'text-ink-3' : 'text-ink'}`} data-testid="summary-check">
       Watch summary: rest {s.restMedianBpm ?? '--'}, recovery {s.recoveryMedianBpm ?? '--'}, difference {s.deltaBpm === null ? '--' : signed(s.deltaBpm)} bpm ·{' '}
       {same ? 'matches this computer’s recalculation.' : 'differs from this computer’s recalculation; check the watch rules or the transfer.'}
     </p>
@@ -300,7 +300,7 @@ export function RecoveryPanel({ session, c, className = '', unlinked = false, in
               </dl>
             ) : (
               <div className="mb-4 rounded-[4px] border border-amber/40 bg-amber/[0.07] px-4 py-3" data-testid="insufficient">
-                <div className="label text-amber">Insufficient samples to calculate phase comparison</div>
+                <div className="label text-ink">Insufficient samples to calculate phase comparison</div>
                 <p className="mt-1 text-[12.5px] text-ink-2">
                   Rest has {plural(c.rest.valid.length, 'valid reading')}, recovery has {plural(c.recovery.valid.length, 'valid reading')}. At least {RULES.minValidSamplesPerPhase} are needed in each
                   phase. No difference is shown.
@@ -333,7 +333,7 @@ function FactList({ facts, mark }: { facts: Fact[]; mark: 'known' | 'unknown' })
     <ul className="space-y-2.5">
       {facts.map((f) => (
         <li key={f.id} className="flex gap-2.5 text-[12.5px] leading-snug" data-testid={`fact-${f.id}`}>
-          <span className={`mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full ${mark === 'known' ? 'bg-mint' : f.kind === 'limit' ? 'bg-ink-3' : 'bg-amber'}`} aria-hidden />
+          <span className={`status-mark mt-[6px] ${mark === 'known' ? 'bg-mint' : f.kind === 'limit' ? 'bg-line-strong' : 'bg-amber'}`} aria-hidden />
           <span className={mark === 'known' ? 'text-ink' : 'text-ink-2'}>
             {f.text}
             {f.kind === 'limit' && <span className="micro ml-1.5">Not measured</span>}
@@ -350,11 +350,11 @@ function KnowPanel({ ctx, index }: { ctx: EventContext; index: string }) {
     <Section index={index} title="What we know / what we don't know" className="lg:col-span-4">
       <div className="grid gap-4" data-testid="knowns">
         <div>
-          <div className="micro mb-2.5 text-mint">What we know</div>
+          <div className="micro mb-2.5 text-ink">What we know</div>
           <FactList facts={k.known} mark="known" />
         </div>
         <div className="rule pt-4">
-          <div className="micro mb-2.5 text-amber">What we don’t know</div>
+          <div className="micro mb-2.5 text-ink">What we don’t know</div>
           <FactList facts={[...k.unknown, { id: 'diagnosis', kind: 'limit', text: 'Heart-rate data alone cannot diagnose orthostatic intolerance.' }]} mark="unknown" />
         </div>
       </div>
@@ -523,13 +523,13 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
         </div>
         {!locked && !all && <p className="text-[11.5px] text-ink-3">Mark reviewed needs every checklist item and a reviewer.</p>}
         {r.reviewedAt && (
-          <p className="text-[12px] text-mint">
+          <p className="text-[12px] text-ink">
             Reviewed by {r.reviewer} at {utcStamp(r.reviewedAt)}. This records a review; it is not a medical clearance.
           </p>
         )}
         {r.closedAt && <p className="text-[12px] text-ink-2">Closed at {utcStamp(r.closedAt)}.</p>}
         {err && (
-          <p className="text-[12px] text-coral" role="alert">
+          <p className="text-[12px] text-ink" role="alert">
             {err}
           </p>
         )}
@@ -628,7 +628,7 @@ export function Investigation({ id }: { id: string }) {
               <ArrowLeft size={12} /> Event history
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-3 py-[5px] text-[11px] font-bold tracking-[0.08em] ${TONE[tone].solid}`}>{focusLabel(event)}</span>
+              <span className="inline-flex items-center gap-2 font-mono text-[12px] font-medium text-ink"><span className={`status-mark ${TONE[tone].dot}`} aria-hidden />{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
             <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>
@@ -686,7 +686,7 @@ export function Investigation({ id }: { id: string }) {
             <span className={`mt-0.5 block text-[11.5px] ${TONE[SOURCE_META[ctx.sourceMode].tone].text}`}>{event.isSimulated ? 'SIMULATED' : `REAL · ${ctx.sourceMode}`}</span>
           </HeaderField>
           <HeaderField k="Delivery">
-            <span className={event.delivery.state === 'PRESENTED' ? 'text-ink' : 'text-amber'}>{delivery}</span>
+            <span className={event.delivery.state === 'PRESENTED' ? 'text-ink' : 'text-ink'}>{delivery}</span>
           </HeaderField>
           <HeaderField k="Acknowledgement">
             <span className={TONE[ack.tone].text}>{event.acknowledgement ? ack.text : event.delivery.state === 'PRESENTED' ? 'Presented · not acknowledged' : ack.text}</span>

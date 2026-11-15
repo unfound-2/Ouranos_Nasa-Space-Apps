@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import earth from './assets/earth-horizon.webp'
 import { CommandBar, CONTAINER, Footer, StatusRail } from './components/Shell'
 import { SimWatchOverlay } from './components/SimWatch'
 import { Empty } from './components/ui'
@@ -58,6 +59,30 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   system: 'System Status',
 }
 
+/**
+ * NASA photograph iss072e340644, "An orbital sunrise crowns Earth's horizon" (public domain), as a
+ * single static image: the horizon behind the Overview hero, a softer band on the other pages.
+ */
+function EarthBackdrop({ hero }: { hero: boolean }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden" style={{ height: hero ? 900 : 360 }}>
+      <div
+        className="absolute inset-x-0"
+        style={{
+          top: hero ? 170 : -70,
+          height: hero ? 690 : 360,
+          backgroundImage: `url(${earth})`,
+          backgroundSize: 'cover',
+          backgroundPosition: hero ? 'center top' : 'center 4%',
+          opacity: hero ? 1 : 0.4,
+          maskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 100%)',
+        }}
+      />
+    </div>
+  )
+}
+
 function Shell() {
   const route = useRoute()
   const { workspace } = useData()
@@ -66,15 +91,20 @@ function Shell() {
   }, [route.name, workspace])
   return (
     <div className="gg-backdrop relative min-h-screen">
-      <header className="sticky top-0 z-30">
+      <header>
         <CommandBar route={route} />
-        <StatusRail />
       </header>
-      <main className={`relative ${CONTAINER} pt-6 pb-12`}>
-        <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
-          <Page route={route} />
-        </div>
-      </main>
+      <div className="sticky top-0 z-30">
+        <StatusRail />
+      </div>
+      <div className="relative">
+        <EarthBackdrop hero={route.name === 'overview'} />
+        <main className={`relative ${CONTAINER} pt-8 pb-16`}>
+          <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
+            <Page route={route} />
+          </div>
+        </main>
+      </div>
       <Footer />
       <SimWatchOverlay />
     </div>

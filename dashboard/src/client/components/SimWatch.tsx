@@ -22,10 +22,10 @@ export function SimWatchOverlay() {
     <aside
       aria-live="polite"
       data-testid="sim-watch"
-      className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[18px] border border-violet/50 bg-panel/90 p-4 shadow-[0_24px_60px_-24px_rgb(0_0_0/0.85),0_0_32px_-12px_rgb(165_139_255/0.5)] backdrop-blur-xl sm:right-6"
+      className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[12px] border border-line bg-panel p-4 shadow-[0_16px_40px_rgb(0_0_0/0.6)] sm:right-6"
     >
       <div className="flex items-center justify-between">
-        <span className="label text-violet">Simulated watch</span>
+        <span className="flex items-center gap-2 text-[14px] font-medium text-ink"><span className="status-mark bg-violet" aria-hidden />Simulated watch</span>
         <button className="rounded-md p-1 text-ink-3 hover:text-ink" onClick={dismissTrigger} aria-label="Dismiss">
           <X size={14} />
         </button>

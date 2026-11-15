@@ -155,7 +155,7 @@ export function EventHistory() {
                     <td>
                       <div className="flex flex-wrap gap-1">
                         {e.reasonCodes.map((c) => (
-                          <span key={c} className="rounded-[3px] border border-line px-1.5 py-px text-[11px] text-ink-2">
+                          <span key={c} className="font-mono text-[12px] text-ink-2">
                             {c}
                           </span>
                         ))}
@@ -169,7 +169,7 @@ export function EventHistory() {
                       {REVIEW_META[e.review.state].label}
                       {e.review.reviewer && <div className="text-[11px] text-ink-3">by {e.review.reviewer}</div>}
                     </td>
-                    <td className={ev.ok ? 'text-ink-2' : 'text-amber'}>{ev.text}</td>
+                    <td className={ev.ok ? 'text-ink-2' : 'text-ink'}>{ev.text}</td>
                   </tr>
                 )
               })}
