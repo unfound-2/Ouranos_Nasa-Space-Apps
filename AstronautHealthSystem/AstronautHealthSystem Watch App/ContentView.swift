@@ -3,7 +3,9 @@ import SwiftUI
 import WatchKit
 
 private let blue = Color(red: 0.61, green: 0.88, blue: 1)
-private let muted = Color(white: 0.32)
+private let muted = Color(white: 0.72)
+private let controlSurface = Color(white: 0.14)
+private let selectedSurface = Color(white: 0.25)
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -27,6 +29,7 @@ struct ContentView: View {
     @State private var latestSignal: ReviewSignal?
     @State private var outbox: [ReviewSignal] = []
     @State private var sessionMessage = ""
+    @State private var syncMessage = ""
     @State private var delivery = ""
     @State private var watchReadings: [TelemetryFrame.Reading] = []
     @State private var motionReadings: [TelemetryFrame.Reading] = []
@@ -131,8 +134,9 @@ struct ContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
-        .foregroundStyle(.black)
+        .background(Color.black.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+        .foregroundStyle(.white)
         .persistentSystemOverlays(.hidden)
         .task(id: scenePhase == .active ? pairing?.watchToken : nil) {
             guard scenePhase == .active, let pairing else { return }
@@ -141,6 +145,11 @@ struct ContentView: View {
         .task(id: scenePhase == .active ? mode : nil) {
             guard scenePhase == .active, let mode else { return }
             await monitor(mode)
+        }
+        .task(id: scenePhase == .active && mode == .watch && readHealth && shareReadings && paired ? pairing?.watchToken : nil) {
+            guard scenePhase == .active, mode == .watch, readHealth, shareReadings, paired,
+                  let token = pairing?.watchToken else { return }
+            await syncWatchReadings(token: token)
         }
         .task(id: scenePhase == .active && mode != nil && mode != .demo && readHealth) {
             guard scenePhase == .active, let mode, mode != .demo, readHealth else { return }
@@ -166,9 +175,9 @@ struct ContentView: View {
                 TextField("https://your-site.vercel.app", text: $addressDraft)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
                     .padding(6)
-                    .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 8))
+                    .background(controlSurface, in: RoundedRectangle(cornerRadius: 8))
                 control("Save address") {
                     guard let url = gatewayURL(addressDraft) else { return }
                     saveAddress(url.absoluteString)
@@ -205,7 +214,7 @@ struct ContentView: View {
                     .accessibilityLabel("Close readings")
                 }
                 if mode == .demo {
-                    blackLabel("Simulation")
+                    smallLabel("Simulation")
                 }
                 let readings = currentReadings.filter { region.includes($0.metric) }
                 if readings.isEmpty {
@@ -233,7 +242,7 @@ struct ContentView: View {
             if let pairing, Date.now.timeIntervalSince1970 < pairing.codeExpiresAt {
                 Text(pairing.formattedCode)
                     .font(.system(.headline, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
                 Text("Enter this code on the dashboard.")
                     .font(.caption2)
                     .foregroundStyle(muted)
@@ -263,9 +272,9 @@ struct ContentView: View {
         } label: {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(width: 23, height: 23)
-                .background(Color(white: 0.93), in: Circle())
+                .background(controlSurface, in: Circle())
                 .frame(width: 35, height: 32)
                 .contentShape(Rectangle())
         }
@@ -301,7 +310,7 @@ struct ContentView: View {
     private var bodyPage: some View {
         VStack(spacing: 2) {
             if mode == .demo {
-                blackLabel("Simulation")
+                smallLabel("Simulation")
             }
             BodyFigure(flagged: latestSignal != nil) { region in
                 selectedRegion = region
@@ -341,10 +350,10 @@ struct ContentView: View {
                 } label: {
                     Text(source.rawValue)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white)
                         .padding(.horizontal, 11)
                         .frame(minHeight: 27)
-                        .background(mode == source ? Color(white: 0.88) : .clear, in: Capsule())
+                        .background(mode == source ? selectedSurface : .clear, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(source == .watch ? "Watch sensors" : "Simulation")
@@ -355,10 +364,10 @@ struct ContentView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func blackLabel(_ label: String) -> some View {
+    private func smallLabel(_ label: String) -> some View {
         Text(label)
             .font(.system(size: 9, weight: .semibold))
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
     }
 
     private var settingsPage: some View {
@@ -366,13 +375,28 @@ struct ContentView: View {
             pageTitle("Settings").frame(minHeight: 32)
             Label("Watch paired", systemImage: "checkmark.circle.fill")
                 .font(.footnote)
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .accessibilityIdentifier("watch-paired")
             switchRow("Buzz for alerts", enabled: buzz) { buzz.toggle() }
+            if !readHealth || !shareReadings {
+                control("Enable health sync", primary: true) {
+                    Task {
+                        if !readHealth { await enableHealth() }
+                        if readHealth { shareReadings = true }
+                    }
+                }
+                .disabled(healthBusy)
+            }
+            if readHealth && shareReadings {
+                Text(mode == .demo ? "Simulation is active." : syncMessage.isEmpty ? "Waiting for health readings…" : syncMessage)
+                    .font(.caption2)
+                    .foregroundStyle(muted)
+            }
             switchRow("Health readings", enabled: readHealth) {
                 if readHealth {
                     readHealth = false
                     watchReadings = []
+                    stopSharing()
                 } else {
                     Task { await enableHealth() }
                 }
@@ -400,7 +424,7 @@ struct ContentView: View {
             }
             .frame(minHeight: 40)
             .padding(.horizontal, 6)
-            .background(Color(white: 0.94), in: RoundedRectangle(cornerRadius: 9))
+            .background(controlSurface, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -409,6 +433,7 @@ struct ContentView: View {
 
     private func stopSharing() {
         shareReadings = false
+        syncMessage = ""
         outbox = outbox.map { $0.withoutWatchContext() }
         guard let token = pairing?.watchToken else { return }
         Task {
@@ -437,10 +462,10 @@ struct ContentView: View {
     private func actionLabel(_ label: String, primary: Bool) -> some View {
         Text(label)
             .font(.system(.footnote, design: .rounded, weight: .semibold))
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: primary ? 58 : 44)
             .padding(.horizontal, 5)
-            .background(primary ? blue : Color(white: 0.93),
+            .background(primary ? blue.opacity(0.27) : controlSurface,
                         in: RoundedRectangle(cornerRadius: primary ? 22 : 16))
     }
 
@@ -516,7 +541,8 @@ struct ContentView: View {
                 try Task.checkCancellation()
                 let connected = try JSONDecoder().decode(PairingState.self, from: data).paired
                 if connected && !paired {
-                    page = .home
+                    page = .settings
+                    syncMessage = ""
                     start(.watch)
                 }
                 paired = connected
@@ -616,13 +642,6 @@ struct ContentView: View {
                 }
                 if let token, mode == .demo, let demo = next.first {
                     try? await publish(demo, token: token)
-                } else if let token, shareReadings, step.isMultiple(of: 5) {
-                    let values = motionReadings + watchReadings
-                    if !values.isEmpty {
-                        let snapshot = TelemetryFrame(version: 1, source: "Watch sensors", observedAt: now.timeIntervalSince1970,
-                                                      simulated: false, readings: values)
-                        try? await publish(snapshot, token: token)
-                    }
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -631,6 +650,31 @@ struct ContentView: View {
             if let token { await flushSignals(token: token) }
             step += 1
             try? await Task.sleep(for: .seconds(2))
+        }
+    }
+
+    @MainActor
+    private func syncWatchReadings(token: String) async {
+        while !Task.isCancelled {
+            if watchReadings.isEmpty {
+                syncMessage = "Waiting for Apple Health readings…"
+            } else {
+                let frame = TelemetryFrame(version: 1, source: "Watch sensors",
+                    observedAt: Date.now.timeIntervalSince1970, simulated: false,
+                    readings: motionReadings + watchReadings)
+                do {
+                    try await publish(frame, token: token)
+                    guard !Task.isCancelled else { return }
+                    syncMessage = "Synced to Mission Health"
+                } catch let error as GatewayError {
+                    guard !Task.isCancelled else { return }
+                    syncMessage = "Sync failed (HTTP \(error.status)). Retrying…"
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    syncMessage = "Can’t reach Mission Health. Retrying…"
+                }
+            }
+            try? await Task.sleep(for: .seconds(5))
         }
     }
 

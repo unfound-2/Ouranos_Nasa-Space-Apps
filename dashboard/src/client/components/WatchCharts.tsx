@@ -74,9 +74,9 @@ function MetricChart({ label, unit, points, variant, source }: Series & { varian
                 {points.map((point) => <Cell key={point.x} fill={point === latest ? '#b2f4ff' : `url(#${gradient}-bar)`} />)}
               </Bar>
             ) : line ? (
-              <Line {...series} type={pressure ? 'stepAfter' : 'linear'} stroke={stroke} strokeWidth={2.4} dot={false} activeDot={false} connectNulls={false} />
+              <Line {...series} type={pressure ? 'stepAfter' : 'linear'} stroke={stroke} strokeWidth={2.4} dot={points.length === 1} activeDot={false} connectNulls={false} />
             ) : (
-              <Area {...series} type={temperature ? 'monotone' : 'linear'} fill={`url(#${gradient})`} stroke={stroke} strokeWidth={2.2} dot={false} activeDot={false} connectNulls={false} />
+              <Area {...series} type={temperature ? 'monotone' : 'linear'} fill={`url(#${gradient})`} stroke={stroke} strokeWidth={2.2} dot={points.length === 1} activeDot={false} connectNulls={false} />
             )}
           </ComposedChart>
         </ResponsiveContainer>
@@ -241,6 +241,9 @@ export function WatchCharts({ recordedHeartRate = [], compact = false, simulated
   const hasWatchSeries = watches.some(([, frames]) => seriesFromFrames(frames).some(({ label }) => isPrimaryWatchMetric(label)))
   const pairedLink = watchLinks?.find((link) => link.deviceId === deviceId)
   const showRecorded = recordedHeartRate.length > 0
+  const hasHealthReadings = pairedLink?.watch?.readings.some((reading) =>
+    reading.quality === 'valid' && !/^wrist (motion|rotation)$/i.test(reading.metric),
+  )
   return (
     <section className={`grid gap-3 ${compact ? "watch-charts-compact" : ""}`} aria-label="Watch measurements">
       {workspace === 'demo' && !hasWatchSeries && (
@@ -250,10 +253,14 @@ export function WatchCharts({ recordedHeartRate = [], compact = false, simulated
         </>
       )}
       {workspace !== 'demo' && !hasWatchSeries && !showRecorded && <div className="panel p-5"><p className="text-ink-2">{pairedLink?.watch?.simulated
-        ? 'The watch is sending demo readings. Switch from Sim to Watch and turn on Health readings and Send to console in Settings.'
-        : 'Waiting for watch readings. On the watch, select Watch and turn on Health readings and Send to console in Settings.'}</p><a className="mt-3 inline-block underline" href="/#/system">Check watch connection</a></div>}
+        ? 'The watch is sending simulated readings. Select Watch on the watch app to send health readings.'
+        : hasHealthReadings
+          ? 'Watch readings are shown under Onboard instrument trends. Heart rate and breathing appear here when available.'
+          : 'Waiting for health readings. On the watch, open Settings and tap Enable health sync.'}</p><a className="mt-3 inline-block underline" href="/#/system">Check watch connection</a></div>}
       {workspace === 'mission' && pairedLink && <p role="status" className="text-sm text-ink-2">
-        {snapshot?.links[pairedLink.deviceId] === 'VERIFIED' ? 'Watch connected' : 'Watch paired'}
+        {snapshot?.links[pairedLink.deviceId] === 'VERIFIED'
+          ? hasHealthReadings && !pairedLink.watch?.simulated ? 'Watch connected · readings received' : 'Watch connected · waiting for health readings'
+          : 'Watch paired'}
       </p>}
       {watches.map(([deviceId, frames]) => (
         <section key={deviceId} className="grid gap-2">

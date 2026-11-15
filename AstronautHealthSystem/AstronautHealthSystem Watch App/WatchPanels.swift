@@ -129,13 +129,13 @@ struct MetricTile: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(reading.metric == "Respiration" ? "Breathing" : reading.metric)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.black.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(2)
             Spacer(minLength: 0)
             if reading.quality == "valid" {
                 if reading.unit == "%", (0...100).contains(reading.value) {
                     ZStack {
-                        Circle().fill(.white.opacity(0.88))
+                        Circle().fill(.black.opacity(0.65))
                         Circle().stroke(cyan.opacity(0.18), lineWidth: 2)
                         Circle().trim(from: 0, to: reading.value / 100)
                             .stroke(cyan, style: StrokeStyle(lineWidth: 2, lineCap: .round))
@@ -144,7 +144,7 @@ struct MetricTile: View {
                         Text("\(reading.value, format: .number.precision(.fractionLength(0...2)))%")
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .monospacedDigit()
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
                             .padding(.horizontal, 4)
@@ -164,7 +164,7 @@ struct MetricTile: View {
         .padding(.horizontal, 7)
         .padding(.vertical, 5)
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-        .background(Color(red: 0.94, green: 0.96, blue: 0.98),
+        .background(Color(red: 0.09, green: 0.12, blue: 0.16),
                     in: RoundedRectangle(cornerRadius: 13))
         .accessibilityElement(children: .combine)
     }
@@ -190,7 +190,7 @@ struct MetricTile: View {
     private func metricLabel(_ label: String) -> some View {
         Text(label)
             .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
     }
 
     private var pulseBars: some View {
