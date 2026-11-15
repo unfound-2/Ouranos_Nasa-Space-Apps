@@ -8,10 +8,10 @@ test.beforeEach(async ({ page }) => {
 test('the simulated-demo banner stays on every page', async ({ page }) => {
   await openIn(page, 'demo')
   for (const [link, check] of [
-    ['Mission Overview', 'MISSION HEALTH'],
-    ['Crew Health', 'RECOVERY HISTORY'],
-    ['Event History', 'REVIEW EVENTS'],
-    ['System Status', 'MISSION COMPUTER'],
+    ['Mission Overview', 'Mission health'],
+    ['Crew Health', 'Recovery history'],
+    ['Event History', 'Review events'],
+    ['System Status', 'Mission computer'],
   ] as const) {
     await page.getByRole('link', { name: link, exact: true }).click()
     await expect(page.getByRole('heading', { level: 1 })).toContainText(check)

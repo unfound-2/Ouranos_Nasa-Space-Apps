@@ -138,7 +138,7 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
                 if (!active || !payload?.length) return null
                 const p = payload[0].payload as (typeof pts)[number]
                 return (
-                  <div className="rounded-xl border border-line bg-raised px-3.5 py-2.5 shadow-2xl shadow-black/50">
+                  <div className="rounded-[4px] border border-line bg-raised px-3.5 py-2.5 shadow-lg shadow-black/40">
                     <div className="text-[13px] font-semibold text-ink tnum">{signed(p.v)} bpm recovery − rest</div>
                     <div className="mt-1 text-[11px] text-ink-2 tnum">{utcStamp(p.at)}</div>
                     {p.symptom && <div className="mt-1 text-[11px] text-coral">{p.symptoms}</div>}
@@ -258,15 +258,12 @@ const SOURCE_LABEL: Record<IngestPathT, string> = {
 
 function Section({ index, title, aside, children, className = '', testId }: { index: string; title: string; aside?: ReactNode; children: ReactNode; className?: string; testId?: string }) {
   return (
-    <section className={`panel flex min-w-0 flex-col p-5 ${className}`} data-testid={testId}>
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="label flex items-center gap-2.5">
-          <span className="font-mono text-[10.5px] tracking-normal text-ink-3">{index}</span>
-          {title}
-        </h2>
+    <section className={`panel flex min-w-0 flex-col ${className}`} data-testid={testId} data-index={index}>
+      <header className="pane-head flex-wrap">
+        <h2 className="label">{title}</h2>
         {aside}
       </header>
-      {children}
+      <div className="min-w-0 p-4">{children}</div>
     </section>
   )
 }
@@ -288,7 +285,7 @@ function BaselinePanel({ baseline, subjectId }: { baseline: ReturnType<typeof us
   return (
     <div className="flex flex-col gap-4" data-testid="baseline-panel">
       <div className="flex items-baseline gap-3">
-        <span className="figure text-[38px] text-ink">{b.baselineDelta === null ? 'N/A' : signed(b.baselineDelta)}</span>
+        <span className="figure text-[30px] text-ink">{b.baselineDelta === null ? 'N/A' : signed(b.baselineDelta)}</span>
         {b.baselineDelta !== null && <span className="unit text-[13px]">bpm</span>}
       </div>
       <p className="text-[12.5px] leading-relaxed text-ink-2">
@@ -392,35 +389,34 @@ export function CrewHealth() {
   const symptomCount = rows.reduce((n, r) => n + r.s.symptoms.length, 0)
   const b = baseline?.result ?? null
   return (
-    <div className="flex flex-col gap-6">
-      <header className="rise grid gap-6 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-7">
-          <div className="eyebrow">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'}</div>
-          <h1 className="display mt-3 text-[clamp(32px,3.8vw,48px)] text-ink">RECOVERY HISTORY</h1>
-          <p className="mt-4 max-w-[58ch] text-[15px] leading-relaxed text-ink-2">Every recorded recovery assessment, with the readings behind each number. Select a session for its full report.</p>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="display text-[20px] text-ink">Recovery history</h1>
+          <p className="mt-0.5 text-[12.5px] text-ink-2">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'} · every recorded recovery assessment</p>
         </div>
-        <dl className="grid grid-cols-3 gap-4 lg:col-span-5">
+        <dl className="flex flex-wrap gap-x-8 gap-y-2">
           <div>
             <dt className="micro">Sessions</dt>
-            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">
+            <dd className="text-[14px] font-semibold text-ink tnum">
               {rows.length}
               {rows.length !== all.length && <span className="font-normal text-ink-3"> of {all.length}</span>}
             </dd>
           </div>
           <div>
             <dt className="micro">Symptom reports</dt>
-            <dd className={`mt-1.5 text-[15px] font-semibold tnum ${symptomCount ? 'text-coral' : 'text-ink'}`}>{symptomCount}</dd>
+            <dd className={`text-[14px] font-semibold tnum ${symptomCount ? 'text-coral' : 'text-ink'}`}>{symptomCount}</dd>
           </div>
           <div>
             <dt className="micro">Baseline</dt>
-            <dd className={`mt-1.5 text-[15px] font-semibold ${b?.status === 'ESTABLISHED' ? 'text-mint' : 'text-ink-2'}`}>
+            <dd className={`text-[14px] font-semibold ${b?.status === 'ESTABLISHED' ? 'text-mint' : 'text-ink'}`}>
               {!subjectId ? 'Per person' : b?.status === 'ESTABLISHED' ? 'Established' : 'Not established'}
             </dd>
           </div>
         </dl>
       </header>
 
-      <div className="panel flex flex-wrap items-end gap-4 px-5 py-4" role="search" aria-label="Filter sessions">
+      <div className="panel flex flex-wrap items-end gap-3 px-4 py-3" role="search" aria-label="Filter sessions">
         <label className="flex flex-col gap-1.5">
           <span className="micro">Astronaut</span>
           <select className="field" value={subjectId ?? ''} onChange={(e) => setSubjectId(e.target.value || null)} data-testid="filter-subject">
@@ -473,13 +469,13 @@ export function CrewHealth() {
         </label>
         <div className="ml-auto flex flex-col gap-1.5">
           <span className="micro">Data</span>
-          <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-9">
+          <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-8">
             {workspace === 'demo' ? 'Simulated demo only' : 'Real mission records only'}
           </Pill>
         </div>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-12">
+      <div className="grid items-start gap-4 xl:grid-cols-12">
         <Section
           index="01"
           title="Recovery − rest difference by session"
@@ -488,7 +484,7 @@ export function CrewHealth() {
         >
           <DeltaChart rows={rows} baseline={subjectId && b?.status === 'ESTABLISHED' ? b.baselineDelta : null} />
         </Section>
-        <div className="flex flex-col gap-5 xl:col-span-4">
+        <div className="flex flex-col gap-4 xl:col-span-4">
           <Section index="02" title="Personal baseline" aside={subjectId && b ? <Pill tone={b.status === 'ESTABLISHED' ? 'mint' : 'amber'}>{b.status === 'ESTABLISHED' ? 'Established' : 'Not established'}</Pill> : undefined}>
             <BaselinePanel baseline={baseline} subjectId={subjectId} />
           </Section>

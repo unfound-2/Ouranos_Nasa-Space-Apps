@@ -18,15 +18,12 @@ import { TriggerButton } from './Overview'
 
 function Section({ index, title, aside, children, className = '', testId }: { index: string; title: string; aside?: ReactNode; children: ReactNode; className?: string; testId?: string }) {
   return (
-    <section className={`panel flex min-w-0 flex-col p-5 ${className}`} data-testid={testId}>
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="label flex items-center gap-2.5">
-          <span className="font-mono text-[10.5px] tracking-normal text-ink-3">{index}</span>
-          {title}
-        </h2>
+    <section className={`panel flex min-w-0 flex-col ${className}`} data-testid={testId} data-index={index}>
+      <header className="pane-head flex-wrap">
+        <h2 className="label">{title}</h2>
         {aside}
       </header>
-      {children}
+      <div className="flex flex-1 flex-col p-4">{children}</div>
     </section>
   )
 }
@@ -145,7 +142,7 @@ function CheckRow({ c, n, last }: { c: IntegrationCheck; n: number; last: boolea
             <span className="mr-2 font-mono text-[11px] font-normal text-ink-3">{n}</span>
             {CHECK_TITLE[c.id] ?? c.label}
           </h3>
-          <span className={`text-[10.5px] font-bold tracking-[0.14em] uppercase ${mark.className}`} data-testid={`check-${c.id}-status`}>
+          <span className={`text-[11px] font-bold tracking-[0.04em] uppercase ${mark.className}`} data-testid={`check-${c.id}-status`}>
             {mark.text}
           </span>
         </div>
@@ -172,13 +169,11 @@ function Selftest() {
   const [report, setReport] = useState<SelftestReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   return (
-    <div className="sim-hatch rounded-xl border border-violet/30 px-4 py-4" data-testid="selftest">
+    <div className="rounded-[4px] border border-violet/45 px-4 py-3" data-testid="selftest">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[62ch]">
-          <div className="label text-violet">Simulated self-test</div>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-2">
-            Sends real requests from this computer to its own pairing and signal endpoints, with a simulated signal that lands in the demo workspace. It shows the endpoints work here. It is not proof that a watch can connect, and it changes no check above.
-          </p>
+          <div className="text-[13px] font-semibold text-violet">Simulated self-test</div>
+          <p className="mt-1 text-[12.5px] text-ink-2">Real requests to this computer's own pairing and signal endpoints with a simulated signal (stored in the demo). Not proof that a watch can connect; changes no check.</p>
         </div>
         <button
           className="btn btn-sim"
@@ -225,7 +220,7 @@ function Selftest() {
                 {report.steps.map((s, i) => (
                   <tr key={i}>
                     <td className="text-ink">{s.step}</td>
-                    <td className="font-mono text-[11px] break-all text-ink-2">
+                    <td className="code text-[11px] break-all text-ink-2">
                       {s.method} {s.url}
                     </td>
                     <td className="tnum">{s.status ?? '--'}</td>
@@ -283,9 +278,7 @@ function IntegrationCheckPanel({ checks, className = '' }: { checks: ReturnType<
         </div>
       }
     >
-      <p className="max-w-[78ch] text-[12.5px] leading-relaxed text-ink-2">
-        Nine checks, in the order a watch connection is built. Each is decided on evidence this computer holds. Simulated and demo data never make one pass, and none of them can identify watch hardware.
-      </p>
+      <p className="max-w-[78ch] text-[12.5px] text-ink-2">In the order a connection is built. Simulated and demo data never pass a check; no check identifies watch hardware.</p>
       {!checks.data && !checks.error && <p className="mt-4 text-[12.5px] text-ink-3">Running the checks…</p>}
       {checks.error && !checks.data && <p className="mt-4 text-[12.5px] text-coral">Checks unavailable: {checks.error}</p>}
       {checks.error && checks.data && (
@@ -362,15 +355,15 @@ function WatchConnection({ checks, className = '' }: { checks: IntegrationChecks
   const tone = { mint: 'text-mint', amber: 'text-amber', coral: 'text-coral', muted: 'text-ink-2' } as Record<string, string>
   return (
     <Section index="01" title="Watch connection" className={className} testId="watch-connection" aside={<Pill tone={summary.tone} dot>{summary.label}</Pill>}>
-      <div className="well px-4 py-4">
-        <div className={`display text-[24px] ${tone[summary.tone] ?? 'text-ink'}`} data-testid="link-summary">
+      <div className="well px-3.5 py-3">
+        <div className={`text-[16px] font-semibold ${tone[summary.tone] ?? 'text-ink'}`} data-testid="link-summary">
           {summary.label}
         </div>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-ink-2">{summary.detail}</p>
+        <p className="mt-0.5 text-[12.5px] text-ink-2">{summary.detail}</p>
         {workspace === 'demo' && <p className="mt-2 text-[11.5px] text-violet">You are viewing the simulated demo. This is the real connection state; the demo’s own devices are simulated and listed below.</p>}
       </div>
 
-      <h3 className="micro mt-5 mb-3">Watch integration · connect a watch</h3>
+      <h3 className="mt-4 mb-2.5 text-[12px] font-semibold text-ink-2">Watch integration · connect a watch</h3>
       <ol className="flex flex-col gap-3.5">
         <Step n={1} title="Listen on the local network" done={lanOn}>
           {lanOn ? (
@@ -394,7 +387,7 @@ function WatchConnection({ checks, className = '' }: { checks: IntegrationChecks
             <ul className="flex flex-col gap-1.5">
               {addresses.map((a) => (
                 <li key={a.address} className="flex flex-wrap items-center gap-2">
-                  <code className={`rounded-md border px-2 py-1 font-mono text-[12px] ${a.kind.usable ? 'border-line text-ink' : 'border-hair text-ink-3'}`}>{a.url}</code>
+                  <code className={`code rounded-[3px] border px-2 py-1 text-[12px] ${a.kind.usable ? 'border-line text-ink' : 'border-hair text-ink-3'}`}>{a.url}</code>
                   <span className="text-[11px] text-ink-3">
                     {a.interface} · {a.kind.label}
                     {!a.kind.usable && ': use the Wi-Fi address on the watch'}
@@ -422,7 +415,7 @@ function WatchConnection({ checks, className = '' }: { checks: IntegrationChecks
         </Step>
       </ol>
 
-      <h3 className="micro mt-6 mb-2.5">{workspace === 'demo' ? 'Devices in the simulated demo' : 'Devices in mission records'}</h3>
+      <h3 className="mt-5 mb-2 text-[12px] font-semibold text-ink-2">{workspace === 'demo' ? 'Devices in the simulated demo' : 'Devices in mission records'}</h3>
       {devices.length ? (
         <ul className="flex flex-col divide-y divide-hair">
           {devices.map((d) => {
@@ -444,9 +437,7 @@ function WatchConnection({ checks, className = '' }: { checks: IntegrationChecks
         <p className="text-[12px] text-ink-3">None yet. A watch appears here after its first authenticated contact.</p>
       )}
       <div className="min-h-6 flex-1" aria-hidden />
-      <p className="border-t border-hair pt-3 text-[11.5px] leading-relaxed text-ink-3">
-        Verified means authenticated contact from a paired watch app in the last 60 seconds. The app may be running in the Xcode simulator, so verified never means hardware. A successful send is never treated as proof that the watch showed an alert.
-      </p>
+      <p className="border-t border-hair pt-3 text-[11.5px] text-ink-3">Verified = authenticated contact from a paired watch app in the last 60 s. It can be the Xcode simulator, so it never means hardware.</p>
     </Section>
   )
 }
@@ -537,11 +528,11 @@ function DataIntegrity({ className = '' }: { className?: string }) {
                 ? `All ${plural(r.records, 'record')} ${workspace === 'demo' ? 'are simulated' : 'are real'}`
                 : `No ${workspace === 'demo' ? 'simulated' : 'mission'} records yet`}
           </div>
-          <p className="mt-0.5 text-[12px] text-ink-3">Real and simulated records are stored apart; each lands in the workspace its own flag names.</p>
+          <p className="mt-0.5 text-[12px] text-ink-3">Real and simulated records are stored apart.</p>
         </div>
       </div>
 
-      <h3 className="micro mt-5 mb-2">Readings by quality</h3>
+      <h3 className="mt-4 mb-1.5 text-[12px] font-semibold text-ink-2">Readings by quality</h3>
       {totalQ ? (
         <>
           <div className="flex h-2 gap-[2px] overflow-hidden rounded-full" role="img" aria-label={QUALITY.map((q) => `${r.quality[q.key]} ${q.label.toLowerCase()}`).join(', ')}>
@@ -565,7 +556,7 @@ function DataIntegrity({ className = '' }: { className?: string }) {
         <p className="text-[12px] text-ink-3">No readings yet.</p>
       )}
 
-      <h3 className="micro mt-5 mb-2">How records arrived</h3>
+      <h3 className="mt-4 mb-1.5 text-[12px] font-semibold text-ink-2">How records arrived</h3>
       {r.paths.length ? (
         <dl>
           {r.paths.map(([k, n]) => (
@@ -579,7 +570,7 @@ function DataIntegrity({ className = '' }: { className?: string }) {
         <p className="text-[12px] text-ink-3">Nothing stored yet.</p>
       )}
 
-      <h3 className="micro mt-5 mb-2">Ingest decisions</h3>
+      <h3 className="mt-4 mb-1.5 text-[12px] font-semibold text-ink-2">Ingest decisions</h3>
       <p className="text-[12px] leading-relaxed text-ink-2">
         {r.outcomes.CREATED} created · {r.outcomes.UPDATED} updated · {r.outcomes.DUPLICATE} repeats ignored · {r.outcomes.STALE_IGNORED} older copies ignored · {r.outcomes.CONFLICT} conflicts kept for review · {r.outcomes.REJECTED} rejected
       </p>
@@ -603,7 +594,7 @@ function OfflineOperation({ className = '' }: { className?: string }) {
       }
     >
       <div className="flex items-baseline gap-3" data-testid="offline-panel">
-        <span className="figure text-[44px] text-ink" data-testid="external-count">
+        <span className="figure text-[32px] text-ink" data-testid="external-count">
           {external.count}
         </span>
         <span className="text-[12.5px] leading-snug text-ink-2">
@@ -617,9 +608,7 @@ function OfflineOperation({ className = '' }: { className?: string }) {
         <Row k="Analysis and review">Run on this computer</Row>
         <Row k="Watch link">Local network only</Row>
       </dl>
-      <p className="mt-4 text-[11.5px] leading-relaxed text-ink-3">
-        The count covers every file and request this page has loaded. The browser flag only says whether a network is attached; the dashboard needs neither. To prove it, turn Wi-Fi off and keep working.
-      </p>
+      <p className="mt-3 text-[11.5px] text-ink-3">Counts every file and request this page loaded. To prove it, turn Wi-Fi off and keep working.</p>
     </Section>
   )
 }
@@ -689,8 +678,8 @@ function ConnectionSettings() {
                 <tbody>
                   {info.endpoints.map((e) => (
                     <tr key={`${e.method} ${e.path}`}>
-                      <td className="font-mono text-[11px]">{e.method}</td>
-                      <td className="font-mono text-[11px]">{e.path}</td>
+                      <td className="code text-[11px]">{e.method}</td>
+                      <td className="code text-[11px]">{e.path}</td>
                       <td className="text-ink-2">{e.actor}</td>
                       <td className="text-ink-3">{e.purpose}</td>
                     </tr>
@@ -747,7 +736,7 @@ function ImportPanel() {
           const f = e.dataTransfer.files[0]
           if (f) void handle(f)
         }}
-        className={`flex flex-col items-start gap-3 rounded-xl border border-dashed px-4 py-4 transition-colors ${drag ? 'border-cyan bg-cyan/[0.06]' : 'border-line'}`}
+        className={`flex flex-col items-start gap-3 rounded-[4px] border border-dashed px-4 py-4 transition-colors ${drag ? 'border-cyan bg-cyan/[0.06]' : 'border-line'}`}
       >
         <p className="text-[12.5px] leading-relaxed text-ink-2">
           Drop a watch export (<Code>gravityguard.export-bundle.v1</Code>, a session, an event, or a list of them). A file from the watch app is labelled <b className="font-semibold text-ink">SAVED DEVICE DATA</b>, never live. Each record goes to the workspace its <Code>isSimulated</Code> flag names.
@@ -940,48 +929,44 @@ export function SystemStatus() {
   const tally = checkTally(list)
   const summary = checks.data ? `${tally.PASS} of ${list.length} pass` : '--'
   return (
-    <div className="flex flex-col gap-6">
-      <header className="rise grid gap-6 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-7">
-          <div className="eyebrow">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'}</div>
-          <h1 className="display mt-3 text-[clamp(32px,3.8vw,48px)] text-ink">MISSION COMPUTER</h1>
-          <p className="mt-4 max-w-[58ch] text-[15px] leading-relaxed text-ink-2">What runs on this computer, where the records live, and what has actually been proven about the watch link.</p>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="display text-[20px] text-ink">Mission computer</h1>
+          <p className="mt-0.5 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
         </div>
-        <dl className="grid grid-cols-3 gap-4 lg:col-span-5">
+        <dl className="flex flex-wrap gap-x-8 gap-y-2">
           <div>
             <dt className="micro">Computer</dt>
-            <dd className={`mt-1.5 text-[15px] font-semibold ${error ? 'text-coral' : health ? 'text-mint' : 'text-ink-2'}`}>{error ? 'API down' : health ? 'Online' : 'Connecting'}</dd>
+            <dd className={`text-[14px] font-semibold ${error ? 'text-coral' : 'text-ink'}`}>{error ? 'API down' : health ? 'Online' : 'Connecting'}</dd>
           </div>
           <div>
             <dt className="micro">Watch pairing</dt>
-            <dd className={`mt-1.5 text-[15px] font-semibold ${checks.data?.watch.paired ? 'text-mint' : 'text-ink-2'}`}>{checks.data ? (checks.data.watch.paired ? 'Paired' : 'Not paired') : '--'}</dd>
+            <dd className={`text-[14px] font-semibold ${checks.data?.watch.paired ? 'text-mint' : 'text-ink'}`}>{checks.data ? (checks.data.watch.paired ? 'Paired' : 'Not paired') : '--'}</dd>
           </div>
           <div>
             <dt className="micro">Integration</dt>
-            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{summary}</dd>
+            <dd className="text-[14px] font-semibold text-ink tnum">{summary}</dd>
           </div>
         </dl>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid gap-4 xl:grid-cols-12">
         <WatchConnection checks={checks.data} className="xl:col-span-5" />
         <IntegrationCheckPanel checks={checks} className="xl:col-span-7" />
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-3">
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         <OnboardComputer />
         <DataIntegrity />
         <OfflineOperation />
       </div>
 
-      <section className="panel p-5" data-testid="integration-tools">
-        <header className="mb-5">
-          <h2 className="label flex items-center gap-2.5">
-            <span className="font-mono text-[10.5px] tracking-normal text-ink-3">06</span>
-            Integration tools
-          </h2>
+      <section className="panel" data-testid="integration-tools">
+        <header className="pane-head">
+          <h2 className="label">Integration tools</h2>
         </header>
-        <div className="grid gap-x-8 gap-y-8 lg:grid-cols-2">
+        <div className="grid gap-x-8 gap-y-6 p-4 lg:grid-cols-2">
           <ConnectionSettings />
           <ImportPanel />
           <ManualReading />

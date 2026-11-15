@@ -76,7 +76,7 @@ function HrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="rounded-lg border border-line bg-raised px-3 py-2.5 shadow-2xl shadow-black/50">
+    <div className="rounded-[4px] border border-line bg-raised px-3 py-2.5 shadow-lg shadow-black/40">
       <div className="text-[14px] font-bold text-ink">{p.m.value === null ? 'No value recorded' : `${p.m.value} bpm`}</div>
       <div className="mt-1 tnum text-[11px] text-ink-2">{utcStamp(p.m.measuredAt)}</div>
       <div className="mt-1 text-[11.5px] text-ink-2">
@@ -156,14 +156,14 @@ export function HrChart({
           </svg>
           Phase median
         </span>
-        <div className="ml-auto flex overflow-hidden rounded-lg border border-line" role="tablist" aria-label="Chart or table">
+        <div className="ml-auto flex overflow-hidden rounded-[4px] border border-line" role="tablist" aria-label="Chart or table">
           {(['chart', 'table'] as const).map((v) => (
             <button
               key={v}
               role="tab"
               aria-selected={view === v}
               onClick={() => setView(v)}
-              className={`px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em] ${view === v ? 'bg-raised text-ink' : 'text-ink-3 hover:text-ink-2'}`}
+              className={`px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.04em] ${view === v ? 'bg-raised text-ink' : 'text-ink-3 hover:text-ink-2'}`}
             >
               {v}
             </button>

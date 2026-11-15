@@ -41,7 +41,7 @@ function Tip({ active, payload }: { active?: boolean; payload?: { payload: Pt }[
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="rounded-lg border border-line bg-raised px-3 py-2 shadow-2xl shadow-black/50">
+    <div className="rounded-[4px] border border-line bg-raised px-3 py-2 shadow-lg shadow-black/40">
       <div className="text-[13px] font-bold">{signed(p.v)} bpm recovery − rest</div>
       <div className="mt-1 tnum text-[11px] text-ink-2">{utcStamp(p.startedAt)}</div>
       <div className="font-mono text-[10px] text-ink-3">{p.sessionId}</div>

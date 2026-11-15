@@ -22,7 +22,7 @@ export function SimWatchOverlay() {
     <aside
       aria-live="polite"
       data-testid="sim-watch"
-      className="slide-in fixed right-4 top-[132px] z-40 w-[236px] rounded-2xl border border-violet/45 bg-panel p-4 shadow-2xl shadow-black/60 sm:right-6"
+      className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[6px] border border-violet/60 bg-panel p-3.5 shadow-lg shadow-black/40 sm:right-6"
     >
       <div className="flex items-center justify-between">
         <span className="label text-violet">Simulated watch</span>
@@ -30,20 +30,18 @@ export function SimWatchOverlay() {
           <X size={14} />
         </button>
       </div>
-      <div className="relative mx-auto mt-3 h-[196px] w-[164px]">
-        <span className="ripple absolute inset-6 rounded-[44px] border border-coral/50" aria-hidden />
-        <span className="ripple absolute inset-6 rounded-[44px] border border-coral/40 [animation-delay:500ms]" aria-hidden />
-        <div className="absolute inset-0 rounded-[42px] border-[3px] border-line bg-[#05060a] p-[10px] shadow-inner">
-          <div className="flex h-full flex-col items-center justify-center rounded-[32px] bg-black text-center">
-            <span className="text-[8px] tracking-[0.2em] text-ink-3">GRAVITYGUARD</span>
+      <div className="relative mx-auto mt-3 h-[180px] w-[150px]">
+        <div className="absolute inset-0 rounded-[38px] border-[3px] border-line bg-void p-[9px]">
+          <div className="flex h-full flex-col items-center justify-center rounded-[29px] bg-black text-center">
+            <span className="text-[8px] tracking-[0.06em] text-ink-3">GRAVITYGUARD</span>
             <span className="mt-3 px-2 text-[13px] leading-tight font-bold tracking-[0.06em] text-coral">{label}</span>
-            <span className="mt-2 px-3 text-[9.5px] leading-snug tracking-[0.1em] text-ink-2">OPEN MISSION COMPUTER</span>
+            <span className="mt-2 px-3 text-[9.5px] leading-snug tracking-[0.04em] text-ink-2">OPEN MISSION COMPUTER</span>
           </div>
         </div>
       </div>
-      <p className="mt-3 text-[11.5px] leading-snug text-ink-3">A picture of the watch screen for the demo. Not a real device and no real haptic.</p>
+      <p className="mt-3 text-[11.5px] leading-snug text-ink-3">Picture of the watch screen for the demo. Not a real device.</p>
       <button
-        className="btn btn-alert mt-3 w-full justify-center"
+        className="btn btn-alert btn-sm mt-3 w-full justify-center"
         onClick={() => {
           dismissTrigger()
           navigate(href.event(trigger.eventId))

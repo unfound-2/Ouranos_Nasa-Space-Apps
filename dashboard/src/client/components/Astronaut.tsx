@@ -100,43 +100,7 @@ export function Astronaut({
 
   return (
     <svg viewBox="0 0 560 640" className="astro h-auto w-full select-none" role="group" aria-label={label}>
-      <defs>
-        <linearGradient id="gg-suit" x1="0.15" y1="0" x2="0.85" y2="1">
-          <stop offset="0" stopColor="#2c3750" />
-          <stop offset="0.55" stopColor="#1a2234" />
-          <stop offset="1" stopColor="#111724" />
-        </linearGradient>
-        <linearGradient id="gg-suit-alert" x1="0.15" y1="0" x2="0.85" y2="1">
-          <stop offset="0" stopColor="#4a2333" />
-          <stop offset="0.6" stopColor="#2a1622" />
-          <stop offset="1" stopColor="#181019" />
-        </linearGradient>
-        <linearGradient id="gg-pack" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#141b29" />
-          <stop offset="1" stopColor="#0c1019" />
-        </linearGradient>
-        <linearGradient id="gg-visor" x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0" stopColor="#1b3047" />
-          <stop offset="0.45" stopColor="#0b1422" />
-          <stop offset="1" stopColor="#05080f" />
-        </linearGradient>
-        <radialGradient id="gg-floor" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#41c8f5" stopOpacity="0.16" />
-          <stop offset="0.6" stopColor="#41c8f5" stopOpacity="0.04" />
-          <stop offset="1" stopColor="#41c8f5" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="gg-keylight" cx="0.32" cy="0.18" r="0.75">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.07" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
-        </radialGradient>
-      </defs>
 
-      {/* body axis and scale: a quiet measuring frame, no data */}
-      <g aria-hidden pointerEvents="none">
-        <line x1="280" y1="24" x2="280" y2="618" stroke="var(--color-ink)" strokeOpacity="0.05" strokeDasharray="2 6" />
-        <ellipse cx="280" cy="604" rx="150" ry="20" fill="url(#gg-floor)" />
-        <ellipse cx="280" cy="604" rx="112" ry="12" fill="none" stroke="#41c8f5" strokeOpacity="0.22" />
-      </g>
 
 
       <g {...regionProps('ARMS')}>
@@ -152,8 +116,8 @@ export function Astronaut({
         ))}
         {/* the watch, on the crew member's left wrist */}
         <g aria-hidden>
-          <rect x="383" y="358" width="22" height="20" rx="5" fill="#05080f" stroke="#41c8f5" strokeOpacity="0.85" />
-          <rect x="387" y="362" width="14" height="12" rx="3" fill="#41c8f5" fillOpacity="0.2" />
+          <rect x="383" y="358" width="22" height="20" rx="4" fill="var(--color-void)" stroke="var(--color-ink-2)" />
+          <rect x="387" y="362" width="14" height="12" rx="2" fill="var(--color-raised)" />
         </g>
       </g>
 
@@ -182,9 +146,7 @@ export function Astronaut({
       <g {...regionProps('HEAD')}>
         <ellipse className="part" cx="280" cy="158" rx="44" ry="10" />
         <path className="part" d={P.helmet} />
-        <path d={P.visor} fill="url(#gg-visor)" stroke="var(--color-ink)" strokeOpacity="0.22" />
-        <path d="M252 76 C262 66 284 63 300 68" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M300 118 C306 112 310 104 311 96" fill="none" stroke="#41c8f5" strokeOpacity="0.25" strokeWidth="1.5" strokeLinecap="round" />
+        <path d={P.visor} fill="var(--color-void)" stroke="var(--color-ink-3)" strokeOpacity="0.8" />
       </g>
 
 
@@ -199,7 +161,7 @@ export function Astronaut({
             <g key={r} pointerEvents="none" aria-hidden>
               <line x1={a.x - 4} y1={a.y} x2={a.x + 4} y2={a.y} stroke="var(--color-ink)" strokeOpacity="0.25" />
               <line x1={a.x} y1={a.y - 4} x2={a.x} y2={a.y + 4} stroke="var(--color-ink)" strokeOpacity="0.25" />
-              <text x={a.x + (a.side === 'right' ? 8 : -8)} y={a.y - 6} textAnchor={a.side === 'right' ? 'start' : 'end'} fill="var(--color-ink-3)" fontSize="9" fontFamily="JetBrains Mono" opacity="0.8">
+              <text x={a.x + (a.side === 'right' ? 8 : -8)} y={a.y - 6} textAnchor={a.side === 'right' ? 'start' : 'end'} fill="var(--color-ink-3)" fontSize="10">
                 {a.id}
               </text>
             </g>
@@ -212,24 +174,21 @@ export function Astronaut({
         const sub = info.items[0]?.detail ?? ''
         return (
           <g key={r} pointerEvents="none" aria-hidden data-testid={`callout-${r}`}>
-            <polyline points={`${a.x},${a.y} ${elbowX},${midY} ${edgeX},${midY}`} fill="none" stroke={kind.color} strokeOpacity={active ? 0.95 : 0.6} strokeWidth={active ? 1.4 : 1} />
+            <polyline points={`${a.x},${a.y} ${elbowX},${midY} ${edgeX},${midY}`} fill="none" stroke={kind.color} strokeOpacity={active ? 1 : 0.7} strokeWidth={1} />
             <Marker state={info.state} x={a.x} y={a.y} active={active} />
             <foreignObject x={boxX} y={a.boxY} width={boxW} height={96}>
               <div
-                className={`rounded-[10px] border px-2.5 py-2 ${a.side === 'left' ? 'text-right' : 'text-left'}`}
-                style={{
-                  borderColor: `color-mix(in oklab, ${kind.color} ${active ? 70 : 42}%, transparent)`,
-                  background: `color-mix(in oklab, ${kind.color} ${active ? 10 : 5}%, var(--color-void))`,
-                }}
+                className={`rounded-[3px] border bg-panel px-2 py-1.5 ${a.side === 'left' ? 'text-right' : 'text-left'}`}
+                style={{ borderColor: active ? kind.color : 'var(--color-line)' }}
               >
                 <div className="flex items-center gap-1.5" style={{ justifyContent: a.side === 'left' ? 'flex-end' : 'flex-start' }}>
-                  <span className="font-mono text-[8px] tracking-[0.1em] text-ink-3">{a.id}</span>
-                  <span className="text-[8.5px] font-bold tracking-[0.14em]" style={{ color: kind.color }}>
+                  <span className="text-[9px] text-ink-3">{a.id}</span>
+                  <span className="text-[9px] font-bold tracking-[0.04em]" style={{ color: kind.color }}>
                     {kind.tag}
                   </span>
                 </div>
-                <div className="mt-1 text-[10.5px] leading-tight font-semibold tracking-[0.02em] text-ink">{info.callout}</div>
-                <div className="mt-0.5 line-clamp-2 text-[9px] leading-snug text-ink-3">{sub}</div>
+                <div className="mt-0.5 text-[11px] leading-tight font-semibold text-ink">{info.callout}</div>
+                <div className="mt-0.5 line-clamp-2 text-[9.5px] leading-snug text-ink-3">{sub}</div>
               </div>
             </foreignObject>
           </g>

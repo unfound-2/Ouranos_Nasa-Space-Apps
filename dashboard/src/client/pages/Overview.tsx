@@ -61,18 +61,18 @@ function LegendMark({ shape, tone }: { shape: (typeof LEGEND)[number]['shape']; 
 
 export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unplaced: string[] }) {
   return (
-    <div className="well px-4 py-3.5" data-testid="region-detail">
+    <div className="well px-3.5 py-3" data-testid="region-detail">
       {info ? (
         <>
           <div className="flex items-center justify-between gap-3">
-            <div className="label text-ink">{info.name}</div>
+            <div className="text-[13px] font-semibold text-ink">{info.name}</div>
             <Pill tone={LEGEND.find((l) => l.state === info.state)!.tone}>{LEGEND.find((l) => l.state === info.state)!.label}</Pill>
           </div>
           {info.items.length ? (
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-2.5 space-y-2">
               {info.items.map((it, i) => (
                 <li key={i}>
-                  <div className={`text-[12px] font-semibold tracking-[0.04em] ${TONE[it.tone].text}`}>{it.title}</div>
+                  <div className={`text-[12px] font-semibold ${TONE[it.tone].text}`}>{it.title}</div>
                   <div className="text-[12.5px] text-ink-2">{it.detail}</div>
                 </li>
               ))}
@@ -84,8 +84,8 @@ export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unpl
         </>
       ) : (
         <>
-          <div className="text-[12.5px] text-ink-2">Select a region or marker to open the record behind it. A highlight shows where evidence was recorded, not a diagnosis.</div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+          <div className="text-[12.5px] text-ink-2">Select a region for the record behind it. Markers show where evidence was recorded, not a diagnosis.</div>
+          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
             {LEGEND.map((l) => (
               <span key={l.state} className="flex items-center gap-1.5 text-[11.5px] text-ink-3">
                 <LegendMark shape={l.shape} tone={l.tone} />
@@ -153,7 +153,7 @@ export function TriggerButton() {
           }
         }}
       >
-        <Radio size={15} /> Trigger simulated watch event
+        <Radio size={14} /> Trigger simulated watch event
       </button>
       {err && <span className="text-[11.5px] text-coral">{err}</span>}
     </div>
@@ -189,12 +189,12 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
   const e = focus.event
   if (!e) {
     return (
-      <div className="panel rise flex h-full flex-col justify-between gap-5 p-6" data-testid="hero-alert">
+      <div className="panel flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3.5" data-testid="hero-alert">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 shrink-0 text-mint" size={20} />
+          <CheckCircle2 className="mt-0.5 shrink-0 text-mint" size={18} />
           <div>
-            <div className="label text-mint">No review event</div>
-            <p className="mt-2 max-w-[56ch] text-[14px] text-ink-2">
+            <div className="text-[13px] font-semibold text-ink">No review event</div>
+            <p className="mt-0.5 max-w-[80ch] text-[12.5px] text-ink-2">
               {focus.scenario
                 ? `${focus.scenario.title}. ${focus.scenario.summary}`
                 : `No open review event for ${focus.subjectId ? subjectLabel(focus.subjectId) : 'this crew member'}. A review records that someone looked at the evidence; it is not a medical clearance.`}
@@ -202,7 +202,7 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
           </div>
         </div>
         {otherOpen > 0 && (
-          <a className="text-[12.5px] text-ink-2 underline decoration-line underline-offset-4 hover:text-ink" href={href.events}>
+          <a className="btn btn-ghost btn-sm" href={href.events}>
             {plural(otherOpen, 'open event')} for other crew
           </a>
         )}
@@ -216,53 +216,48 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
   const ack = ackLabel(e)
   const open = isOpen(e)
   return (
-    <div
-      className={`rise relative flex h-full flex-col overflow-hidden rounded-2xl border p-6 ${t.border}`}
-      style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${t.stroke} 9%, var(--color-panel)) 0%, var(--color-panel) 62%)` }}
-      data-testid="hero-alert"
-    >
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className={`h-2 w-2 rounded-full ${t.dot} ${open ? 'pulse-dot' : ''}`} aria-hidden />
-        <span className={`font-display text-[11.5px] font-bold tracking-[0.18em] [font-stretch:112%] ${t.text}`} data-testid="focus-label">
+    <div className={`panel overflow-hidden ${open ? t.border : ''}`} data-testid="hero-alert">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+        <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] text-[#0d0f12] ${t.bg}`} data-testid="focus-label">
           {focusLabel(e)}
         </span>
         {e.isSimulated && <SimTag />}
-        <span className="ml-auto font-mono text-[11px] text-ink-3">{e.eventId}</span>
-      </div>
-      <h2 className="mt-4 text-[26px] leading-tight font-semibold tracking-[-0.01em] text-ink">{eventTitle(ctx)}</h2>
-      <p className="mt-1.5 text-[15px] text-ink-2">
-        <span className="text-ink-3">Reason · </span>
-        <span className="text-ink" data-testid="focus-reason">
-          {reasonLine(ctx)}
+        <h2 className="text-[16px] font-semibold text-ink">{eventTitle(ctx)}</h2>
+        <span className="text-[14px] text-ink-2">
+          <span className="hidden text-ink-3 sm:inline">· </span>
+          <span data-testid="focus-reason">{reasonLine(ctx)}</span>
         </span>
-      </p>
-      <dl className="rule mt-5 grid grid-cols-2 gap-x-5 gap-y-3 pt-4 sm:grid-cols-4">
-        <div>
-          <dt className="micro">Created</dt>
-          <dd className="mt-1 text-[12.5px] text-ink tnum">{utcStamp(e.createdAt).slice(5)}</dd>
-        </div>
-        <div>
-          <dt className="micro">Source</dt>
-          <dd className="mt-1 text-[12.5px] text-ink">{ORIGIN_LABEL[e.origin.kind]}</dd>
-        </div>
-        <div>
-          <dt className="micro">On the watch</dt>
-          <dd className={`mt-1 text-[12.5px] ${TONE[ack.tone].text}`}>{ack.text}</dd>
-        </div>
-        <div>
-          <dt className="micro">Review</dt>
-          <dd className={`mt-1 text-[12.5px] ${TONE[REVIEW_META[e.review.state].tone].text}`}>{REVIEW_META[e.review.state].label}</dd>
-        </div>
-      </dl>
-      <div className="mt-auto flex flex-wrap items-center gap-4 pt-6">
-        <a className={`btn ${tone === 'coral' ? 'btn-alert' : 'btn-primary'}`} href={href.event(e.eventId)} data-testid="open-evidence">
-          Open evidence <ArrowRight size={15} />
-        </a>
-        {otherOpen > 0 && (
-          <a className="text-[12.5px] text-ink-2 underline decoration-line underline-offset-4 hover:text-ink" href={href.events}>
-            {plural(otherOpen, 'other open event')}
+        <span className="ml-auto text-[11.5px] text-ink-3 tnum">{e.eventId}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-t border-line bg-panel-2 px-4 py-2.5">
+        <dl className="flex flex-wrap gap-x-8 gap-y-1.5">
+          <div>
+            <dt className="micro">Created</dt>
+            <dd className="text-[12.5px] text-ink tnum">{utcStamp(e.createdAt).slice(5)}</dd>
+          </div>
+          <div>
+            <dt className="micro">Source</dt>
+            <dd className="text-[12.5px] text-ink">{ORIGIN_LABEL[e.origin.kind]}</dd>
+          </div>
+          <div>
+            <dt className="micro">On the watch</dt>
+            <dd className={`text-[12.5px] ${TONE[ack.tone].text}`}>{ack.text}</dd>
+          </div>
+          <div>
+            <dt className="micro">Review</dt>
+            <dd className={`text-[12.5px] ${TONE[REVIEW_META[e.review.state].tone].text}`}>{REVIEW_META[e.review.state].label}</dd>
+          </div>
+        </dl>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {otherOpen > 0 && (
+            <a className="btn btn-ghost btn-sm" href={href.events}>
+              {plural(otherOpen, 'other open event')}
+            </a>
+          )}
+          <a className={`btn btn-sm ${tone === 'coral' ? 'btn-alert' : 'btn-primary'}`} href={href.event(e.eventId)} data-testid="open-evidence">
+            Open evidence <ArrowRight size={14} />
           </a>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -312,13 +307,10 @@ function latestHeartRate(ds: Dataset, subjectId: string | null, links: WatchLink
 
 function Instrument({ label, value, sub, tone, testId }: { label: string; value: string; sub: string; tone?: Tone; testId?: string }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-3" data-testid={testId}>
-      <dt className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${tone ? TONE[tone].dot : 'bg-ink-3'}`} aria-hidden />
-        <span className="eyebrow">{label}</span>
-      </dt>
-      <dd className={`text-right text-[15px] font-semibold tnum ${tone && tone !== 'neutral' && tone !== 'muted' ? TONE[tone].text : 'text-ink'}`}>{value}</dd>
-      <dd className="col-span-2 mt-0.5 truncate pl-3.5 text-[11.5px] text-ink-3">{sub}</dd>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 px-4 py-2" data-testid={testId}>
+      <dt className="text-[12.5px] text-ink-2">{label}</dt>
+      <dd className={`text-right text-[14px] font-semibold tnum ${tone && tone !== 'neutral' && tone !== 'muted' ? TONE[tone].text : 'text-ink'}`}>{value}</dd>
+      <dd className="col-span-2 truncate text-[11.5px] text-ink-3">{sub}</dd>
     </div>
   )
 }
@@ -344,17 +336,17 @@ function Telemetry({ ds, focus, nowMs }: { ds: Dataset; focus: Focus; nowMs: num
   const latestSession = sessionsOf(ds, focus.subjectId)[0] ?? null
 
   return (
-    <section className="panel flex h-full flex-col p-5" aria-label="Mission telemetry" data-testid="telemetry">
-      <header className="flex items-center justify-between gap-3">
+    <section className="panel flex h-full flex-col" aria-label="Mission telemetry" data-testid="telemetry">
+      <header className="pane-head">
         <h2 className="label">Mission telemetry</h2>
-        <span className="font-mono text-[11px] text-ink-3">{s?.sessionId ?? 'no session'}</span>
+        <span className="text-[11.5px] text-ink-3 tnum">{s?.sessionId ?? 'no session'}</span>
       </header>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <Ring value={rings.completeness} tone="mint" label="Completeness" caption="Protocol steps in the record" unavailable="No check recorded" size={104} />
-        <Ring value={rings.coverage} tone="cyan" label="HR coverage" caption="10 s intervals with a valid reading" unavailable="Phase times incomplete" size={104} />
-        <Ring value={rings.review} tone="violet" label="Review" caption={`Checklist items, v${REVIEW_CHECKLIST.version}`} unavailable="No event to review" size={104} />
+      <div className="grid grid-cols-3 gap-2 border-b border-line px-3 py-4">
+        <Ring value={rings.completeness} tone="mint" label="Completeness" caption="Protocol steps in the record" unavailable="No check recorded" size={84} />
+        <Ring value={rings.coverage} tone="cyan" label="HR coverage" caption="10 s intervals with a valid reading" unavailable="Phase times incomplete" size={84} />
+        <Ring value={rings.review} tone="violet" label="Review" caption={`Checklist items, v${REVIEW_CHECKLIST.version}`} unavailable="No event to review" size={84} />
       </div>
-      <dl className="mt-3 divide-y divide-hair" data-testid="measurement-strip">
+      <dl className="divide-y divide-hair py-1" data-testid="measurement-strip">
         <Instrument
           testId="strip-hr"
           label="Latest heart rate"
@@ -417,7 +409,7 @@ const TL_TONE: Record<TimelineItem['tone'], string> = {
   warning: 'bg-amber',
 }
 
-function MissionTimeline({ focus, ds, onSymptom, selectedRegion }: { focus: Focus; ds: Dataset; onSymptom: (r: Region) => void; selectedRegion: Region | null }) {
+function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; onSymptom: (r: Region) => void; selectedRegion: Region | null }) {
   const items = timelineFor(focus.event, focus.session)
   const symptomFor = (at: string) => focus.session?.symptoms.find((s) => s.reportedAt === at) ?? null
   const act = (i: TimelineItem) => {
@@ -431,13 +423,13 @@ function MissionTimeline({ focus, ds, onSymptom, selectedRegion }: { focus: Focu
     else if (focus.event) navigate(href.event(focus.event.eventId))
   }
   return (
-    <section className="panel p-5" aria-label="Mission timeline" data-testid="timeline">
-      <header className="flex items-center justify-between gap-3">
+    <section className="panel" aria-label="Mission timeline" data-testid="timeline">
+      <header className="pane-head">
         <h2 className="label">Mission timeline</h2>
-        <span className="text-[11.5px] text-ink-3">{items.length ? `Recorded steps · ${utcStamp(items[0].at).slice(0, 10)}` : ''}</span>
+        <span className="text-[11.5px] text-ink-3">{items.length ? `Recorded steps · ${utcStamp(items[0].at).slice(0, 10)} · select a step for its source` : ''}</span>
       </header>
       {items.length ? (
-        <ol className="mt-5 flex flex-col gap-0 lg:flex-row lg:overflow-x-auto lg:pb-1">
+        <ol className="flex flex-col gap-0 px-2 py-3 lg:flex-row lg:overflow-x-auto">
           {items.map((i, idx) => {
             const sym = i.kind === 'SYMPTOM' ? symptomFor(i.at) : null
             const linked = sym ? symptomRegion(sym) : null
@@ -445,17 +437,17 @@ function MissionTimeline({ focus, ds, onSymptom, selectedRegion }: { focus: Focu
             return (
               <li key={`${i.kind}-${idx}`} className="relative flex min-w-0 flex-1 lg:min-w-[128px]">
                 <button
-                  className={`group flex w-full gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-raised/60 lg:flex-col lg:gap-2 ${active ? 'bg-coral/[0.08]' : ''}`}
+                  className={`group flex w-full gap-3 rounded-[4px] px-2 py-1.5 text-left transition-colors hover:bg-raised lg:flex-col lg:gap-1.5 ${active ? 'bg-raised' : ''}`}
                   onClick={() => act(i)}
                   data-testid={`tl-${i.kind}`}
                 >
                   <span className="relative flex shrink-0 items-center lg:w-full">
-                    <span className={`relative z-10 h-2.5 w-2.5 rounded-full ring-4 ring-panel ${TL_TONE[i.tone]} ${active ? 'pulse-dot' : ''}`} aria-hidden />
-                    {idx < items.length - 1 && <span className="absolute top-1/2 left-2.5 hidden h-px w-[calc(100%+16px)] bg-line lg:block" aria-hidden />}
+                    <span className={`relative z-10 h-2 w-2 rounded-full ${TL_TONE[i.tone]}`} aria-hidden />
+                    {idx < items.length - 1 && <span className="absolute top-1/2 left-2 hidden h-px w-[calc(100%+16px)] bg-line lg:block" aria-hidden />}
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[11px] text-ink-3 tnum">{utcTime(i.at).replace(' UTC', 'Z')}</span>
-                    <span className="mt-0.5 block text-[12.5px] leading-snug font-semibold text-ink group-hover:text-white">{i.label}</span>
+                    <span className="block text-[12.5px] leading-snug font-medium text-ink">{i.label}</span>
                     {i.detail && <span className="mt-0.5 block truncate text-[11px] text-ink-3">{i.detail}</span>}
                   </span>
                 </button>
@@ -464,9 +456,8 @@ function MissionTimeline({ focus, ds, onSymptom, selectedRegion }: { focus: Focu
           })}
         </ol>
       ) : (
-        <p className="mt-3 text-[13px] text-ink-3">No recorded activity for this crew member.</p>
+        <p className="px-4 py-3 text-[13px] text-ink-3">No recorded activity for this crew member.</p>
       )}
-      {ds && focus.event && <p className="mt-3 text-[11.5px] text-ink-3">Select a step to open its source: phases open the session readings, the symptom highlights the body map, alert steps open the event.</p>}
     </section>
   )
 }
@@ -478,19 +469,19 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
   const events = sortEvents(Object.values(ds.events))
   const open = events.filter(isOpen).length
   return (
-    <section className="panel p-5" aria-label="Health event queue">
-      <header className="flex items-center justify-between gap-3">
+    <section className="panel overflow-hidden" aria-label="Health event queue">
+      <header className="pane-head">
         <h2 className="label">Health event queue</h2>
         <span className="flex items-center gap-3">
           <Pill tone={open ? 'coral' : 'muted'}>{open} open</Pill>
-          <a href={href.events} className="text-[12px] text-ink-2 hover:text-ink">
-            Full history →
+          <a href={href.events} className="text-[12px] text-cyan hover:underline">
+            Full history
           </a>
         </span>
       </header>
-      <div className="mt-3 hidden grid-cols-[14px_minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_auto] gap-x-4 px-2 pb-2 lg:grid">
+      <div className="hidden grid-cols-[10px_minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_160px] gap-x-4 border-b border-line bg-panel-2 px-4 py-1.5 lg:grid">
         {['', 'Event', 'Crew', 'Created', 'Reason', 'On the watch', 'Review', 'Status'].map((h, i) => (
-          <span key={i} className="micro">
+          <span key={i} className="text-[11.5px] font-semibold text-ink-2">
             {h}
           </span>
         ))}
@@ -506,19 +497,19 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
               <a
                 href={href.event(e.eventId)}
                 data-testid={`event-row-${e.eventId}`}
-                className={`grid grid-cols-[14px_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-lg px-2 py-2.5 transition-colors hover:bg-raised/60 lg:grid-cols-[14px_minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_auto] ${e.eventId === focusId ? 'bg-raised/40' : ''}`}
+                className={`grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2 transition-colors hover:bg-raised lg:grid-cols-[10px_minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_160px] ${e.eventId === focusId ? 'bg-raised' : ''}`}
               >
-                <span className={`h-2 w-2 rounded-full ${isOpen(e) ? TONE[cat.tone].dot : 'bg-ink-3'} ${isOpen(e) && e.eventId === focusId ? 'pulse-dot' : ''}`} aria-hidden />
+                <span className={`h-2 w-2 rounded-full ${isOpen(e) ? TONE[cat.tone].dot : 'bg-ink-3'}`} aria-hidden />
                 <span className="flex min-w-0 items-center gap-2">
                   <span className={`truncate text-[12.5px] font-semibold ${isOpen(e) ? 'text-ink' : 'text-ink-2'}`}>{cat.label}</span>
                   {e.isSimulated && <SimTag />}
                 </span>
                 <span className="hidden truncate text-[12px] text-ink-2 lg:block">{subjectLabel(e.subjectId)}</span>
                 <span className="hidden truncate text-[12px] text-ink-2 tnum lg:block">{utcStamp(e.createdAt).slice(5)}</span>
-                <span className="hidden truncate font-mono text-[11px] text-ink-3 lg:block">{e.reasonCodes.join(', ')}</span>
+                <span className="hidden truncate text-[11.5px] text-ink-3 lg:block">{e.reasonCodes.join(', ')}</span>
                 <span className={`hidden truncate text-[12px] lg:block ${TONE[ack.tone].text}`}>{ack.text}</span>
                 <span className={`hidden truncate text-[12px] lg:block ${TONE[rv.tone].text}`}>{rv.label}</span>
-                <Pill tone={st.tone} className="shrink-0">
+                <Pill tone={st.tone} className="shrink-0 justify-self-start">
                   {st.label}
                 </Pill>
                 <span className="col-span-2 col-start-2 truncate text-[11.5px] text-ink-3 tnum lg:hidden">
@@ -528,7 +519,7 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
             </li>
           )
         })}
-        {!events.length && <li className="py-3 text-[13px] text-ink-3">No events recorded.</li>}
+        {!events.length && <li className="px-4 py-3 text-[13px] text-ink-3">No events recorded.</li>}
       </ul>
     </section>
   )
@@ -541,11 +532,10 @@ function EmptyWorkspace() {
   const { workspace, setWorkspace, actions } = useData()
   const [busy, setBusy] = useState(false)
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 py-12">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 py-10">
       <div>
-        <div className="eyebrow">{workspace === 'demo' ? 'Simulated demo' : 'Mission records'}</div>
-        <h1 className="display mt-3 text-[40px] text-ink">MISSION HEALTH</h1>
-        <p className="mt-3 text-[15px] text-ink-2">Onboard health monitoring and evidence review.</p>
+        <h1 className="display text-[20px] text-ink">Mission health</h1>
+        <p className="mt-0.5 text-[12.5px] text-ink-2">{workspace === 'demo' ? 'Simulated demo' : 'Mission records'} · onboard health monitoring and evidence review</p>
       </div>
       {workspace === 'mission' ? (
         <Empty
@@ -611,54 +601,35 @@ export function Overview() {
   const sessionMode = session ? recordSourceMode(session, session.provenance.deviceId ? (snapshot.links[session.provenance.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED') : null
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Hero */}
-      <section className="grid gap-5 lg:grid-cols-12">
-        <div className="rise flex flex-col justify-between gap-6 lg:col-span-5">
-          <div>
-            <div className="eyebrow">
-              Mission overview · {focus.subjectId ? subjectLabel(focus.subjectId) : 'no crew selected'}
-              {focus.scenario && <span className="text-violet"> · scenario {focus.scenario.id}</span>}
-            </div>
-            <h1 className="display mt-3 text-[clamp(34px,4.2vw,52px)] text-ink">MISSION HEALTH</h1>
-            <p className="mt-4 max-w-[46ch] text-[15px] leading-relaxed text-ink-2">Onboard health monitoring and evidence review.</p>
-          </div>
-          <dl className="grid grid-cols-3 gap-4">
-            <div>
-              <dt className="micro">Profile</dt>
-              <dd className="mt-1 text-[13px] text-ink">Gravity recovery</dd>
-            </div>
-            <div>
-              <dt className="micro">Latest check</dt>
-              <dd className="mt-1 text-[13px] text-ink tnum">{session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'}</dd>
-            </div>
-            <div>
-              <dt className="micro">Mode</dt>
-              <dd className={`mt-1 text-[13px] ${workspace === 'demo' ? 'text-violet' : 'text-ink'}`}>{workspace === 'demo' ? 'Simulated demo' : (sessionMode ?? 'No records')}</dd>
-            </div>
-          </dl>
-          {workspace === 'demo' && <TriggerButton />}
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="display text-[20px] text-ink">Mission health</h1>
+          <p className="mt-0.5 text-[12.5px] text-ink-2">
+            {focus.subjectId ? subjectLabel(focus.subjectId) : 'No crew selected'} · gravity recovery check · latest {session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'} ·{' '}
+            <span className={workspace === 'demo' ? 'text-violet' : 'text-ink'}>{workspace === 'demo' ? 'simulated demo' : (sessionMode ?? 'no records')}</span>
+            {focus.scenario && <span className="text-violet"> · scenario {focus.scenario.id}</span>}
+          </p>
         </div>
-        <div className="lg:col-span-7">
-          <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={snapshot.serverTime} />
-        </div>
-      </section>
+        {workspace === 'demo' && <TriggerButton />}
+      </header>
 
-      {/* Crew stage and telemetry */}
-      <section className="grid gap-5 xl:grid-cols-12">
-        <div className="panel-quiet ticks flex flex-col p-5 xl:col-span-7" aria-label="Active crew health">
-          <header className="flex flex-wrap items-center justify-between gap-3">
+      <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={snapshot.serverTime} />
+
+      <section className="grid gap-4 xl:grid-cols-12">
+        <div className="panel flex flex-col xl:col-span-6" aria-label="Active crew health">
+          <header className="pane-head flex-wrap">
             <h2 className="label">Active crew health</h2>
             <span className="flex items-center gap-2 text-[12px] text-ink-2">
               {focus.subjectId ? subjectLabel(focus.subjectId) : '--'}
               {session?.isSimulated && <SimTag />}
             </span>
           </header>
-          <div className="mt-2">
+          <div className="p-4">
             <CrewReport ds={ds} session={session} subjectId={focus.subjectId} selected={region} onSelect={setRegion} />
           </div>
-          <div className="rule mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-3 text-[11.5px] text-ink-3" data-testid="provenance">
-            <span className="eyebrow">Sensor provenance</span>
+          <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-line px-4 py-2.5 text-[11.5px] text-ink-3" data-testid="provenance">
+            <span className="font-semibold text-ink-2">Sensor provenance</span>
             {session ? (
               <>
                 <span>
@@ -668,8 +639,8 @@ export function Overview() {
                   {plural(hrCount, 'heart-rate reading')}, {c ? c.rest.valid.length + c.recovery.valid.length : 0} valid
                 </span>
                 <span className="tnum">Received {session.provenance.receivedAt ? utcStamp(session.provenance.receivedAt).slice(5) : '--'}</span>
-                <a className="ml-auto text-ink-2 hover:text-ink" href={href.session(session.sessionId)}>
-                  Session readings →
+                <a className="ml-auto text-cyan hover:underline" href={href.session(session.sessionId)}>
+                  Session readings
                 </a>
               </>
             ) : (
@@ -677,12 +648,12 @@ export function Overview() {
             )}
           </div>
         </div>
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-6">
           <Telemetry ds={ds} focus={focus} nowMs={nowMs} />
         </div>
       </section>
 
-      <MissionTimeline focus={focus} ds={ds} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
+      <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
       <EventQueue ds={ds} focusId={focus.event?.eventId ?? null} />
     </div>
   )

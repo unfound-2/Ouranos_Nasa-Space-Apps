@@ -35,13 +35,13 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
     <a
       href={href.event(e.eventId)}
       data-testid={`event-row-${e.eventId}`}
-      className="group block rounded-xl border border-hair bg-void/30 px-4 py-3.5 transition-colors hover:border-line hover:bg-raised/60"
+      className="group block rounded-[4px] border border-hair bg-void/30 px-4 py-3.5 transition-colors hover:border-line hover:bg-raised/60"
     >
       <div className="flex items-start gap-3">
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE[SEVERITY_META[e.severity].tone].dot} ${e.status === 'REVIEWED' || e.status === 'CLOSED' ? 'opacity-40' : ''}`} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className={`truncate text-[11.5px] font-bold uppercase tracking-[0.12em] ${TONE[cat.tone].text}`}>{cat.label}</span>
+            <span className={`truncate text-[11.5px] font-bold uppercase tracking-[0.04em] ${TONE[cat.tone].text}`}>{cat.label}</span>
             <Pill tone={status.tone} className="shrink-0">
               {status.label}
             </Pill>

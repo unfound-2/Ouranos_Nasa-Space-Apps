@@ -112,7 +112,7 @@ export function WatchPairing({ workspace }: { workspace: Workspace }) {
         <label className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="micro">Watch pairing code</span>
           <input
-            className="field font-mono tracking-[0.12em] uppercase"
+            className="field code tracking-[0.06em] uppercase"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="ABCDE-12345"

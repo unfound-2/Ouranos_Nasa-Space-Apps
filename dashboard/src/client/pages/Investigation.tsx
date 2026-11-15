@@ -30,15 +30,12 @@ import { CrewReport } from './Overview'
 
 function Section({ index, title, children, className = '', aside }: { index?: string; title: string; children: ReactNode; className?: string; aside?: ReactNode }) {
   return (
-    <section className={`panel p-5 ${className}`}>
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="label flex items-center gap-2.5">
-          {index && <span className="font-mono text-[10.5px] tracking-normal text-ink-3">{index}</span>}
-          {title}
-        </h2>
+    <section className={`panel min-w-0 ${className}`} data-index={index}>
+      <header className="pane-head flex-wrap">
+        <h2 className="label">{title}</h2>
         {aside}
       </header>
-      {children}
+      <div className="p-4">{children}</div>
     </section>
   )
 }
@@ -108,7 +105,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
   const concl = conclusionsFor(ctx)
   const watchAction = ctx.event.extensions?.watchReviewAction
   return (
-    <section className="grid gap-5 xl:grid-cols-3" aria-label="Evidence narrative">
+    <section className="grid gap-4 xl:grid-cols-3" aria-label="Evidence narrative">
       <Section index="01" title="What happened?">
         <ol className="space-y-2.5" data-testid="what-happened">
           {timeline.map((i, idx) => (
@@ -139,7 +136,7 @@ function Narrative({ ctx }: { ctx: EventContext }) {
             return (
               <li key={code} className="well px-3.5 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-md border border-line bg-void px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink">{code}</span>
+                  <span className="rounded-[3px] border border-line px-1.5 py-0.5 text-[11px] font-semibold text-ink">{code}</span>
                   <span className="text-[12.5px] text-ink">{info.known ? info.label : 'Unrecognised code'}</span>
                 </div>
                 <p className="mt-1.5 text-[12px] text-ink-3">{info.meaning}</p>
@@ -273,10 +270,10 @@ export function RecoveryPanel({ session, c, className = '', unlinked = false, in
           <Empty title="Session record not received">The event arrived without its session, so there are no readings to show. Nothing is estimated in their place.</Empty>
         )
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
             {c.status === 'CALCULATED' ? (
-              <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-hair sm:grid-cols-4" data-testid="phase-stats">
+              <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] bg-hair sm:grid-cols-4" data-testid="phase-stats">
                 {[
                   ['Rest median', `${c.restMedian}`, 'bpm', plural(c.rest.valid.length, 'valid reading')],
                   ['Recovery median', `${c.recoveryMedian}`, 'bpm', plural(c.recovery.valid.length, 'valid reading')],
@@ -299,7 +296,7 @@ export function RecoveryPanel({ session, c, className = '', unlinked = false, in
                 ))}
               </dl>
             ) : (
-              <div className="mb-4 rounded-xl border border-amber/40 bg-amber/[0.07] px-4 py-3" data-testid="insufficient">
+              <div className="mb-4 rounded-[4px] border border-amber/40 bg-amber/[0.07] px-4 py-3" data-testid="insufficient">
                 <div className="label text-amber">Insufficient samples to calculate phase comparison</div>
                 <p className="mt-1 text-[12.5px] text-ink-2">
                   Rest has {plural(c.rest.valid.length, 'valid reading')}, recovery has {plural(c.recovery.valid.length, 'valid reading')}. At least {RULES.minValidSamplesPerPhase} are needed in each
@@ -348,7 +345,7 @@ function KnowPanel({ ctx, index }: { ctx: EventContext; index: string }) {
   const k = knownsAndUnknowns(ctx)
   return (
     <Section index={index} title="What we know / what we don't know" className="lg:col-span-4">
-      <div className="grid gap-5" data-testid="knowns">
+      <div className="grid gap-4" data-testid="knowns">
         <div>
           <div className="micro mb-2.5 text-mint">What we know</div>
           <FactList facts={k.known} mark="known" />
@@ -387,7 +384,7 @@ export function HistoryPanel({ ctx, className = '', index }: { ctx: Pick<EventCo
               )}
             </p>
           ) : (
-            <div className="rounded-xl border border-line px-4 py-3">
+            <div className="rounded-[4px] border border-line px-4 py-3">
               <div className="label text-ink">Personal baseline not established</div>
               <p className="mt-1 text-[12.5px] text-ink-2">
                 {b.compatibleCount} of {b.required} earlier comparable sessions. A baseline needs {b.required} {s.isSimulated ? 'simulated' : 'genuine'} sessions with the same protocol and enough readings.
@@ -473,7 +470,7 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
             const on = checked.includes(item.id)
             return (
               <li key={item.id}>
-                <label className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors ${on ? 'border-violet/45 bg-violet/[0.08]' : 'border-hair hover:border-line'} ${locked ? 'cursor-default opacity-80' : ''}`}>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-[4px] border px-3.5 py-3 transition-colors ${on ? 'border-violet/45 bg-violet/[0.08]' : 'border-hair hover:border-line'} ${locked ? 'cursor-default opacity-80' : ''}`}>
                   <input
                     type="checkbox"
                     className="peer sr-only"
@@ -533,7 +530,7 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
             {err}
           </p>
         )}
-        <div className="mt-1 rounded-xl border border-hair px-3.5 py-3 text-[11.5px] leading-relaxed text-ink-3">
+        <div className="mt-1 rounded-[4px] border border-hair px-3.5 py-3 text-[11.5px] leading-relaxed text-ink-3">
           Acknowledged on the watch means the wearer saw the alert. Reviewed means a person on this computer went through the evidence. Neither is a diagnosis or a clearance.
         </div>
       </div>
@@ -558,7 +555,7 @@ function HeaderField({ k, children, testId }: { k: string; children: ReactNode; 
   return (
     <div className="min-w-0" data-testid={testId}>
       <dt className="micro">{k}</dt>
-      <dd className="mt-1.5 text-[13px] break-words text-ink">{children}</dd>
+      <dd className="mt-0.5 text-[13px] break-words text-ink">{children}</dd>
     </div>
   )
 }
@@ -620,32 +617,30 @@ export function Investigation({ id }: { id: string }) {
             : 'Not attempted'
 
   return (
-    <div className="flex flex-col gap-5" data-testid="investigation">
-      <section className="panel rise relative overflow-hidden px-6 pt-5 pb-6">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${TONE[tone].stroke}, transparent 60%)` }} aria-hidden />
-        <a href={href.events} className="micro inline-flex items-center gap-1.5 hover:text-ink-2">
-          <ArrowLeft size={12} /> Event history
-        </a>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-5">
+    <div className="flex flex-col gap-4" data-testid="investigation">
+      <section className="panel overflow-hidden">
+        <div className="flex flex-wrap items-start justify-between gap-4 px-4 pt-3 pb-3">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className={`h-2 w-2 rounded-full ${TONE[tone].dot}`} aria-hidden />
-              <span className={`font-display text-[11.5px] font-bold tracking-[0.18em] [font-stretch:112%] ${TONE[tone].text}`}>{focusLabel(event)}</span>
+            <a href={href.events} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink-2">
+              <ArrowLeft size={12} /> Event history
+            </a>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] text-[#0d0f12] ${TONE[tone].bg}`}>{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
-            <h1 className="mt-3 text-[clamp(22px,2.3vw,30px)] leading-tight font-semibold tracking-[-0.01em] text-ink">{eventTitle(ctx)}</h1>
-            <p className="mt-1.5 text-[15px] text-ink-2">
+            <h1 className="mt-2 text-[20px] leading-tight font-semibold text-ink">{eventTitle(ctx)}</h1>
+            <p className="mt-0.5 text-[13.5px] text-ink-2">
               <span className="text-ink-3">Reason · </span>
               {reasonLine(ctx)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="btn btn-primary" onClick={openReview} data-testid="open-review">
-              <ClipboardCheck size={15} /> Open review workflow
+            <button className="btn btn-primary btn-sm" onClick={openReview} data-testid="open-review">
+              <ClipboardCheck size={14} /> Open review workflow
             </button>
             {canSimAck && (
               <button
-                className="btn btn-sim"
+                className="btn btn-sim btn-sm"
                 aria-busy={ackBusy}
                 disabled={ackBusy}
                 onClick={async () => {
@@ -657,18 +652,18 @@ export function Investigation({ id }: { id: string }) {
                   }
                 }}
               >
-                <Hand size={15} /> Simulate watch acknowledgement
+                <Hand size={14} /> Simulate watch acknowledgement
               </button>
             )}
             <button
-              className="btn btn-ghost"
+              className="btn btn-ghost btn-sm"
               onClick={() => download(`${event.eventId}.json`, { exportedBy: 'gravityguard-mission-dashboard', event, session: ctx.session, linkedReadings: ctx.readings })}
             >
-              <Download size={15} /> Export record
+              <Download size={14} /> Export record
             </button>
           </div>
         </div>
-        <dl className="rule mt-5 grid grid-cols-2 gap-x-6 gap-y-4 pt-5 md:grid-cols-4" data-testid="event-header">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-4" data-testid="event-header">
           <HeaderField k="Event ID">
             <span className="font-mono text-[12px]">{event.eventId}</span>
           </HeaderField>
@@ -677,7 +672,7 @@ export function Investigation({ id }: { id: string }) {
             <span className="tnum">{utcStamp(event.createdAt)}</span>
           </HeaderField>
           <HeaderField k="Event reason">
-            <span className="font-mono text-[11.5px]">{event.reasonCodes.join(', ')}</span>
+            <span className="text-[12px]">{event.reasonCodes.join(', ')}</span>
           </HeaderField>
           <HeaderField k="Status">
             <Pill tone={status.tone}>{status.label}</Pill>
@@ -700,7 +695,7 @@ export function Investigation({ id }: { id: string }) {
 
       <RecoveryPanel index="04" session={ctx.session} c={ctx.comparison} unlinked={event.sessionId === null} />
 
-      <section className="grid gap-5 lg:grid-cols-12">
+      <section className="grid gap-4 lg:grid-cols-12">
         <Section index="05" title="Body evidence map" className="ticks lg:col-span-4">
           <CrewReport ds={ds} session={ctx.session} subjectId={event.subjectId} compact />
         </Section>
@@ -717,7 +712,7 @@ export function Investigation({ id }: { id: string }) {
           <div className="panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
               <div className="label flex items-center gap-2.5">
-                <span className="font-mono text-[10.5px] tracking-normal text-ink-3">08</span>Review workflow
+                Review workflow
               </div>
               <div className="mt-1 text-[12.5px] text-ink-3">{REVIEW_META[event.review.state].label}. The checklist works offline and records who reviewed what, and when.</div>
             </div>
@@ -728,7 +723,7 @@ export function Investigation({ id }: { id: string }) {
         )}
       </div>
 
-      <section className="grid gap-5 lg:grid-cols-12">
+      <section className="grid gap-4 lg:grid-cols-12">
         <Section index="09" title="State history" className="lg:col-span-5" aside={<span className="text-[11.5px] text-ink-3">Every status change, who made it</span>}>
           <ol className="divide-y divide-hair" data-testid="state-history">
             {event.statusHistory.map((h, i) => (
@@ -746,7 +741,7 @@ export function Investigation({ id }: { id: string }) {
         <Section index="10" title="Source record" className="lg:col-span-7" aside={<span className="text-[11.5px] text-ink-3">Exactly as stored · provenance included</span>}>
           <details className="group">
             <summary className="cursor-pointer text-[12.5px] text-ink-2 hover:text-ink">Show the stored event and session JSON</summary>
-            <pre className="mt-3 max-h-[420px] overflow-auto rounded-xl border border-hair bg-void p-4 font-mono text-[11px] leading-relaxed text-ink-2">
+            <pre className="mt-3 max-h-[420px] overflow-auto code rounded-[4px] border border-hair bg-void p-4 text-[11px] leading-relaxed text-ink-2">
               {JSON.stringify({ event, session: ctx.session ? { ...ctx.session, measurements: `${ctx.session.measurements.length} readings (see the chart table)` } : null }, null, 2)}
             </pre>
           </details>

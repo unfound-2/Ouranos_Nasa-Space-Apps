@@ -42,7 +42,7 @@ export function Secret({ value, label, testId }: { value: string; label: string;
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-2">
         <code
-          className={`min-w-0 rounded-lg border bg-void px-3 py-2 font-mono text-[12px] break-all ${shown ? 'border-amber/50 text-ink' : 'border-line text-ink-2'}`}
+          className={`min-w-0 rounded-[4px] border bg-void px-3 py-1.5 code text-[12px] break-all ${shown ? 'border-amber/50 text-ink' : 'border-line text-ink-2'}`}
           aria-label={`${label}, ${shown ? 'shown' : 'hidden'}`}
           data-testid={testId}
           data-revealed={shown}

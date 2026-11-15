@@ -32,31 +32,28 @@ export function EventHistory() {
     return true
   })
   return (
-    <div className="flex flex-col gap-6">
-      <header className="rise grid gap-6 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-7">
-          <div className="eyebrow">Event history · {workspace === 'demo' ? 'simulated demo' : 'mission records'}</div>
-          <h1 className="display mt-3 text-[clamp(32px,3.8vw,48px)] text-ink">REVIEW EVENTS</h1>
-          <p className="mt-4 max-w-[60ch] text-[15px] leading-relaxed text-ink-2">
-            Every event the watch or this computer created: where it came from, whether it reached the wrist, and whether a person has reviewed it.
-          </p>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="display text-[20px] text-ink">Review events</h1>
+          <p className="mt-0.5 text-[12.5px] text-ink-2">Event history · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · source, delivery to the wrist, and review</p>
         </div>
-        <dl className="grid grid-cols-3 gap-4 lg:col-span-5">
+        <dl className="flex flex-wrap gap-x-8 gap-y-2">
           <div>
             <dt className="micro">Events</dt>
-            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.length}</dd>
+            <dd className="text-[14px] font-semibold text-ink tnum">{all.length}</dd>
           </div>
           <div>
             <dt className="micro">Open</dt>
-            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.filter((e) => e.status !== 'REVIEWED' && e.status !== 'CLOSED').length}</dd>
+            <dd className="text-[14px] font-semibold text-ink tnum">{all.filter((e) => e.status !== 'REVIEWED' && e.status !== 'CLOSED').length}</dd>
           </div>
           <div>
             <dt className="micro">Reviewed or closed</dt>
-            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.filter((e) => e.status === 'REVIEWED' || e.status === 'CLOSED').length}</dd>
+            <dd className="text-[14px] font-semibold text-ink tnum">{all.filter((e) => e.status === 'REVIEWED' || e.status === 'CLOSED').length}</dd>
           </div>
         </dl>
       </header>
-      <div className="panel flex flex-wrap items-end gap-4 px-5 py-4" role="search" aria-label="Filter events">
+      <div className="panel flex flex-wrap items-end gap-3 px-4 py-3" role="search" aria-label="Filter events">
         <label className="flex min-w-[min(100%,260px)] flex-1 flex-col gap-1.5">
           <span className="micro">Search</span>
           <span className="relative">
@@ -107,13 +104,13 @@ export function EventHistory() {
         </label>
         <div className="flex flex-col gap-1.5">
           <span className="micro">Data</span>
-          <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-9">
+          <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-8">
             {workspace === 'demo' ? 'Simulated demo only' : 'Real mission records only'}
           </Pill>
         </div>
       </div>
-      <section className="panel p-5">
-        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <section className="panel overflow-hidden">
+        <header className="pane-head">
           <h2 className="label">Audit trail</h2>
           <span className="text-[11.5px] text-ink-3 tnum">
             {rows.length} of {all.length}
@@ -157,7 +154,7 @@ export function EventHistory() {
                     <td>
                       <div className="flex flex-wrap gap-1">
                         {e.reasonCodes.map((c) => (
-                          <span key={c} className="rounded-md border border-line px-1.5 py-0.5 font-mono text-[10.5px] text-ink-2">
+                          <span key={c} className="rounded-[3px] border border-line px-1.5 py-px text-[11px] text-ink-2">
                             {c}
                           </span>
                         ))}

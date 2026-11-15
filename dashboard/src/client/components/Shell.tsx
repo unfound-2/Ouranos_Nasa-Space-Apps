@@ -8,13 +8,11 @@ import { DEMO_SCENARIOS, scenarioById } from '../lib/scenarios'
 import { bannerSourceMode, defaultSubject, LINK_META, SOURCE_META, subjectsOf, type Tone } from '../lib/view'
 import { TONE } from './ui'
 
-export function LogoMark({ size = 28 }: { size?: number }) {
+export function LogoMark({ size = 26 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <circle cx="16" cy="16" r="15" fill="var(--color-panel-2)" stroke="var(--color-line)" />
-      <circle cx="16" cy="16" r="9" fill="none" stroke="var(--color-cyan)" strokeWidth="1.4" strokeOpacity="0.9" />
-      <path d="M5.5 22 C10 25.5 22 25.5 26.5 22" fill="none" stroke="var(--color-violet)" strokeWidth="1.2" strokeOpacity="0.85" strokeLinecap="round" />
-      <path d="M9 16.6h3.2l1.7-3.8 2.6 7.2 1.8-5h4.7" fill="none" stroke="var(--color-mint)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1" y="1" width="30" height="30" rx="6" fill="var(--color-raised)" stroke="var(--color-line)" />
+      <path d="M6 17h5l2-5 3.5 9 2.5-6.5 1.5 2.5H26" fill="none" stroke="var(--color-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -40,17 +38,17 @@ export function CommandBar({ route }: { route: Route }) {
   }, [ds, subjectId, subjects, setSubjectId])
 
   return (
-    <div className="border-b border-hair bg-void/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-8 gap-y-2 px-4 py-2.5 sm:px-6 lg:h-[58px] lg:flex-nowrap lg:py-0">
-        <a href={href.overview} className="group flex shrink-0 items-center gap-3" aria-label="GRAVITYGUARD mission overview">
+    <div className="border-b border-line bg-panel">
+      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6 lg:h-12 lg:flex-nowrap lg:py-0">
+        <a href={href.overview} className="flex shrink-0 items-center gap-2.5" aria-label="GRAVITYGUARD mission overview">
           <LogoMark />
-          <div className="leading-none">
-            <div className="display text-[13.5px] tracking-[0.2em] text-ink">GRAVITYGUARD</div>
-            <div className="eyebrow mt-1.5 text-[9px] tracking-[0.2em]">Autonomous crew health system</div>
+          <div className="leading-tight">
+            <div className="text-[13px] font-bold tracking-[0.06em] text-ink">GRAVITYGUARD</div>
+            <div className="text-[11px] text-ink-3">Autonomous crew health system</div>
           </div>
         </a>
 
-        <nav aria-label="Main" className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto lg:order-none lg:mx-0 lg:w-auto lg:flex-1 lg:justify-center">
+        <nav aria-label="Main" className="order-3 -mx-1 flex w-full overflow-x-auto lg:order-none lg:mx-0 lg:h-12 lg:w-auto lg:flex-1">
           {NAV.map((n) => {
             const active = n.key.includes(route.name)
             return (
@@ -58,25 +56,22 @@ export function CommandBar({ route }: { route: Route }) {
                 key={n.label}
                 href={n.to}
                 aria-current={active ? 'page' : undefined}
-                className={`group relative flex h-10 items-center rounded-lg px-3 font-display text-[11px] font-semibold whitespace-nowrap tracking-[0.14em] uppercase transition-colors [font-stretch:110%] lg:h-[58px] ${
-                  active ? 'text-ink' : 'text-ink-3 hover:text-ink-2'
+                className={`relative flex h-10 items-center px-3 text-[13px] font-medium whitespace-nowrap transition-colors lg:h-12 ${
+                  active ? 'text-ink' : 'text-ink-2 hover:text-ink'
                 }`}
               >
                 {n.label}
-                <span
-                  className={`absolute inset-x-3 bottom-0 h-[2px] rounded-full transition-opacity ${active ? 'bg-cyan opacity-100' : 'bg-ink-3 opacity-0 group-hover:opacity-40'}`}
-                  aria-hidden
-                />
+                {active && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-cyan" aria-hidden />}
               </a>
             )
           })}
         </nav>
 
         <label className="ml-auto flex shrink-0 items-center gap-3">
-          <span className="eyebrow hidden xl:inline">Active crew</span>
+          <span className="micro hidden xl:inline">Active crew</span>
           <span className="relative">
             <select
-              className="field h-9 min-h-9 appearance-none pr-8 text-[12.5px] font-semibold"
+              className="field h-8 min-h-8 appearance-none pr-8 text-[12.5px] font-medium"
               value={subjectId ?? ''}
               onChange={(e) => {
                 setScenarioId(null)
@@ -104,10 +99,10 @@ export function CommandBar({ route }: { route: Route }) {
 /** A compact readout. It re-plays a one-off flash only when its value actually changes. */
 function RailReadout({ icon, label, value, tone, title, testId }: { icon: ReactNode; label: string; value: string; tone: Tone; title: string; testId?: string }) {
   return (
-    <span className="flex items-center gap-2" title={title}>
-      <span className={TONE[tone].text}>{icon}</span>
+    <span className="flex items-center gap-1.5" title={title}>
+      <span className="text-ink-3">{icon}</span>
       <span className="sr-only">{label}</span>
-      <span key={value} className={`state-flash rounded-md px-1 text-[12px] font-semibold tnum ${tone === 'neutral' ? 'text-ink' : TONE[tone].text}`} data-testid={testId}>
+      <span key={value} className={`state-flash rounded-[3px] px-1 text-[12px] font-medium tnum ${tone === 'neutral' ? 'text-ink' : TONE[tone].text}`} data-testid={testId}>
         {value}
       </span>
     </span>
@@ -131,7 +126,7 @@ function ScenarioPicker() {
       <span className="sr-only">Scenario</span>
       <span className="relative">
         <select
-          className="field h-8 min-h-8 appearance-none border-violet/40 bg-void/60 pr-8 text-[12px] font-semibold"
+          className="field h-7 min-h-7 appearance-none border-violet/50 bg-void pr-8 text-[12px] font-medium"
           value={current?.id ?? ''}
           aria-label="Simulated scenario"
           data-testid="scenario-picker"
@@ -163,10 +158,10 @@ export function StatusRail() {
 
   if (error) {
     return (
-      <div role="status" data-testid="source-banner" className="border-b border-coral/40 bg-coral/[0.1]">
+      <div role="status" data-testid="source-banner" className="border-b border-coral bg-[#3a1219]">
         <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-3 px-4 py-2 sm:px-6">
           <ShieldAlert size={15} className="text-coral" />
-          <span className="label text-coral">Local API unavailable</span>
+          <span className="text-[12.5px] font-bold text-coral uppercase">Local API unavailable</span>
           <span className="text-[12.5px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
           <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
             Retry
@@ -193,14 +188,15 @@ export function StatusRail() {
   const demo = workspace === 'demo'
 
   return (
-    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'sim-hatch border-violet/40 bg-violet/[0.06]' : 'border-hair bg-panel-2/80'}`}>
-      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 sm:px-6">
-        <span className="flex items-center gap-2.5">
+    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet/60 bg-[#1d1730]' : 'border-line bg-panel-2'}`}>
+      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-1.5 sm:px-6">
+        <span className="flex items-center gap-2">
           {demo ? <FlaskConical size={14} className="text-violet" /> : <span className={`h-2 w-2 rounded-full ${mode ? MODE_DOT[mode] : 'bg-ink-3'}`} aria-hidden />}
-          <span className="micro hidden sm:inline">Data source</span>
-          <span className={`font-display text-[11.5px] font-bold tracking-[0.16em] uppercase [font-stretch:110%] ${meta ? TONE[meta.tone].text : 'text-ink-3'}`} data-testid="source-mode" title={meta?.hint}>
+          {!demo && <span className="micro hidden sm:inline">Data source</span>}
+          <span className={`text-[12px] font-bold tracking-[0.06em] uppercase ${meta ? TONE[meta.tone].text : 'text-ink-3'}`} data-testid="source-mode" title={meta?.hint}>
             {demo ? 'Simulated demo' : (mode ?? 'Connecting')}
           </span>
+          {demo && <span className="hidden text-[12px] text-ink-2 sm:inline">No astronaut data</span>}
         </span>
         {demo && <ScenarioPicker />}
 
@@ -217,19 +213,19 @@ export function StatusRail() {
             icon={<Cpu size={14} />}
             label="Onboard"
             value={snapshot ? `Online · ${latencyMs ?? '--'} ms` : 'Connecting'}
-            tone={snapshot ? 'mint' : 'neutral'}
+            tone="neutral"
             title="The mission-computer API on this machine"
           />
           <RailReadout
             icon={<Network size={14} />}
             label="Network"
             value={external.count > 0 ? `${external.count} external` : online ? 'Internet not used' : 'Offline · local'}
-            tone={external.count > 0 ? 'amber' : 'mint'}
+            tone={external.count > 0 ? 'amber' : 'neutral'}
             title={`Requests this page made to other machines: ${external.count}. The browser reports the network as ${online ? 'attached' : 'disconnected'}; that flag does not test internet access, and nothing here needs it.`}
           />
           {demo ? (
             <button
-              className="btn btn-ghost btn-sm bg-void/50"
+              className="btn btn-ghost btn-sm"
               onClick={() => {
                 setScenarioId(null)
                 setWorkspace('mission')
@@ -256,7 +252,7 @@ export function Footer() {
         <span className="max-w-[90ch]">
           GRAVITYGUARD organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
         </span>
-        <span className="eyebrow">Contract v1 · all times UTC · runs offline</span>
+        <span>Contract v1 · all times UTC · runs offline</span>
       </div>
     </footer>
   )

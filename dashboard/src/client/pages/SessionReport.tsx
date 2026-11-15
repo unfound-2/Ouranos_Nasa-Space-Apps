@@ -32,19 +32,21 @@ export function SessionReport({ id }: { id: string }) {
   const rings = ringMetrics(s, events[0] ?? null, REVIEW_CHECKLIST.items.length)
   const baseline = personalBaseline(s, Object.values(ds.sessions))
   return (
-    <div className="flex flex-col gap-5" data-testid="session-report">
-      <section className="panel rise px-6 py-5">
-        <a href={href.crew} className="micro inline-flex items-center gap-1.5 hover:text-ink-2">
-          <ArrowLeft size={12} /> Recovery history
-        </a>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-[12px] font-bold tracking-[0.18em] text-cyan uppercase">Recovery assessment</span>
-          {s.isSimulated ? <SimTag /> : <RealTag />}
+    <div className="flex flex-col gap-4" data-testid="session-report">
+      <section className="panel overflow-hidden">
+        <div className="px-4 pt-3 pb-3">
+          <a href={href.crew} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink-2">
+            <ArrowLeft size={12} /> Recovery history
+          </a>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-[12px] font-semibold text-ink-2">Recovery assessment</span>
+            {s.isSimulated ? <SimTag /> : <RealTag />}
+          </div>
+          <h1 className="mt-1 text-[20px] font-semibold">
+            {subjectLabel(s.subjectId)} · {utcStamp(s.startedAt)}
+          </h1>
         </div>
-        <h1 className="mt-2 text-[clamp(20px,2.1vw,26px)] font-bold">
-          {subjectLabel(s.subjectId)} · {utcStamp(s.startedAt)}
-        </h1>
-        <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-4 xl:grid-cols-7">
+        <dl className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-line bg-panel-2 px-4 py-3 md:grid-cols-4 xl:grid-cols-7">
           <KV k="Session ID" mono>
             {s.sessionId}
           </KV>
@@ -61,7 +63,7 @@ export function SessionReport({ id }: { id: string }) {
         </dl>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-12">
+      <section className="grid gap-4 lg:grid-cols-12">
         <RecoveryPanel session={s} c={c} className="lg:col-span-8" />
         <Panel title="Record signals" className="lg:col-span-4">
           <div className="grid grid-cols-2 gap-3">
@@ -113,7 +115,7 @@ export function SessionReport({ id }: { id: string }) {
         </Panel>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-12">
+      <section className="grid gap-4 lg:grid-cols-12">
         <Panel title="Crew health report" className="ticks lg:col-span-4">
           <CrewReport ds={ds} session={s} subjectId={s.subjectId} compact />
         </Panel>
