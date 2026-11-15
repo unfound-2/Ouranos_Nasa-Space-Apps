@@ -10,7 +10,7 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>Connect to the onboard telemetry feed and send review signals to the crew dashboard.</string>
     <key>GravityGuardGatewayURL</key>
-    <string>$(GRAVITYGUARD_GATEWAY_URL)</string>
+    <string>https://useouranos.vercel.app</string>
     <key>NSHealthShareUsageDescription</key>
     <string>Read available Apple Watch measurements to review alongside onboard instrument data.</string>
     <key>NSMotionUsageDescription</key>
