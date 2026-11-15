@@ -6,7 +6,7 @@ import { useData, useExternalRequests, useNavigatorOnline, useNow } from '../lib
 import { href, type Route } from '../lib/router'
 import { DEMO_SCENARIOS, scenarioById } from '../lib/scenarios'
 import { bannerSourceMode, defaultSubject, LINK_META, SOURCE_META, subjectsOf, type Tone } from '../lib/view'
-import { TONE } from './ui'
+import { BADGE, TONE } from './ui'
 
 /** A monochrome tile with a heartbeat trace (Vercel-style: light mark, no colour). */
 export function LogoMark({ size = 28 }: { size?: number }) {
@@ -99,22 +99,13 @@ function RailReadout({ icon, label, value, tone, title, testId }: { icon: ReactN
     <span className="inline-flex items-center gap-2 text-[13px] whitespace-nowrap" title={title}>
       {icon}
       <span className="text-ink-2">{label}</span>
-      <span key={value} className="state-flash rounded-[3px] text-ink tnum" data-testid={testId}>
+      <span key={value} className={`state-flash ${tone !== 'neutral' && tone !== 'muted' ? `${BADGE} ${TONE[tone].badge}` : 'rounded-[3px] text-ink tnum'}`} data-testid={testId}>
         {value}
       </span>
-      {tone !== 'neutral' && tone !== 'muted' && <span className={`status-mark ${TONE[tone].dot}`} aria-hidden />}
     </span>
   )
 }
 
-const MODE_MARK: Record<SourceMode, string> = {
-  'LIVE DEVICE': 'bg-mint',
-  'SAVED DEVICE DATA': 'bg-cyan',
-  'MANUALLY ENTERED': 'bg-cyan',
-  IMPORTED: 'bg-cyan',
-  'SIMULATED DEMO': 'bg-violet',
-  UNAVAILABLE: 'bg-line-strong',
-}
 
 function ScenarioPicker() {
   const { scenarioId, setScenarioId, setSubjectId, snapshot } = useData()
@@ -158,8 +149,7 @@ export function StatusRail() {
     return (
       <div role="status" data-testid="source-banner" className="border-b border-coral/40 bg-[rgb(229_72_77/0.1)]">
         <div className={`${CONTAINER} flex flex-wrap items-center gap-3 py-2.5`}>
-          <span className="status-mark bg-coral" aria-hidden />
-          <span className="text-[13px] font-medium text-ink uppercase">Local API unavailable</span>
+          <span className={`${BADGE} ${TONE.coral.badge}`}>Local API unavailable</span>
           <span className="text-[13px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
           <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
             Retry
@@ -189,9 +179,8 @@ export function StatusRail() {
     <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet/50 bg-[rgb(110_86_207/0.12)]' : 'border-line bg-void'}`}>
       <div className={`${CONTAINER} flex flex-wrap items-center gap-x-6 gap-y-2 py-2.5`}>
         <span className="flex items-center gap-2.5">
-          <span className={`status-mark ${demo ? 'bg-violet' : mode ? MODE_MARK[mode] : 'bg-line-strong'}`} aria-hidden />
           {!demo && <span className="text-[13px] text-ink-2">Data source</span>}
-          <span className="font-mono text-[12px] font-medium text-ink uppercase" data-testid="source-mode" title={meta?.hint}>
+          <span className={`${BADGE} ${demo ? TONE.violet.badge : meta ? TONE[meta.tone].badge : TONE.muted.badge}`} data-testid="source-mode" title={meta?.hint}>
             {demo ? 'Simulated demo' : (mode ?? 'Connecting')}
           </span>
           {demo && <span className="hidden text-[13px] text-ink-2 sm:inline">No astronaut data</span>}
@@ -227,7 +216,6 @@ export function StatusRail() {
             </button>
           ) : (
             <button className="btn btn-ghost btn-sm" onClick={() => setWorkspace('demo')}>
-              <span className="status-mark bg-violet" aria-hidden />
               Open simulated demo
             </button>
           )}

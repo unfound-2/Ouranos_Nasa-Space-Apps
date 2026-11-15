@@ -100,13 +100,6 @@
   .wide {
     letter-spacing: -0.01em;
   }
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    color: var(--color-ink-2);
-  }
   /* heading-16: card titles */
   .label {
     font-size: 16px;

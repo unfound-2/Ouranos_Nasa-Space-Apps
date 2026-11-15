@@ -392,7 +392,6 @@ export function CrewHealth() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
-          <div className="eyebrow mb-1.5">Crew health</div>
           <h1 className="display text-[28px] text-ink">Recovery history</h1>
           <p className="mt-1 text-[12.5px] text-ink-2">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'} · every recorded recovery assessment</p>
         </div>

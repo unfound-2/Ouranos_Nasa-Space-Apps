@@ -4,7 +4,7 @@ import { resolveEvidence } from '../../shared/dataset'
 import type { TimelineItem } from '../../shared/explain'
 import { utcDate, utcStamp, utcTime } from '../../shared/format'
 import { href } from '../lib/router'
-import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SEVERITY_META, STATUS_META, subjectLabel } from '../lib/view'
+import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, STATUS_META, subjectLabel } from '../lib/view'
 import { Pill, SimTag, TONE } from './ui'
 
 export function ackLabel(e: StoredEvent): { text: string; tone: 'cyan' | 'muted' | 'amber' } {
@@ -38,7 +38,6 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
       className="group block rounded-[4px] border border-hair bg-void/30 px-4 py-3.5 transition-colors hover:border-line hover:bg-raised/60"
     >
       <div className="flex items-start gap-3">
-        <span className={`status-mark mt-1.5 ${TONE[SEVERITY_META[e.severity].tone].dot} ${e.status === 'REVIEWED' || e.status === 'CLOSED' ? 'opacity-40' : ''}`} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className={`truncate text-[11.5px] font-bold uppercase tracking-[0.04em] ${TONE[cat.tone].text}`}>{cat.label}</span>
@@ -73,14 +72,6 @@ export function EventRow({ e, ds, compact = false }: { e: StoredEvent; ds: Datas
   )
 }
 
-const TONE_DOT: Record<TimelineItem['tone'], string> = {
-  neutral: 'bg-ink-3',
-  data: 'bg-cyan',
-  symptom: 'bg-coral',
-  event: 'bg-violet',
-  review: 'bg-mint',
-  warning: 'bg-amber',
-}
 
 /** A vertical log of what happened, with UTC times. Only recorded transitions appear. */
 export function Timeline({ items, empty = 'Nothing recorded yet.' }: { items: TimelineItem[]; empty?: string }) {
@@ -100,7 +91,7 @@ export function Timeline({ items, empty = 'Nothing recorded yet.' }: { items: Ti
             </div>
             <div className="relative flex justify-center">
               {idx < items.length - 1 && <span className="absolute top-3 bottom-[-6px] w-px bg-line" aria-hidden />}
-              <span className={`status-mark relative mt-1.5 ring-4 ring-panel ${TONE_DOT[i.tone]}`} aria-hidden />
+              <span className="relative mt-1.5 h-2.5 w-2.5 rounded-[2px] border border-line-strong bg-panel" aria-hidden />
             </div>
             <div className="min-w-0">
               <div className="text-[12.5px] font-bold text-ink">{i.label}</div>

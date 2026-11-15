@@ -3,36 +3,36 @@ import type { ReactNode } from 'react'
 import type { Tone } from '../lib/view'
 
 /**
- * One entry per meaning. Text stays in the two text greys whatever the meaning (Geist: gray-1000
- * primary, gray-900 secondary); the meaning is carried by a small square mark (`dot`) and, for
- * charts and the 3D model, by `stroke`. `bg` fills bars. `solid` is kept for callers that label an
- * alert: it is plain primary text now.
+ * One entry per meaning. Text stays in the two text greys; a status is shown as a solid lozenge
+ * (`badge`), modelled on Atlassian's bold lozenge: a square-cornered block in the meaning colour
+ * with bold text, every pair at least 4.9:1. `stroke` is the raw colour for charts and the 3D model,
+ * `bg` fills bars, `dot` is kept for chart legends.
  */
-export const TONE: Record<Tone, { text: string; border: string; bg: string; solid: string; dot: string; stroke: string }> = {
-  mint: { text: 'text-ink', border: 'border-line', bg: 'bg-mint', solid: 'text-ink', dot: 'bg-mint', stroke: '#30a46c' },
-  cyan: { text: 'text-ink', border: 'border-line', bg: 'bg-cyan', solid: 'text-ink', dot: 'bg-cyan', stroke: '#0090ff' },
-  violet: { text: 'text-ink', border: 'border-line', bg: 'bg-violet', solid: 'text-ink', dot: 'bg-violet', stroke: '#6e56cf' },
-  coral: { text: 'text-ink', border: 'border-line', bg: 'bg-coral', solid: 'text-ink', dot: 'bg-coral', stroke: '#e5484d' },
-  amber: { text: 'text-ink', border: 'border-line', bg: 'bg-amber', solid: 'text-ink', dot: 'bg-amber', stroke: '#ffc53d' },
-  neutral: { text: 'text-ink-2', border: 'border-line', bg: 'bg-ink-3', solid: 'text-ink', dot: 'bg-ink-3', stroke: '#8f8f8f' },
-  muted: { text: 'text-ink-3', border: 'border-line', bg: 'bg-raised', solid: 'text-ink-2', dot: 'bg-line-strong', stroke: '#484848' },
+export const TONE: Record<Tone, { text: string; border: string; bg: string; solid: string; dot: string; stroke: string; badge: string }> = {
+  mint: { text: 'text-ink', border: 'border-line', bg: 'bg-mint', solid: 'bg-[#1a7f4b] text-white', dot: 'bg-mint', stroke: '#30a46c', badge: 'bg-[#1a7f4b] text-white' },
+  cyan: { text: 'text-ink', border: 'border-line', bg: 'bg-cyan', solid: 'bg-[#0068d6] text-white', dot: 'bg-cyan', stroke: '#0090ff', badge: 'bg-[#0068d6] text-white' },
+  violet: { text: 'text-ink', border: 'border-line', bg: 'bg-violet', solid: 'bg-[#6e56cf] text-white', dot: 'bg-violet', stroke: '#6e56cf', badge: 'bg-[#6e56cf] text-white' },
+  coral: { text: 'text-ink', border: 'border-line', bg: 'bg-coral', solid: 'bg-[#d13438] text-white', dot: 'bg-coral', stroke: '#e5484d', badge: 'bg-[#d13438] text-white' },
+  amber: { text: 'text-ink', border: 'border-line', bg: 'bg-amber', solid: 'bg-[#ffc53d] text-[#1f1300]', dot: 'bg-amber', stroke: '#ffc53d', badge: 'bg-[#ffc53d] text-[#1f1300]' },
+  neutral: { text: 'text-ink-2', border: 'border-line', bg: 'bg-ink-3', solid: 'bg-[#454545] text-white', dot: 'bg-ink-3', stroke: '#8f8f8f', badge: 'bg-[#454545] text-white' },
+  muted: { text: 'text-ink-3', border: 'border-line', bg: 'bg-raised', solid: 'bg-[#262626] text-[#a1a1a1]', dot: 'bg-line-strong', stroke: '#484848', badge: 'bg-[#262626] text-[#a1a1a1]' },
 }
 
-/** A status: a square mark in the meaning colour, then the label in the text colour. No pill. */
-export function Pill({ tone = 'neutral', children, title, dot = true, className = '' }: { tone?: Tone; children: ReactNode; title?: string; dot?: boolean; className?: string }) {
+export const BADGE = 'inline-flex h-[22px] shrink-0 items-center rounded-[4px] px-2 text-[11px] leading-none font-bold tracking-[0.04em] whitespace-nowrap uppercase'
+
+/** A status lozenge: a solid, square-cornered block in the meaning colour with bold text. */
+export function Pill({ tone = 'neutral', children, title, className = '' }: { tone?: Tone; children: ReactNode; title?: string; dot?: boolean; className?: string }) {
   return (
-    <span title={title} className={`inline-flex items-baseline gap-2 text-[13px] leading-5 text-ink ${className}`}>
-      {dot && <span className={`status-mark relative top-[0.5px] ${TONE[tone].dot}`} aria-hidden />}
+    <span title={title} className={`${BADGE} ${TONE[tone].badge} ${className}`}>
       {children}
     </span>
   )
 }
 
-/** Shown on every simulated record: a violet mark and "SIM". Violet is reserved for simulation. */
+/** Shown on every simulated record. Violet is reserved for simulation. */
 export function SimTag({ className = '' }: { className?: string }) {
   return (
-    <span title="Simulated record. Not astronaut data." className={`inline-flex items-center gap-1.5 font-mono text-[11px] font-medium text-ink-2 ${className}`}>
-      <span className="status-mark bg-violet" aria-hidden />
+    <span title="Simulated record. Not astronaut data." className={`${BADGE} ${TONE.violet.badge} h-[20px] px-1.5 text-[10px] ${className}`}>
       SIM
     </span>
   )
@@ -40,8 +40,7 @@ export function SimTag({ className = '' }: { className?: string }) {
 
 export function RealTag({ className = '' }: { className?: string }) {
   return (
-    <span title="Real recorded data" className={`inline-flex items-center gap-1.5 font-mono text-[11px] font-medium text-ink-2 ${className}`}>
-      <span className="status-mark bg-ink-2" aria-hidden />
+    <span title="Real recorded data" className={`${BADGE} ${TONE.neutral.badge} h-[20px] px-1.5 text-[10px] ${className}`}>
       REAL
     </span>
   )

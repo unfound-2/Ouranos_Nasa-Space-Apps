@@ -35,7 +35,6 @@ export function EventHistory() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
-          <div className="eyebrow mb-1.5">Event history</div>
           <h1 className="display text-[28px] text-ink">Review events</h1>
           <p className="mt-1 text-[12.5px] text-ink-2">Event history · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · source, delivery to the wrist, and review</p>
         </div>

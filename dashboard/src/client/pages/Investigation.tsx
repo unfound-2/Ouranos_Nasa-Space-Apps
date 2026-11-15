@@ -21,7 +21,7 @@ import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp, utcTime } from '../..
 import { BaselineChart } from '../components/BaselineChart'
 import { ackLabel } from '../components/Events'
 import { HrChart } from '../components/HrChart'
-import { Empty, Pill, RealTag, SectionNo, SimTag, TONE } from '../components/ui'
+import { BADGE, Empty, Pill, RealTag, SectionNo, SimTag, TONE } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
@@ -333,7 +333,7 @@ function FactList({ facts, mark }: { facts: Fact[]; mark: 'known' | 'unknown' })
     <ul className="space-y-2.5">
       {facts.map((f) => (
         <li key={f.id} className="flex gap-2.5 text-[12.5px] leading-snug" data-testid={`fact-${f.id}`}>
-          <span className={`status-mark mt-[6px] ${mark === 'known' ? 'bg-mint' : f.kind === 'limit' ? 'bg-line-strong' : 'bg-amber'}`} aria-hidden />
+          {mark === 'known' ? <Check size={14} className="mt-[3px] shrink-0 text-ink-2" aria-hidden /> : <Minus size={14} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />}
           <span className={mark === 'known' ? 'text-ink' : 'text-ink-2'}>
             {f.text}
             {f.kind === 'limit' && <span className="micro ml-1.5">Not measured</span>}
@@ -628,7 +628,7 @@ export function Investigation({ id }: { id: string }) {
               <ArrowLeft size={12} /> Event history
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 font-mono text-[12px] font-medium text-ink"><span className={`status-mark ${TONE[tone].dot}`} aria-hidden />{focusLabel(event)}</span>
+              <span className={`${BADGE} ${TONE[tone].badge}`}>{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
             <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>

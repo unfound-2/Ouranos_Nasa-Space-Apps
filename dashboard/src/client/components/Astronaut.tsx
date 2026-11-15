@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
-import type { Region, RegionInfo } from '../lib/view'
+import type { Region, RegionInfo, Tone } from '../lib/view'
+import { Pill } from './ui'
 
 /*
  * A suited crew member used as an evidence map, not an anatomical model, drawn like the body
@@ -37,6 +38,9 @@ const ANCHOR: Record<Region, { x: number; y: number; side: 'left' | 'right' }> =
   ARMS: { x: 394, y: 368, side: 'right' },
   LEGS: { x: 252, y: 478, side: 'left' },
 }
+
+/** The lozenge tone for each kind of evidence. */
+export const STATE_TONE: Record<RegionInfo['state'], Tone> = { symptom: 'coral', data: 'cyan', caution: 'amber', neutral: 'muted' }
 
 export const KIND: Record<RegionInfo['state'], { tag: string; color: string } | null> = {
   symptom: { tag: 'REPORTED', color: 'var(--color-coral)' },
@@ -230,18 +234,15 @@ export function EvidenceList({
                   data-testid={`callout-${r}`}
                   aria-pressed={active}
                   onClick={() => onSelect(active ? null : r)}
-                  className={`grid w-full grid-cols-[14px_minmax(0,1fr)] gap-x-3 px-3 py-3 text-left transition-colors ${active ? 'bg-raised' : 'hover:bg-panel-2'}`}
+                  className={`block w-full px-3 py-3 text-left transition-colors ${active ? 'bg-raised' : 'hover:bg-panel-2'}`}
                 >
-                  <span className="pt-[5px]">
-                    <KindMark state={info.state} />
-                  </span>
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-2">
                       <span className="text-[14px] font-medium text-ink">
                         <span className="mr-1.5 font-mono text-[12px] text-ink-3">{REGION_NO[r]}</span>
                         {info.name}
                       </span>
-                      <span className="font-mono text-[11px] text-ink-2">{k.tag}</span>
+                      <Pill tone={STATE_TONE[info.state]}>{k.tag}</Pill>
                     </span>
                     <span className="mt-1 block text-[13px] text-ink">{info.callout}</span>
                     {sub && <span className="mt-0.5 block text-[13px] leading-snug text-ink-2">{sub}</span>}

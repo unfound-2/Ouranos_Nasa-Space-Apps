@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useEffect } from 'react'
 import { focusLabel } from '../../shared/explain'
 import { useData } from '../lib/data'
+import { SimTag } from './ui'
 import { href, navigate } from '../lib/router'
 
 /**
@@ -25,7 +26,7 @@ export function SimWatchOverlay() {
       className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[12px] border border-line bg-panel p-4 shadow-[0_16px_40px_rgb(0_0_0/0.6)] sm:right-6"
     >
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2 text-[14px] font-medium text-ink"><span className="status-mark bg-violet" aria-hidden />Simulated watch</span>
+        <span className="flex items-center gap-2 text-[14px] font-medium text-ink">Simulated watch<SimTag /></span>
         <button className="rounded-md p-1 text-ink-3 hover:text-ink" onClick={dismissTrigger} aria-label="Dismiss">
           <X size={14} />
         </button>

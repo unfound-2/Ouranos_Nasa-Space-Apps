@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IngestPathT } from '../../shared/contract'
 import type { Dataset, DeviceRecord, IngestResult } from '../../shared/dataset'
 import { ago, plural, utcStamp, utcTime } from '../../shared/format'
-import { Code, Pill, SectionNo } from '../components/ui'
+import { BADGE, Code, Pill, SectionNo, TONE } from '../components/ui'
 import { Secret } from '../components/Secret'
 import { WatchPairing } from '../components/WatchPairing'
 import { api, ApiError, type CheckStatus, type Integration, type IntegrationCheck, type IntegrationChecks, type SelftestReport } from '../lib/api'
@@ -145,7 +145,7 @@ function CheckRow({ c, n, last }: { c: IntegrationCheck; n: number; last: boolea
             <span className="mr-2 font-mono text-[11px] font-normal text-ink-3">{n}</span>
             {CHECK_TITLE[c.id] ?? c.label}
           </h3>
-          <span className={`text-[11px] font-bold tracking-[0.04em] uppercase ${mark.className}`} data-testid={`check-${c.id}-status`}>
+          <span className={`${BADGE} ${TONE[c.status === 'PASS' ? 'mint' : c.status === 'FAIL' ? 'coral' : 'muted'].badge}`} data-testid={`check-${c.id}-status`}>
             {mark.text}
           </span>
         </div>
@@ -935,7 +935,6 @@ export function SystemStatus() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
-          <div className="eyebrow mb-1.5">System status</div>
           <h1 className="display text-[28px] text-ink">Mission computer</h1>
           <p className="mt-1 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
         </div>

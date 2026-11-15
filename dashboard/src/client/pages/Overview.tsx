@@ -6,11 +6,11 @@ import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type
 import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics, timelineFor, type TimelineItem } from '../../shared/explain'
 import { ago, plural, signed, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
-import { EvidenceList, KindMark } from '../components/Astronaut'
+import { EvidenceList } from '../components/Astronaut'
 import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
 import { Bars, Kpi, Progress, Spark, type BarDatum } from '../components/Gauge'
-import { CornerLink, Empty, Panel, Pill, SimTag, TONE } from '../components/ui'
+import { BADGE, CornerLink, Empty, Panel, Pill, SimTag, TONE } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { scenarioById } from '../lib/scenarios'
@@ -76,10 +76,9 @@ export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unpl
           <div className="text-[13px] text-ink-2">Select a region for the record behind it. Marks show where evidence was recorded, not a diagnosis.</div>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {LEGEND.map((l) => (
-              <span key={l.state} className="flex items-center gap-2 text-[13px] text-ink-2">
-                <KindMark state={l.state} />
+              <Pill key={l.state} tone={l.tone}>
                 {l.label}
-              </span>
+              </Pill>
             ))}
           </div>
         </>
@@ -141,7 +140,6 @@ export function TriggerButton() {
           }
         }}
       >
-        <span className="status-mark bg-violet" aria-hidden />
         Trigger simulated watch event
       </button>
       {err && <span className="text-[13px] text-ink-2">{err}</span>}
@@ -182,8 +180,7 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
     return (
       <div className="panel p-6" data-testid="hero-alert">
         <div className="flex items-center gap-2.5">
-          <span className="status-mark bg-mint" aria-hidden />
-          <span className="font-mono text-[12px] font-medium text-ink">NO OPEN EVENT</span>
+          <Pill tone="mint">No open event</Pill>
         </div>
         <h2 className="mt-4 text-[24px] font-semibold tracking-[-0.02em] text-ink">No review event</h2>
         <p className="mt-1 max-w-[62ch] text-[15px] text-ink-2">
@@ -213,8 +210,7 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
   return (
     <div className="panel p-6" data-testid="hero-alert">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className={`status-mark ${TONE[tone].dot}`} aria-hidden />
-        <span className="font-mono text-[12px] font-medium text-ink" data-testid="focus-label">
+        <span className={`${BADGE} ${TONE[tone].badge}`} data-testid="focus-label">
           {focusLabel(e)}
         </span>
         {e.isSimulated && <SimTag />}
@@ -235,9 +231,7 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
         </div>
         <div>
           <dt className="micro">On the watch</dt>
-          <dd className="mt-1">
-            <Pill tone={ack.tone}>{ack.text}</Pill>
-          </dd>
+          <dd className="mt-1 text-[14px] text-ink">{ack.text}</dd>
         </div>
         <div>
           <dt className="micro">Review</dt>
@@ -382,14 +376,6 @@ function KeyMetrics({ ds, focus, t }: { ds: Dataset; focus: Focus; t: Telemetry 
 // ---------------------------------------------------------------------------
 // 3. Timeline
 
-const TL_MARK: Record<TimelineItem['tone'], string> = {
-  neutral: 'bg-line-strong',
-  data: 'bg-cyan',
-  symptom: 'bg-coral',
-  event: 'bg-violet',
-  review: 'bg-mint',
-  warning: 'bg-amber',
-}
 
 function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; onSymptom: (r: Region) => void; selectedRegion: Region | null }) {
   const items = timelineFor(focus.event, focus.session)
@@ -419,12 +405,11 @@ function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; o
             return (
               <li key={`${i.kind}-${idx}`}>
                 <button
-                  className={`grid w-full grid-cols-[72px_10px_minmax(0,1fr)] items-baseline gap-x-3 rounded-[6px] px-3 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised' : ''}`}
+                  className={`grid w-full grid-cols-[72px_minmax(0,1fr)] items-baseline gap-x-4 rounded-[6px] px-3 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised' : ''}`}
                   onClick={() => act(i)}
                   data-testid={`tl-${i.kind}`}
                 >
                   <span className="font-mono text-[12px] text-ink-3">{utcTime(i.at).replace(' UTC', '')}</span>
-                  <span className={`status-mark ${TL_MARK[i.tone]}`} aria-hidden />
                   <span className="min-w-0">
                     <span className="block text-[14px] text-ink">{i.label}</span>
                     {i.detail && <span className="block truncate text-[13px] text-ink-2">{i.detail}</span>}
@@ -565,11 +550,10 @@ function EventQueue({ ds, focusId }: { ds: Dataset; focusId: string | null }) {
                 <tr key={e.eventId} className="row-link" data-selected={e.eventId === focusId} onClick={() => navigate(href.event(e.eventId))}>
                   <td>
                     <a href={href.event(e.eventId)} data-testid={`event-row-${e.eventId}`} className="flex min-w-0 items-center gap-2.5" onClick={(ev) => ev.stopPropagation()}>
-                      <span className={`status-mark ${isOpen(e) ? TONE[cat.tone].dot : 'bg-line-strong'}`} aria-hidden />
                       <span className="truncate font-medium text-ink">{cat.label}</span>
                       {e.isSimulated && <SimTag />}
                     </a>
-                    <span className="mt-1 block truncate pl-[18px] text-[13px] text-ink-2 md:hidden">
+                    <span className="mt-1 block truncate text-[13px] text-ink-2 md:hidden">
                       {subjectLabel(e.subjectId)} · {utcStamp(e.createdAt).slice(5)} · {ack.text}
                     </span>
                   </td>
@@ -607,8 +591,7 @@ function EmptyWorkspace() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 py-10">
       <div>
-        <div className="eyebrow">Mission overview</div>
-        <h1 className="display mt-3 text-[40px] text-ink">Mission health</h1>
+        <h1 className="display text-[40px] text-ink">Mission health</h1>
         <p className="mt-2 text-[14px] text-ink-2">{workspace === 'demo' ? 'Simulated demo' : 'Mission records'} · onboard health monitoring and evidence review</p>
       </div>
       {workspace === 'mission' ? (
@@ -620,7 +603,6 @@ function EmptyWorkspace() {
                 <FileUp size={16} /> Connect or import a watch
               </a>
               <button className="btn btn-sim" onClick={() => setWorkspace('demo')}>
-                <span className="status-mark bg-violet" aria-hidden />
                 Open simulated demo
               </button>
             </div>
@@ -645,7 +627,6 @@ function EmptyWorkspace() {
                 }
               }}
             >
-              <span className="status-mark bg-violet" aria-hidden />
               Load simulated scenarios
             </button>
           }
@@ -707,8 +688,7 @@ function Dashboard({
       <section className="grid items-center gap-x-10 gap-y-6 lg:min-h-[600px] lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
         <div className="flex min-w-0 flex-col gap-6">
           <div>
-            <div className="eyebrow">Mission overview</div>
-            <h1 className="display mt-3 text-[40px] text-ink">Mission health</h1>
+            <h1 className="display text-[40px] text-ink">Mission health</h1>
             <p className="mt-2 text-[14px] text-ink-2">
               {crew ?? 'No crew selected'} · gravity recovery check · latest <span className="font-mono text-[13px]">{session ? utcStamp(session.startedAt).slice(5, 16) + 'Z' : '--'}</span> · {workspace === 'demo' ? 'simulated demo' : (sessionMode ?? 'no records')}
               {focus.scenario && <span> · scenario {focus.scenario.id}</span>}
