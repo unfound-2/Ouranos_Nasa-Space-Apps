@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { CommandBar, Footer, StatusRail } from './components/Shell'
+import { CommandBar, CONTAINER, Footer, StatusRail } from './components/Shell'
 import { SimWatchOverlay } from './components/SimWatch'
 import { Empty } from './components/ui'
 import { DataProvider, useData } from './lib/data'
@@ -70,7 +70,7 @@ function Shell() {
         <CommandBar route={route} />
         <StatusRail />
       </header>
-      <main className="relative mx-auto w-full max-w-[1520px] px-4 pt-6 pb-12 sm:px-6">
+      <main className={`relative ${CONTAINER} pt-6 pb-12`}>
         <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
           <Page route={route} />
         </div>

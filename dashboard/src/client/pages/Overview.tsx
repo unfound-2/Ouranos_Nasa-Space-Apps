@@ -6,7 +6,8 @@ import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type
 import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics, timelineFor, type TimelineItem } from '../../shared/explain'
 import { ago, plural, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
-import { Astronaut, EvidenceList, KindMark } from '../components/Astronaut'
+import { EvidenceList, KindMark } from '../components/Astronaut'
+import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
 import { MeterBar, meterLabel, type RingValue } from '../components/Ring'
 import { Empty, Pill, SimTag, TONE } from '../components/ui'
@@ -112,7 +113,7 @@ export function CrewReport({
     <div className="@container flex flex-col gap-3">
       <div className="grid items-start gap-x-4 gap-y-3 @md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <div className={`mx-auto w-full ${compact ? 'max-w-[200px]' : 'max-w-[250px]'}`}>
-          <Astronaut regions={regions} selected={selected} onSelect={select} label={`Evidence map for ${subjectId ? subjectLabel(subjectId) : 'crew member'}`} />
+          <BodyMap regions={regions} selected={selected} onSelect={select} label={`Evidence map for ${subjectId ? subjectLabel(subjectId) : 'crew member'}`} size={compact ? 'compact' : 'hero'} />
         </div>
         <EvidenceList regions={regions} selected={selected} onSelect={select} />
       </div>
