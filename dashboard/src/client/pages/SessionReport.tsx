@@ -42,7 +42,7 @@ export function SessionReport({ id }: { id: string }) {
             <span className="text-[12px] font-semibold text-ink-2">Recovery assessment</span>
             {s.isSimulated ? <SimTag /> : <RealTag />}
           </div>
-          <h1 className="mt-1 text-[20px] font-semibold">
+          <h1 className="display mt-1.5 text-[26px] text-ink">
             {subjectLabel(s.subjectId)} · {utcStamp(s.startedAt)}
           </h1>
         </div>

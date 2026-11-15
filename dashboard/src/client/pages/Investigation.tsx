@@ -21,7 +21,7 @@ import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp, utcTime } from '../..
 import { BaselineChart } from '../components/BaselineChart'
 import { ackLabel } from '../components/Events'
 import { HrChart } from '../components/HrChart'
-import { Empty, Pill, RealTag, SimTag, TONE } from '../components/ui'
+import { Empty, Pill, RealTag, SectionNo, SimTag, TONE } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
@@ -32,10 +32,13 @@ function Section({ index, title, children, className = '', aside }: { index?: st
   return (
     <section className={`panel min-w-0 ${className}`} data-index={index}>
       <header className="pane-head flex-wrap">
-        <h2 className="label">{title}</h2>
+        <h2 className="label">
+          {index && <SectionNo n={index} />}
+          {title}
+        </h2>
         {aside}
       </header>
-      <div className="p-4">{children}</div>
+      <div className="px-5 pt-1 pb-5">{children}</div>
     </section>
   )
 }
@@ -619,23 +622,23 @@ export function Investigation({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-4" data-testid="investigation">
       <section className="panel overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-4 px-4 pt-3 pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-4 pb-4">
           <div className="min-w-0">
             <a href={href.events} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink-2">
               <ArrowLeft size={12} /> Event history
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] ${TONE[tone].solid}`}>{focusLabel(event)}</span>
+              <span className={`rounded-full px-3 py-[5px] text-[11px] font-bold tracking-[0.08em] ${TONE[tone].solid}`}>{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
-            <h1 className="mt-2 text-[20px] leading-tight font-semibold text-ink">{eventTitle(ctx)}</h1>
+            <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>
             <p className="mt-0.5 text-[13.5px] text-ink-2">
               <span className="text-ink-3">Reason · </span>
               {reasonLine(ctx)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="btn btn-primary btn-sm" onClick={openReview} data-testid="open-review">
+            <button className="btn btn-hero" onClick={openReview} data-testid="open-review">
               <ClipboardCheck size={14} /> Open review workflow
             </button>
             {canSimAck && (

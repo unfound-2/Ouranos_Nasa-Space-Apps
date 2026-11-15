@@ -129,8 +129,8 @@ export function Astronaut({
         ))}
         {/* the watch, on the crew member's left wrist */}
         <g aria-hidden>
-          <rect x="383" y="358" width="22" height="20" rx="4" fill="var(--color-ink)" />
-          <rect x="387" y="362" width="14" height="12" rx="2" fill="var(--color-ink-2)" />
+          <rect x="383" y="358" width="22" height="20" rx="4" fill="#23272d" stroke="rgb(238 243 250 / 0.5)" />
+          <rect x="387" y="362" width="14" height="12" rx="2" fill="var(--color-cyan)" fillOpacity="0.55" />
         </g>
       </g>
 
@@ -200,14 +200,25 @@ export function Astronaut({
 }
 
 /** The numbered findings beside the figure. Selecting one selects the region on the figure. */
-export function EvidenceList({ regions, selected, onSelect }: { regions: Record<Region, RegionInfo>; selected: Region | null; onSelect: (r: Region | null) => void }) {
+export function EvidenceList({
+  regions,
+  selected,
+  onSelect,
+  title = 'Recorded evidence by region',
+}: {
+  regions: Record<Region, RegionInfo>
+  selected: Region | null
+  onSelect: (r: Region | null) => void
+  /** null when the surrounding card already says what this is. */
+  title?: string | null
+}) {
   const marked = REGION_ORDER.filter((r) => KIND[regions[r].state] && regions[r].callout)
   const blank = REGION_ORDER.filter((r) => !marked.includes(r))
   return (
     <div className="min-w-0" data-testid="evidence-list">
-      <div className="micro mb-1.5 px-2">Recorded evidence by region</div>
+      {title && <div className="micro mb-1.5 px-2">{title}</div>}
       {marked.length ? (
-        <ol className="divide-y divide-hair border-y border-hair">
+        <ol className="flex flex-col gap-1">
           {marked.map((r) => {
             const info = regions[r]
             const k = KIND[info.state]!
@@ -220,7 +231,7 @@ export function EvidenceList({ regions, selected, onSelect }: { regions: Record<
                   data-testid={`callout-${r}`}
                   aria-pressed={active}
                   onClick={() => onSelect(active ? null : r)}
-                  className={`grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 px-2 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised hover:bg-raised' : ''}`}
+                  className={`grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 rounded-[12px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan/45 bg-cyan/[0.07]' : 'border-transparent hover:border-white/10 hover:bg-white/[0.035]'}`}
                 >
                   <span className="pt-[3px]">
                     <KindMark state={info.state} />
@@ -243,7 +254,7 @@ export function EvidenceList({ regions, selected, onSelect }: { regions: Record<
           })}
         </ol>
       ) : (
-        <p className="border-y border-hair px-2 py-2 text-[12px] text-ink-3">Nothing recorded for any region.</p>
+        <p className="px-2 py-2 text-[12px] text-ink-3">Nothing recorded for any region.</p>
       )}
       {marked.length > 0 && blank.length > 0 && (
         <p className="mt-1.5 px-2 text-[11.5px] text-ink-3">No evidence: {blank.map((r) => `${REGION_NO[r]} ${regions[r].name.toLowerCase()}`).join(', ')}</p>

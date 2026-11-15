@@ -155,9 +155,9 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
                 <g style={{ cursor: 'pointer' }}>
                   <circle cx={props.cx} cy={props.cy} r={12} fill="transparent" />
                   {props.payload?.symptom ? (
-                    <circle cx={props.cx} cy={props.cy} r={5.5} fill={C.panel} stroke={C.coral} strokeWidth={2.25} />
+                    <circle cx={props.cx} cy={props.cy} r={5.5} fill={C.panel} stroke={C.coral} strokeWidth={2.25} style={{ filter: 'drop-shadow(0 0 4px rgb(255 97 112 / 0.8))' }} />
                   ) : (
-                    <circle cx={props.cx} cy={props.cy} r={5} fill={C.cyan} stroke={C.panel} strokeWidth={2} />
+                    <circle cx={props.cx} cy={props.cy} r={5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px rgb(124 200 255 / 0.85))' }} />
                   )}
                 </g>
               )}
@@ -389,11 +389,12 @@ export function CrewHealth() {
   const symptomCount = rows.reduce((n, r) => n + r.s.symptoms.length, 0)
   const b = baseline?.result ?? null
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
-          <h1 className="display text-[20px] text-ink">Recovery history</h1>
-          <p className="mt-0.5 text-[12.5px] text-ink-2">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'} · every recorded recovery assessment</p>
+          <div className="eyebrow mb-1.5">Crew health</div>
+          <h1 className="display text-[28px] text-ink">Recovery history</h1>
+          <p className="mt-1 text-[12.5px] text-ink-2">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'} · every recorded recovery assessment</p>
         </div>
         <dl className="flex flex-wrap gap-x-8 gap-y-2">
           <div>

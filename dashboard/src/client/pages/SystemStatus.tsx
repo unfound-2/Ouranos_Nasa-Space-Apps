@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IngestPathT } from '../../shared/contract'
 import type { Dataset, DeviceRecord, IngestResult } from '../../shared/dataset'
 import { ago, plural, utcStamp, utcTime } from '../../shared/format'
-import { Code, Pill } from '../components/ui'
+import { Code, Pill, SectionNo } from '../components/ui'
 import { Secret } from '../components/Secret'
 import { WatchPairing } from '../components/WatchPairing'
 import { api, ApiError, type CheckStatus, type Integration, type IntegrationCheck, type IntegrationChecks, type SelftestReport } from '../lib/api'
@@ -20,10 +20,13 @@ function Section({ index, title, aside, children, className = '', testId }: { in
   return (
     <section className={`panel flex min-w-0 flex-col ${className}`} data-testid={testId} data-index={index}>
       <header className="pane-head flex-wrap">
-        <h2 className="label">{title}</h2>
+        <h2 className="label">
+          <SectionNo n={index} />
+          {title}
+        </h2>
         {aside}
       </header>
-      <div className="flex flex-1 flex-col p-4">{children}</div>
+      <div className="flex flex-1 flex-col px-5 pt-1 pb-5">{children}</div>
     </section>
   )
 }
@@ -929,11 +932,12 @@ export function SystemStatus() {
   const tally = checkTally(list)
   const summary = checks.data ? `${tally.PASS} of ${list.length} pass` : '--'
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
-          <h1 className="display text-[20px] text-ink">Mission computer</h1>
-          <p className="mt-0.5 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
+          <div className="eyebrow mb-1.5">System status</div>
+          <h1 className="display text-[28px] text-ink">Mission computer</h1>
+          <p className="mt-1 text-[12.5px] text-ink-2">System status · {workspace === 'demo' ? 'simulated demo' : 'mission records'} · what is proven about the watch link</p>
         </div>
         <dl className="flex flex-wrap gap-x-8 gap-y-2">
           <div>

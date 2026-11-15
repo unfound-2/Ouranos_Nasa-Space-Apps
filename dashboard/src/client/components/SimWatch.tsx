@@ -22,7 +22,7 @@ export function SimWatchOverlay() {
     <aside
       aria-live="polite"
       data-testid="sim-watch"
-      className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[4px] border border-violet/60 bg-panel p-3.5 shadow-[0_8px_28px_rgb(20_24_29/0.18)] sm:right-6"
+      className="slide-in fixed right-4 top-[100px] z-40 w-[228px] rounded-[18px] border border-violet/50 bg-panel/90 p-4 shadow-[0_24px_60px_-24px_rgb(0_0_0/0.85),0_0_32px_-12px_rgb(165_139_255/0.5)] backdrop-blur-xl sm:right-6"
     >
       <div className="flex items-center justify-between">
         <span className="label text-violet">Simulated watch</span>

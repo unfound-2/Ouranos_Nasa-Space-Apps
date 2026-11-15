@@ -33,7 +33,7 @@ const Dot = ({ cx = 0, cy = 0, payload }: ShapeProps) =>
   ) : (
     <g>
       <circle cx={cx} cy={cy} r={11} fill="transparent" />
-      <circle cx={cx} cy={cy} r={4.5} fill={C.cyan} stroke={C.panel} strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={4.5} fill={C.cyan} stroke={C.panel} strokeWidth={1.5} style={{ filter: 'drop-shadow(0 0 4px rgb(124 200 255 / 0.85))' }} />
     </g>
   )
 
