@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconFiles</key>
+    <array>
+        <string>OuranosWatchIcon</string>
+    </array>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsLocalNetworking</key>
@@ -13,6 +19,8 @@
     <string>https://useouranos.vercel.app</string>
     <key>NSHealthShareUsageDescription</key>
     <string>Read available Apple Watch measurements to review alongside onboard instrument data.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Ouranos requests read-only access to Apple Health to display your watch readings. It does not add or change Apple Health records.</string>
     <key>NSMotionUsageDescription</key>
     <string>Use wrist movement to give context to telemetry review signals.</string>
 </dict>
