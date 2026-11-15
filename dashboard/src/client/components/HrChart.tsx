@@ -15,16 +15,16 @@ interface Pt {
 }
 
 const C = {
-  cyan: '#41c8f5',
-  violet: '#a783ff',
-  amber: '#f0b45c',
-  coral: '#ff526b',
-  ink: '#f5f8ff',
-  ink2: '#98a7be',
-  ink3: '#8391aa',
-  line: '#293346',
-  hair: '#1b2231',
-  panel: '#101520',
+  cyan: 'var(--color-cyan)',
+  violet: 'var(--color-violet)',
+  amber: 'var(--color-amber)',
+  coral: 'var(--color-coral)',
+  ink: 'var(--color-ink)',
+  ink2: 'var(--color-ink-2)',
+  ink3: 'var(--color-ink-3)',
+  line: 'var(--color-line)',
+  hair: 'var(--color-hair)',
+  panel: 'var(--color-panel)',
 }
 
 function points(session: StoredSession, c: PhaseComparison, floor: number): Pt[] {
@@ -76,7 +76,7 @@ function HrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="rounded-[4px] border border-line bg-raised px-3 py-2.5 shadow-lg shadow-black/40">
+    <div className="rounded-[3px] border border-line bg-panel px-3 py-2.5 shadow-[0_6px_20px_rgb(20_24_29/0.14)]">
       <div className="text-[14px] font-bold text-ink">{p.m.value === null ? 'No value recorded' : `${p.m.value} bpm`}</div>
       <div className="mt-1 tnum text-[11px] text-ink-2">{utcStamp(p.m.measuredAt)}</div>
       <div className="mt-1 text-[11.5px] text-ink-2">
@@ -183,10 +183,10 @@ export function HrChart({
                   x2={p.b}
                   y1={model.lo}
                   y2={model.hi}
-                  fill={p.phase === 'REST' ? C.cyan : C.violet}
-                  fillOpacity={0.07}
-                  stroke={p.phase === 'REST' ? C.cyan : C.violet}
-                  strokeOpacity={0.22}
+                  fill={C.ink}
+                  fillOpacity={p.phase === 'REST' ? 0.025 : 0.05}
+                  stroke={C.line}
+                  strokeOpacity={1}
                   ifOverflow="hidden"
                   label={{ value: `${p.phase}${p.endedAt ? '' : ' · NO END TIME'}`, position: 'insideTopLeft', fill: C.ink2, fontSize: 10, fontWeight: 700, letterSpacing: 1.5 }}
                 />
@@ -198,7 +198,7 @@ export function HrChart({
                 ticks={model.ticks}
                 tickFormatter={(v: number) => utcClock(new Date(v).toISOString())}
                 stroke={C.line}
-                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
+                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'inherit' }}
                 tickLine={false}
               />
               <YAxis
@@ -208,7 +208,7 @@ export function HrChart({
                 ticks={model.yticks}
                 interval={0}
                 stroke={C.line}
-                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
+                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'inherit' }}
                 tickLine={false}
                 width={44}
                 unit=""
@@ -218,8 +218,8 @@ export function HrChart({
                 <ReferenceArea
                   y1={model.lo - model.band}
                   y2={model.lo}
-                  fill="#0a0b12"
-                  fillOpacity={0.55}
+                  fill="var(--color-ink)"
+                  fillOpacity={0.05}
                   ifOverflow="hidden"
                   label={{ value: 'NO VALUE', position: 'insideLeft', fill: C.ink3, fontSize: 9, letterSpacing: 1.2 }}
                 />

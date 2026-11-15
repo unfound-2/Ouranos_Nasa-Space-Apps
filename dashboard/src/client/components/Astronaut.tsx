@@ -2,14 +2,15 @@ import type { KeyboardEvent } from 'react'
 import type { Region, RegionInfo } from '../lib/view'
 
 /*
- * A suited crew member used as an evidence map, not an anatomical model. Front view; the
- * viewer's right arm is the crew member's left, where the watch is worn. Coordinates are in a
- * 560 x 640 canvas with the figure on the centre line (x = 280) and callouts in both margins.
+ * A suited crew member used as an evidence map, not an anatomical model, drawn like the body
+ * diagram on a clinical chart: grey outline, numbered regions, marks only where evidence was
+ * recorded. Front view; the viewer's right arm is the crew member's left, where the watch is worn.
+ * Coordinates are in the original 560 x 640 canvas; the view box crops to the figure.
  *
- * Marker grammar:
- *   coral circle  = REPORTED   (a symptom someone reported; never a detection)
- *   cyan diamond  = MEASURED   (where a recorded measurement was taken or what it describes)
- *   amber diamond = CHECK      (a recorded measurement whose source needs verifying)
+ * Marker grammar (the same marks head the evidence list):
+ *   red circle         = REPORTED      (a symptom someone reported; never a detection)
+ *   blue diamond       = MEASURED      (where a recorded measurement was taken or what it describes)
+ *   amber open diamond = CHECK SOURCE  (a recorded measurement whose source needs verifying)
  */
 
 const MIRROR = 'translate(560 0) scale(-1 1)'
@@ -17,7 +18,6 @@ const MIRROR = 'translate(560 0) scale(-1 1)'
 const P = {
   helmet: 'M230 96 C230 58 252 40 280 40 C308 40 330 58 330 96 C330 128 310 150 280 150 C250 150 230 128 230 96 Z',
   visor: 'M242 92 C242 70 258 60 280 60 C302 60 318 70 318 92 L318 104 C318 124 302 136 280 136 C258 136 242 124 242 104 Z',
-  pack: 'M200 176 C200 166 208 160 218 160 L342 160 C352 160 360 166 360 176 L360 330 C360 340 352 346 342 346 L218 346 C208 346 200 340 200 330 Z',
   torso:
     'M214 182 C234 168 326 168 346 182 C360 192 366 210 362 232 L352 290 C348 312 342 326 336 336 L224 336 C218 326 212 312 208 290 L198 232 C194 210 200 192 214 182 Z',
   arm: 'M204 182 C184 186 170 202 167 222 L157 286 C155 302 153 322 151 344 L148 373 L183 377 L187 347 C189 325 193 305 197 291 L211 236 Z',
@@ -28,14 +28,17 @@ const P = {
   boot: 'M233 558 L273 558 L277 582 C278 592 271 597 262 597 L228 597 C220 597 216 591 219 582 Z',
 }
 
-const ANCHOR: Record<Region, { x: number; y: number; side: 'left' | 'right'; boxY: number; id: string }> = {
-  HEAD: { x: 322, y: 86, side: 'right', boxY: 46, id: 'R1' },
-  CHEST: { x: 256, y: 232, side: 'left', boxY: 196, id: 'R2' },
-  ARMS: { x: 394, y: 368, side: 'right', boxY: 336, id: 'R3' },
-  LEGS: { x: 252, y: 478, side: 'left', boxY: 446, id: 'R4' },
+export const REGION_ORDER: Region[] = ['HEAD', 'CHEST', 'ARMS', 'LEGS']
+export const REGION_NO: Record<Region, number> = { HEAD: 1, CHEST: 2, ARMS: 3, LEGS: 4 }
+
+const ANCHOR: Record<Region, { x: number; y: number; side: 'left' | 'right' }> = {
+  HEAD: { x: 322, y: 86, side: 'right' },
+  CHEST: { x: 256, y: 232, side: 'left' },
+  ARMS: { x: 394, y: 368, side: 'right' },
+  LEGS: { x: 252, y: 478, side: 'left' },
 }
 
-const KIND: Record<RegionInfo['state'], { tag: string; color: string } | null> = {
+export const KIND: Record<RegionInfo['state'], { tag: string; color: string } | null> = {
   symptom: { tag: 'REPORTED', color: 'var(--color-coral)' },
   data: { tag: 'MEASURED', color: 'var(--color-cyan)' },
   caution: { tag: 'CHECK SOURCE', color: 'var(--color-amber)' },
@@ -48,24 +51,37 @@ function Marker({ state, x, y, active }: { state: RegionInfo['state']; x: number
   if (state === 'symptom')
     return (
       <g>
-        {active && <circle className="astro-pulse" cx={x} cy={y} r={7} fill="none" stroke={k.color} strokeWidth={1.5} />}
-        <circle cx={x} cy={y} r={5.5} fill={k.color} stroke="var(--color-void)" strokeWidth={2} />
+        {active && <circle className="astro-pulse" cx={x} cy={y} r={9} fill="none" stroke={k.color} strokeWidth={1.5} />}
+        <circle cx={x} cy={y} r={7.5} fill={k.color} stroke="var(--color-panel)" strokeWidth={2} />
       </g>
     )
   return (
     <g>
-      {active && <rect className="astro-pulse" x={x - 6} y={y - 6} width={12} height={12} fill="none" stroke={k.color} strokeWidth={1.5} transform={`rotate(45 ${x} ${y})`} />}
+      {active && <rect className="astro-pulse" x={x - 8} y={y - 8} width={16} height={16} fill="none" stroke={k.color} strokeWidth={1.5} transform={`rotate(45 ${x} ${y})`} />}
       <rect
-        x={x - 4.5}
-        y={y - 4.5}
-        width={9}
-        height={9}
-        fill={state === 'caution' ? 'var(--color-void)' : k.color}
-        stroke={k.color}
-        strokeWidth={1.8}
+        x={x - 6.5}
+        y={y - 6.5}
+        width={13}
+        height={13}
+        fill={state === 'caution' ? 'var(--color-panel)' : k.color}
+        stroke={state === 'caution' ? k.color : 'var(--color-panel)'}
+        strokeWidth={state === 'caution' ? 2 : 1.5}
         transform={`rotate(45 ${x} ${y})`}
       />
     </g>
+  )
+}
+
+/** The same mark as on the figure, for lists and legends. */
+export function KindMark({ state }: { state: RegionInfo['state'] }) {
+  const k = KIND[state]
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden className="shrink-0">
+      {state === 'symptom' && <circle cx="6" cy="6" r="4.5" fill={k!.color} />}
+      {state === 'data' && <rect x="2.4" y="2.4" width="7.2" height="7.2" fill={k!.color} transform="rotate(45 6 6)" />}
+      {state === 'caution' && <rect x="2.6" y="2.6" width="6.8" height="6.8" fill="none" stroke={k!.color} strokeWidth="1.6" transform="rotate(45 6 6)" />}
+      {state === 'neutral' && <line x1="2" y1="6" x2="10" y2="6" stroke="var(--color-ink-3)" strokeWidth="1.5" />}
+    </svg>
   )
 }
 
@@ -87,7 +103,7 @@ export function Astronaut({
     role: 'button',
     tabIndex: 0,
     'aria-pressed': selected === r,
-    'aria-label': `${regions[r].name}: ${regions[r].callout ?? 'no evidence recorded'}`,
+    'aria-label': `${REGION_NO[r]}, ${regions[r].name}: ${regions[r].callout ?? 'no evidence recorded'}`,
     'data-testid': `region-${r}`,
     onClick: () => onSelect(selected === r ? null : r),
     onKeyDown: (e: KeyboardEvent) => {
@@ -99,10 +115,7 @@ export function Astronaut({
   })
 
   return (
-    <svg viewBox="0 0 560 640" className="astro h-auto w-full select-none" role="group" aria-label={label}>
-
-
-
+    <svg viewBox="118 30 324 578" className="astro h-auto w-full select-none" role="group" aria-label={label}>
       <g {...regionProps('ARMS')}>
         {[undefined, MIRROR].map((tf, i) => (
           <g key={i} transform={tf}>
@@ -116,8 +129,8 @@ export function Astronaut({
         ))}
         {/* the watch, on the crew member's left wrist */}
         <g aria-hidden>
-          <rect x="383" y="358" width="22" height="20" rx="4" fill="var(--color-void)" stroke="var(--color-ink-2)" />
-          <rect x="387" y="362" width="14" height="12" rx="2" fill="var(--color-raised)" />
+          <rect x="383" y="358" width="22" height="20" rx="4" fill="var(--color-ink)" />
+          <rect x="387" y="362" width="14" height="12" rx="2" fill="var(--color-ink-2)" />
         </g>
       </g>
 
@@ -146,54 +159,95 @@ export function Astronaut({
       <g {...regionProps('HEAD')}>
         <ellipse className="part" cx="280" cy="158" rx="44" ry="10" />
         <path className="part" d={P.helmet} />
-        <path d={P.visor} fill="var(--color-void)" stroke="var(--color-ink-3)" strokeOpacity="0.8" />
+        <path d={P.visor} fill="var(--color-raised)" stroke="var(--color-ink-3)" strokeOpacity="0.7" />
       </g>
 
-
-      {/* region ids and evidence callouts */}
-      {(Object.keys(ANCHOR) as Region[]).map((r) => {
+      {/* region numbers, and a mark where evidence was recorded */}
+      {REGION_ORDER.map((r) => {
         const a = ANCHOR[r]
         const info = regions[r]
         const kind = KIND[info.state]
-        const active = selected === r
-        if (!kind || !info.callout)
-          return (
-            <g key={r} pointerEvents="none" aria-hidden>
-              <line x1={a.x - 4} y1={a.y} x2={a.x + 4} y2={a.y} stroke="var(--color-ink)" strokeOpacity="0.25" />
-              <line x1={a.x} y1={a.y - 4} x2={a.x} y2={a.y + 4} stroke="var(--color-ink)" strokeOpacity="0.25" />
-              <text x={a.x + (a.side === 'right' ? 8 : -8)} y={a.y - 6} textAnchor={a.side === 'right' ? 'start' : 'end'} fill="var(--color-ink-3)" fontSize="10">
-                {a.id}
-              </text>
-            </g>
-          )
-        const boxX = a.side === 'right' ? 404 : 8
-        const boxW = 148
-        const edgeX = a.side === 'right' ? boxX : boxX + boxW
-        const elbowX = a.side === 'right' ? Math.max(a.x + 18, boxX - 22) : Math.min(a.x - 18, edgeX + 22)
-        const midY = a.boxY + 24
-        const sub = info.items[0]?.detail ?? ''
+        const marked = Boolean(kind && info.callout)
+        const nx = a.x + (a.side === 'right' ? 13 : -13)
         return (
-          <g key={r} pointerEvents="none" aria-hidden data-testid={`callout-${r}`}>
-            <polyline points={`${a.x},${a.y} ${elbowX},${midY} ${edgeX},${midY}`} fill="none" stroke={kind.color} strokeOpacity={active ? 1 : 0.7} strokeWidth={1} />
-            <Marker state={info.state} x={a.x} y={a.y} active={active} />
-            <foreignObject x={boxX} y={a.boxY} width={boxW} height={96}>
-              <div
-                className={`rounded-[3px] border bg-panel px-2 py-1.5 ${a.side === 'left' ? 'text-right' : 'text-left'}`}
-                style={{ borderColor: active ? kind.color : 'var(--color-line)' }}
-              >
-                <div className="flex items-center gap-1.5" style={{ justifyContent: a.side === 'left' ? 'flex-end' : 'flex-start' }}>
-                  <span className="text-[9px] text-ink-3">{a.id}</span>
-                  <span className="text-[9px] font-bold tracking-[0.04em]" style={{ color: kind.color }}>
-                    {kind.tag}
-                  </span>
-                </div>
-                <div className="mt-0.5 text-[11px] leading-tight font-semibold text-ink">{info.callout}</div>
-                <div className="mt-0.5 line-clamp-2 text-[9.5px] leading-snug text-ink-3">{sub}</div>
-              </div>
-            </foreignObject>
+          <g key={r} pointerEvents="none" aria-hidden>
+            {marked ? (
+              <Marker state={info.state} x={a.x} y={a.y} active={selected === r} />
+            ) : (
+              <g stroke="var(--color-ink-3)" strokeOpacity="0.55">
+                <line x1={a.x - 4} y1={a.y} x2={a.x + 4} y2={a.y} />
+                <line x1={a.x} y1={a.y - 4} x2={a.x} y2={a.y + 4} />
+              </g>
+            )}
+            <text
+              x={nx}
+              y={a.y + 5.5}
+              textAnchor={a.side === 'right' ? 'start' : 'end'}
+              fontSize="16"
+              fontWeight="700"
+              fill={marked ? kind!.color : 'var(--color-ink-3)'}
+              stroke="var(--color-panel)"
+              strokeWidth="4"
+              paintOrder="stroke"
+            >
+              {REGION_NO[r]}
+            </text>
           </g>
         )
       })}
     </svg>
+  )
+}
+
+/** The numbered findings beside the figure. Selecting one selects the region on the figure. */
+export function EvidenceList({ regions, selected, onSelect }: { regions: Record<Region, RegionInfo>; selected: Region | null; onSelect: (r: Region | null) => void }) {
+  const marked = REGION_ORDER.filter((r) => KIND[regions[r].state] && regions[r].callout)
+  const blank = REGION_ORDER.filter((r) => !marked.includes(r))
+  return (
+    <div className="min-w-0" data-testid="evidence-list">
+      <div className="micro mb-1.5 px-2">Recorded evidence by region</div>
+      {marked.length ? (
+        <ol className="divide-y divide-hair border-y border-hair">
+          {marked.map((r) => {
+            const info = regions[r]
+            const k = KIND[info.state]!
+            const active = selected === r
+            const sub = info.items[0]?.detail ?? ''
+            return (
+              <li key={r}>
+                <button
+                  type="button"
+                  data-testid={`callout-${r}`}
+                  aria-pressed={active}
+                  onClick={() => onSelect(active ? null : r)}
+                  className={`grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 px-2 py-2 text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised hover:bg-raised' : ''}`}
+                >
+                  <span className="pt-[3px]">
+                    <KindMark state={info.state} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-2">
+                      <span className="text-[12.5px] font-semibold text-ink">
+                        {REGION_NO[r]} · {info.name}
+                      </span>
+                      <span className="text-[10.5px] font-bold tracking-[0.04em]" style={{ color: k.color }}>
+                        {k.tag}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-[12px] font-medium text-ink">{info.callout}</span>
+                    {sub && <span className="block text-[11.5px] leading-snug text-ink-3">{sub}</span>}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      ) : (
+        <p className="border-y border-hair px-2 py-2 text-[12px] text-ink-3">Nothing recorded for any region.</p>
+      )}
+      {marked.length > 0 && blank.length > 0 && (
+        <p className="mt-1.5 px-2 text-[11.5px] text-ink-3">No evidence: {blank.map((r) => `${REGION_NO[r]} ${regions[r].name.toLowerCase()}`).join(', ')}</p>
+      )}
+    </div>
   )
 }

@@ -50,7 +50,7 @@ function evenTicks(lo: number, hi: number): number[] {
   return out
 }
 
-const C = { cyan: '#41c8f5', coral: '#ff526b', ink2: '#98a7be', ink3: '#8391aa', line: '#293346', hair: '#1b2231', panel: '#101520' }
+const C = { cyan: 'var(--color-cyan)', coral: 'var(--color-coral)', ink2: 'var(--color-ink-2)', ink3: 'var(--color-ink-3)', line: 'var(--color-line)', hair: 'var(--color-hair)', panel: 'var(--color-panel)' }
 
 function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number | null }) {
   const pts = rows
@@ -107,7 +107,7 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
               interval={0}
               tickFormatter={(v: number) => utcDate(new Date(v).toISOString()).replace(/ \d{4}$/, '')}
               stroke={C.line}
-              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
+              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'inherit' }}
               tickLine={false}
             />
             <YAxis
@@ -117,7 +117,7 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
               ticks={evenTicks(lo, hi)}
               interval={0}
               stroke={C.line}
-              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
+              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'inherit' }}
               tickLine={false}
               width={40}
             />
@@ -138,7 +138,7 @@ function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number |
                 if (!active || !payload?.length) return null
                 const p = payload[0].payload as (typeof pts)[number]
                 return (
-                  <div className="rounded-[4px] border border-line bg-raised px-3.5 py-2.5 shadow-lg shadow-black/40">
+                  <div className="rounded-[3px] border border-line bg-panel px-3.5 py-2.5 shadow-[0_6px_20px_rgb(20_24_29/0.14)]">
                     <div className="text-[13px] font-semibold text-ink tnum">{signed(p.v)} bpm recovery − rest</div>
                     <div className="mt-1 text-[11px] text-ink-2 tnum">{utcStamp(p.at)}</div>
                     {p.symptom && <div className="mt-1 text-[11px] text-coral">{p.symptoms}</div>}

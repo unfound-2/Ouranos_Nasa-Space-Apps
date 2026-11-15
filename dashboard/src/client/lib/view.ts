@@ -231,10 +231,10 @@ export function regionsFor(
       c.status === 'CALCULATED'
         ? `Rest median ${c.restMedian} bpm, recovery median ${c.recoveryMedian} bpm`
         : 'Too few valid readings for a phase comparison'
-    r.CHEST.items.push({ kind: 'reading', title: `HEART RATE · ${plural(validCount, 'VALID READING')}`, detail: summary, tone: 'cyan' })
+    r.CHEST.items.push({ kind: 'reading', title: `HEART RATE · ${plural(validCount, 'VALID READING', 'VALID READINGS')}`, detail: summary, tone: 'cyan' })
     if (r.CHEST.state === 'neutral') {
       r.CHEST.state = 'data'
-      r.CHEST.callout = `HEART RATE · ${plural(validCount, 'VALID READING')}`
+      r.CHEST.callout = `HEART RATE · ${plural(validCount, 'VALID READING', 'VALID READINGS')}`
     }
     r.CHEST.note ??= 'Heart rate is measured by the optical sensor at the wrist. It is shown here because it describes the heart’s response.'
   }
@@ -265,7 +265,7 @@ export function regionsFor(
     })
     if (r.ARMS.state === 'neutral') {
       r.ARMS.state = excluded.length ? 'caution' : 'data'
-      r.ARMS.callout = excluded.length ? `WRIST SENSOR · ${excluded.length} LEFT OUT` : `WRIST SENSOR · ${plural(hr.length, 'READING')}`
+      r.ARMS.callout = excluded.length ? `WRIST SENSOR · ${excluded.length} LEFT OUT` : `WRIST SENSOR · ${plural(hr.length, 'READING', 'READINGS')}`
     }
   }
   return { ...r, unplaced }

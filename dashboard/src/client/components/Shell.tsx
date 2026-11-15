@@ -11,8 +11,8 @@ import { TONE } from './ui'
 export function LogoMark({ size = 26 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <rect x="1" y="1" width="30" height="30" rx="6" fill="var(--color-raised)" stroke="var(--color-line)" />
-      <path d="M6 17h5l2-5 3.5 9 2.5-6.5 1.5 2.5H26" fill="none" stroke="var(--color-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1" y="1" width="30" height="30" rx="5" fill="var(--color-bar-2)" stroke="var(--color-bar-line)" />
+      <path d="M6 17h5l2-5 3.5 9 2.5-6.5 1.5 2.5H26" fill="none" stroke="var(--color-bar-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -38,13 +38,13 @@ export function CommandBar({ route }: { route: Route }) {
   }, [ds, subjectId, subjects, setSubjectId])
 
   return (
-    <div className="border-b border-line bg-panel">
-      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6 lg:h-12 lg:flex-nowrap lg:py-0">
+    <div className="bg-bar text-bar-ink">
+      <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-6 gap-y-1 px-4 pt-2 sm:px-6 lg:h-12 lg:flex-nowrap lg:py-0">
         <a href={href.overview} className="flex shrink-0 items-center gap-2.5" aria-label="GRAVITYGUARD mission overview">
           <LogoMark />
           <div className="leading-tight">
-            <div className="text-[13px] font-bold tracking-[0.06em] text-ink">GRAVITYGUARD</div>
-            <div className="text-[11px] text-ink-3">Autonomous crew health system</div>
+            <div className="text-[13px] font-bold tracking-[0.06em] text-bar-ink">GRAVITYGUARD</div>
+            <div className="text-[11px] text-bar-ink-2">Autonomous crew health system</div>
           </div>
         </a>
 
@@ -56,22 +56,22 @@ export function CommandBar({ route }: { route: Route }) {
                 key={n.label}
                 href={n.to}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex h-10 items-center px-3 text-[13px] font-medium whitespace-nowrap transition-colors lg:h-12 ${
-                  active ? 'text-ink' : 'text-ink-2 hover:text-ink'
+                className={`relative flex h-10 items-center px-3 text-[13px] whitespace-nowrap transition-colors lg:h-12 ${
+                  active ? 'font-semibold text-bar-ink' : 'font-medium text-bar-ink-2 hover:text-bar-ink'
                 }`}
               >
                 {n.label}
-                {active && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-cyan" aria-hidden />}
+                {active && <span className="absolute inset-x-3 bottom-0 h-[3px] bg-bar-ink" aria-hidden />}
               </a>
             )
           })}
         </nav>
 
         <label className="ml-auto flex shrink-0 items-center gap-3">
-          <span className="micro hidden xl:inline">Active crew</span>
+          <span className="hidden text-[11.5px] text-bar-ink-2 xl:inline">Active crew</span>
           <span className="relative">
             <select
-              className="field h-8 min-h-8 appearance-none pr-8 text-[12.5px] font-medium"
+              className="h-8 min-h-8 appearance-none rounded-[3px] border border-bar-line bg-bar-2 pr-8 pl-2.5 text-[12.5px] font-medium text-bar-ink hover:border-bar-ink-2 focus:border-bar-ink focus:outline-none"
               value={subjectId ?? ''}
               onChange={(e) => {
                 setScenarioId(null)
@@ -88,7 +88,7 @@ export function CommandBar({ route }: { route: Route }) {
                 </option>
               ))}
             </select>
-            <ChevronDown size={14} className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-ink-3" aria-hidden />
+            <ChevronDown size={14} className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-bar-ink-2" aria-hidden />
           </span>
         </label>
       </div>
@@ -97,12 +97,13 @@ export function CommandBar({ route }: { route: Route }) {
 }
 
 /** A compact readout. It re-plays a one-off flash only when its value actually changes. */
-function RailReadout({ icon, label, value, tone, title, testId }: { icon: ReactNode; label: string; value: string; tone: Tone; title: string; testId?: string }) {
+function RailReadout({ icon, label, value, tone, title, testId, onBand = false }: { icon: ReactNode; label: string; value: string; tone: Tone; title: string; testId?: string; onBand?: boolean }) {
+  const color = onBand ? (tone === 'amber' ? 'bg-amber-fill text-ink' : 'text-panel') : tone === 'neutral' ? 'text-ink' : TONE[tone].text
   return (
     <span className="flex items-center gap-1.5" title={title}>
-      <span className="text-ink-3">{icon}</span>
+      <span className={onBand ? 'text-panel/75' : 'text-ink-3'}>{icon}</span>
       <span className="sr-only">{label}</span>
-      <span key={value} className={`state-flash rounded-[3px] px-1 text-[12px] font-medium tnum ${tone === 'neutral' ? 'text-ink' : TONE[tone].text}`} data-testid={testId}>
+      <span key={value} className={`state-flash rounded-[2px] px-1 text-[12px] font-medium tnum ${color}`} data-testid={testId}>
         {value}
       </span>
     </span>
@@ -126,7 +127,7 @@ function ScenarioPicker() {
       <span className="sr-only">Scenario</span>
       <span className="relative">
         <select
-          className="field h-7 min-h-7 appearance-none border-violet/50 bg-void pr-8 text-[12px] font-medium"
+          className="field h-7 min-h-7 appearance-none border-panel/0 pr-8 text-[12px] font-medium focus:border-panel"
           value={current?.id ?? ''}
           aria-label="Simulated scenario"
           data-testid="scenario-picker"
@@ -158,12 +159,12 @@ export function StatusRail() {
 
   if (error) {
     return (
-      <div role="status" data-testid="source-banner" className="border-b border-coral bg-[#3a1219]">
+      <div role="status" data-testid="source-banner" className="bg-coral text-panel">
         <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-3 px-4 py-2 sm:px-6">
-          <ShieldAlert size={15} className="text-coral" />
-          <span className="text-[12.5px] font-bold text-coral uppercase">Local API unavailable</span>
-          <span className="text-[12.5px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
-          <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
+          <ShieldAlert size={15} />
+          <span className="text-[12.5px] font-bold uppercase">Local API unavailable</span>
+          <span className="text-[12.5px]">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
+          <button className="btn btn-sm ml-auto border border-panel/70 text-panel hover:bg-panel/10" onClick={() => void refresh()}>
             Retry
           </button>
         </div>
@@ -188,26 +189,27 @@ export function StatusRail() {
   const demo = workspace === 'demo'
 
   return (
-    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet/60 bg-[#1d1730]' : 'border-line bg-panel-2'}`}>
+    <div role="status" data-testid="source-banner" className={`border-b ${demo ? 'border-violet bg-violet text-panel' : 'border-line bg-panel'}`}>
       <div className="mx-auto flex max-w-[1520px] flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-1.5 sm:px-6">
         <span className="flex items-center gap-2">
-          {demo ? <FlaskConical size={14} className="text-violet" /> : <span className={`h-2 w-2 rounded-full ${mode ? MODE_DOT[mode] : 'bg-ink-3'}`} aria-hidden />}
+          {demo ? <FlaskConical size={14} /> : <span className={`h-2 w-2 rounded-full ${mode ? MODE_DOT[mode] : 'bg-ink-3'}`} aria-hidden />}
           {!demo && <span className="micro hidden sm:inline">Data source</span>}
-          <span className={`text-[12px] font-bold tracking-[0.06em] uppercase ${meta ? TONE[meta.tone].text : 'text-ink-3'}`} data-testid="source-mode" title={meta?.hint}>
+          <span className={`text-[12px] font-bold tracking-[0.06em] uppercase ${demo ? '' : meta ? TONE[meta.tone].text : 'text-ink-3'}`} data-testid="source-mode" title={meta?.hint}>
             {demo ? 'Simulated demo' : (mode ?? 'Connecting')}
           </span>
-          {demo && <span className="hidden text-[12px] text-ink-2 sm:inline">No astronaut data</span>}
+          {demo && <span className="hidden text-[12px] text-panel/85 sm:inline">No astronaut data</span>}
         </span>
         {demo && <ScenarioPicker />}
 
         <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
-          <RailReadout icon={<Watch size={14} />} label="Watch" value={linkMeta.label} tone={linkMeta.tone} title={linkMeta.hint} testId="watch-state" />
+          <RailReadout icon={<Watch size={14} />} label="Watch" value={linkMeta.label} tone={linkMeta.tone} title={linkMeta.hint} testId="watch-state" onBand={demo} />
           <RailReadout
             icon={<RadioTower size={14} />}
             label="Last sync"
             value={lastSync ? utcStamp(lastSync).slice(5) : '--'}
             tone="neutral"
             title={lastSync ? `Last record received over live sync: ${utcStamp(lastSync)} (${ago(lastSync, now)})` : 'No record has arrived over live sync'}
+            onBand={demo}
           />
           <RailReadout
             icon={<Cpu size={14} />}
@@ -215,6 +217,7 @@ export function StatusRail() {
             value={snapshot ? `Online · ${latencyMs ?? '--'} ms` : 'Connecting'}
             tone="neutral"
             title="The mission-computer API on this machine"
+            onBand={demo}
           />
           <RailReadout
             icon={<Network size={14} />}
@@ -222,10 +225,11 @@ export function StatusRail() {
             value={external.count > 0 ? `${external.count} external` : online ? 'Internet not used' : 'Offline · local'}
             tone={external.count > 0 ? 'amber' : 'neutral'}
             title={`Requests this page made to other machines: ${external.count}. The browser reports the network as ${online ? 'attached' : 'disconnected'}; that flag does not test internet access, and nothing here needs it.`}
+            onBand={demo}
           />
           {demo ? (
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-sm border border-panel/70 text-panel hover:bg-panel/12"
               onClick={() => {
                 setScenarioId(null)
                 setWorkspace('mission')

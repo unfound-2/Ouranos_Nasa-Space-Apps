@@ -13,7 +13,7 @@ npm start            # http://127.0.0.1:4317, keep this terminal open
 
 In the browser (Chrome, 1440×900 window, zoom 100%):
 
-1. Open http://127.0.0.1:4317. Click **Open simulated demo** in the status bar. The violet, hatched SIMULATED DEMO bar must be visible.
+1. Open http://127.0.0.1:4317. Click **Open simulated demo** in the status bar. The solid violet SIMULATED DEMO bar must be visible.
 2. Go to **System Status** → **Reset simulated scenarios** (puts the six scenarios back; earlier triggers and reviews are cleared from the demo workspace only).
 3. Click **Mission Overview**. The **Scenario** menu in the violet bar should read **Latest activity**. To show one case on purpose, pick it there (A–F); every scenario is simulated.
 
@@ -36,8 +36,8 @@ Turning Wi-Fi off does not affect `127.0.0.1`, so the dashboard keeps working. T
 The full on-device procedure, with what each check should read at each step, is `docs/WATCH_CONNECTION_TEST.md`.
 
 1. Stop the server and start it with `GG_LAN=1 npm start`. The terminal prints the LAN address.
-2. **System Status** → **01 Watch connection** lists the steps and the address to type on the watch (use the Wi-Fi `en0` address, never a VPN `utun` one). On the watch: **Set console address**, then **Get pairing code**, then type the code into **Watch pairing code** on the dashboard and press **Pair watch**.
-3. **02 Integration check** turns each check to PASS only on real evidence. Read it out loud as it stands. Do not call the system integrated until check 6 (a real device record) has passed. Do not say the watch confirmed an alert unless check 9 has passed.
+2. **System Status** → **Watch connection** lists the steps and the address to type on the watch (use the Wi-Fi `en0` address, never a VPN `utun` one). On the watch: **Set console address**, then **Get pairing code**, then type the code into **Watch pairing code** on the dashboard and press **Pair watch**.
+3. **Integration check** turns each check to PASS only on real evidence. Read it out loud as it stands. Do not call the system integrated until check 6 (a real device record) has passed. Do not say the watch confirmed an alert unless check 9 has passed.
 4. Click **Exit demo** (or stay in mission records). When the watch checks in, the Watch readout shows **Link verified**. If there has been no contact in the last 60 s it reads **Watch unreachable**; say so rather than calling it live.
 5. A watch review signal appears in the event queue within a few seconds. Continue from the 12-second row above.
 
@@ -46,7 +46,7 @@ The full on-device procedure, with what each check should read at each step, is 
 ## Path B: saved real recording
 
 1. Get the exported JSON from the watch (Mustafa).
-2. Status bar → **Exit demo** (mission records), then **System Status** → **06 Integration tools** → **Import saved records** → **Choose JSON file**.
+2. Status bar → **Exit demo** (mission records), then **System Status** → **Integration tools** → **Import saved records** → **Choose JSON file**.
 3. It is labelled **SAVED DEVICE DATA**. Say "recorded on the watch earlier", not "live".
 
 ## Do not say

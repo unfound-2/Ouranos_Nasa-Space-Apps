@@ -1,14 +1,14 @@
 import { ArrowRight, CheckCircle2, FileUp, FlaskConical, Radio } from 'lucide-react'
-import { useState } from 'react'
-import { comparePhases, externalReadingFindings, hrCoverage, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
+import { useState, type ReactNode } from 'react'
+import { comparePhases, externalReadingFindings, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, REVIEW_CHECKLIST, subjectDevice, type Dataset, type LinkState } from '../../shared/dataset'
 import { buildEventContext, eventTitle, focusLabel, reasonLine, ringMetrics, timelineFor, type TimelineItem } from '../../shared/explain'
 import { ago, plural, SYMPTOM_NOUN, utcStamp, utcTime } from '../../shared/format'
 import type { WatchLinkSnapshot } from '../../shared/watch-link'
-import { Astronaut } from '../components/Astronaut'
+import { Astronaut, EvidenceList, KindMark } from '../components/Astronaut'
 import { ackLabel } from '../components/Events'
-import { Ring } from '../components/Ring'
+import { MeterBar, meterLabel, type RingValue } from '../components/Ring'
 import { Empty, Pill, SimTag, TONE } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
@@ -40,24 +40,12 @@ export function headlineFor(e: StoredEvent, ds: Dataset): string {
   return `${eventTitle(ctx)} — ${reasonLine(ctx)}`
 }
 
-const LEGEND: { state: RegionInfo['state']; label: string; tone: Tone; shape: 'circle' | 'diamond' | 'hollow' | 'none' }[] = [
-  { state: 'symptom', label: 'Reported symptom', tone: 'coral', shape: 'circle' },
-  { state: 'data', label: 'Measured evidence', tone: 'cyan', shape: 'diamond' },
-  { state: 'caution', label: 'Check the source', tone: 'amber', shape: 'hollow' },
-  { state: 'neutral', label: 'No evidence', tone: 'muted', shape: 'none' },
+const LEGEND: { state: RegionInfo['state']; label: string; tone: Tone }[] = [
+  { state: 'symptom', label: 'Reported symptom', tone: 'coral' },
+  { state: 'data', label: 'Measured evidence', tone: 'cyan' },
+  { state: 'caution', label: 'Check the source', tone: 'amber' },
+  { state: 'neutral', label: 'No evidence', tone: 'muted' },
 ]
-
-function LegendMark({ shape, tone }: { shape: (typeof LEGEND)[number]['shape']; tone: Tone }) {
-  const c = TONE[tone].stroke
-  return (
-    <svg width="12" height="12" aria-hidden>
-      {shape === 'circle' && <circle cx="6" cy="6" r="4" fill={c} />}
-      {shape === 'diamond' && <rect x="2.6" y="2.6" width="6.8" height="6.8" fill={c} transform="rotate(45 6 6)" />}
-      {shape === 'hollow' && <rect x="2.6" y="2.6" width="6.8" height="6.8" fill="none" stroke={c} strokeWidth="1.5" transform="rotate(45 6 6)" />}
-      {shape === 'none' && <line x1="2" y1="6" x2="10" y2="6" stroke={c} strokeWidth="1.5" />}
-    </svg>
-  )
-}
 
 export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unplaced: string[] }) {
   return (
@@ -88,7 +76,7 @@ export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unpl
           <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
             {LEGEND.map((l) => (
               <span key={l.state} className="flex items-center gap-1.5 text-[11.5px] text-ink-3">
-                <LegendMark shape={l.shape} tone={l.tone} />
+                <KindMark state={l.state} />
                 {l.label}
               </span>
             ))}
@@ -121,9 +109,12 @@ export function CrewReport({
   const select = onSelect ?? setOwn
   const regions = regionsFor(session, session ? linkedReadings(ds, session.sessionId) : [])
   return (
-    <div className="flex flex-col gap-4">
-      <div className={`mx-auto w-full ${compact ? 'max-w-[440px]' : 'max-w-[560px]'}`}>
-        <Astronaut regions={regions} selected={selected} onSelect={select} label={`Evidence map for ${subjectId ? subjectLabel(subjectId) : 'crew member'}`} />
+    <div className="@container flex flex-col gap-3">
+      <div className="grid items-start gap-x-4 gap-y-3 @md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+        <div className={`mx-auto w-full ${compact ? 'max-w-[200px]' : 'max-w-[250px]'}`}>
+          <Astronaut regions={regions} selected={selected} onSelect={select} label={`Evidence map for ${subjectId ? subjectLabel(subjectId) : 'crew member'}`} />
+        </div>
+        <EvidenceList regions={regions} selected={selected} onSelect={select} />
       </div>
       <RegionDetail info={selected ? regions[selected] : null} unplaced={regions.unplaced.map((s) => SYMPTOM_NOUN[s.code])} />
     </div>
@@ -218,7 +209,7 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
   return (
     <div className={`panel overflow-hidden ${open ? t.border : ''}`} data-testid="hero-alert">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-        <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] text-[#0d0f12] ${t.bg}`} data-testid="focus-label">
+        <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] ${t.solid}`} data-testid="focus-label">
           {focusLabel(e)}
         </span>
         {e.isSimulated && <SimTag />}
@@ -305,15 +296,36 @@ function latestHeartRate(ds: Dataset, subjectId: string | null, links: WatchLink
   return best
 }
 
-function Instrument({ label, value, sub, tone, testId }: { label: string; value: string; sub: string; tone?: Tone; testId?: string }) {
+const READING_COLS = 'md:grid-cols-[148px_128px_minmax(0,1fr)]'
+
+function ReadingRow({ label, value, detail, tone, testId, ariaLabel }: { label: string; value: string; detail: ReactNode; tone?: Tone; testId?: string; ariaLabel?: string }) {
+  const color = !tone || tone === 'neutral' ? 'text-ink' : tone === 'muted' ? 'text-ink-3' : TONE[tone].text
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 px-4 py-2" data-testid={testId}>
-      <dt className="text-[12.5px] text-ink-2">{label}</dt>
-      <dd className={`text-right text-[14px] font-semibold tnum ${tone && tone !== 'neutral' && tone !== 'muted' ? TONE[tone].text : 'text-ink'}`}>{value}</dd>
-      <dd className="col-span-2 truncate text-[11.5px] text-ink-3">{sub}</dd>
+    <div role="row" data-testid={testId} aria-label={ariaLabel} className={`grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-0.5 px-3 py-[7px] even:bg-panel-2/60 ${READING_COLS}`}>
+      <span role="rowheader" className="text-[12.5px] text-ink-2">
+        {label}
+      </span>
+      <span role="cell" className={`text-right text-[13.5px] font-semibold tnum md:text-left ${color}`}>
+        {value}
+      </span>
+      <span role="cell" className="col-span-2 min-w-0 text-[11.5px] text-ink-3 md:col-span-1">
+        {detail}
+      </span>
     </div>
   )
 }
+
+/** A count over a thin bar, with what is being counted. */
+function MeterDetail({ value, tone, caption, unavailable }: { value: RingValue | null; tone: Tone; caption: string; unavailable: string }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2.5">
+      <MeterBar value={value} tone={tone} className="w-[84px] shrink-0" />
+      <span className="min-w-0">{value ? caption : unavailable}</span>
+    </span>
+  )
+}
+
+const ratio = (v: RingValue | null) => (v ? `${v.numerator} / ${v.denominator}` : 'N/A')
 
 function Telemetry({ ds, focus, nowMs }: { ds: Dataset; focus: Focus; nowMs: number }) {
   const { snapshot, watchLinks, workspace } = useData()
@@ -325,7 +337,6 @@ function Telemetry({ ds, focus, nowMs }: { ds: Dataset; focus: Focus; nowMs: num
   const c = s ? comparePhases(s) : null
   const recorded = s ? s.measurements.filter((m) => m.indicator === 'HEART_RATE').length : 0
   const valid = c ? c.rest.valid.length + c.recovery.valid.length : 0
-  const cov = s ? hrCoverage(s) : null
   const sessionLink = s?.provenance.deviceId ? ((snapshot?.links[s.provenance.deviceId] as LinkState | undefined) ?? 'NOT_PAIRED') : 'NOT_PAIRED'
   const check = recoveryCheckState(s, s ? recordSourceMode(s, sessionLink) : null)
   const steps = s ? sessionCompleteness(s) : null
@@ -334,65 +345,86 @@ function Telemetry({ ds, focus, nowMs }: { ds: Dataset; focus: Focus; nowMs: num
   const device = focus.subjectId ? subjectDevice(ds, focus.subjectId) : null
   const link = device ? ((snapshot?.links[device.deviceId] as LinkState | undefined) ?? 'NOT_PAIRED') : 'NOT_PAIRED'
   const latestSession = sessionsOf(ds, focus.subjectId)[0] ?? null
+  const pct = (v: RingValue | null) => (v ? ` · ${Math.round(v.fraction * 100)}%` : '')
 
   return (
-    <section className="panel flex h-full flex-col" aria-label="Mission telemetry" data-testid="telemetry">
+    <section className="panel flex flex-col overflow-hidden" aria-label="Mission telemetry" data-testid="telemetry">
       <header className="pane-head">
         <h2 className="label">Mission telemetry</h2>
         <span className="text-[11.5px] text-ink-3 tnum">{s?.sessionId ?? 'no session'}</span>
       </header>
-      <div className="grid grid-cols-3 gap-2 border-b border-line px-3 py-4">
-        <Ring value={rings.completeness} tone="mint" label="Completeness" caption="Protocol steps in the record" unavailable="No check recorded" size={84} />
-        <Ring value={rings.coverage} tone="cyan" label="HR coverage" caption="10 s intervals with a valid reading" unavailable="Phase times incomplete" size={84} />
-        <Ring value={rings.review} tone="violet" label="Review" caption={`Checklist items, v${REVIEW_CHECKLIST.version}`} unavailable="No event to review" size={84} />
+      <div role="table" aria-label="Readings and checks for this session" data-testid="measurement-strip">
+        <div role="row" className={`hidden gap-x-4 border-b border-line bg-panel-2 px-3 py-1.5 md:grid ${READING_COLS}`}>
+          {['Reading', 'Value', 'Detail'].map((h) => (
+            <span key={h} role="columnheader" className="text-[11.5px] font-semibold text-ink-2">
+              {h}
+            </span>
+          ))}
+        </div>
+        <div role="rowgroup" className="divide-y divide-hair">
+          <ReadingRow
+            testId="strip-hr"
+            label="Latest heart rate"
+            value={hr ? (recent ? `${hr.value} bpm` : 'No recent data') : '--'}
+            detail={hr ? `${recent ? '' : `Last ${hr.value} bpm · `}${utcStamp(hr.at).slice(5)} · ${hr.source} · ${hr.mode}` : 'No valid heart-rate reading on record'}
+            tone={hr ? (recent ? hr.modeTone : 'muted') : 'muted'}
+          />
+          <ReadingRow
+            testId="strip-check"
+            label="Session progress"
+            value={check.value}
+            tone={s ? 'mint' : 'muted'}
+            ariaLabel={meterLabel('Protocol steps', rings.completeness, check.sub)}
+            detail={<MeterDetail value={rings.completeness} tone="mint" caption={steps ? `${steps.done} of ${steps.total} protocol steps · ${check.sub}` : check.sub} unavailable={check.sub} />}
+          />
+          <ReadingRow
+            label="HR coverage"
+            value={ratio(rings.coverage)}
+            tone={rings.coverage ? undefined : 'muted'}
+            ariaLabel={meterLabel('HR coverage', rings.coverage, 'Phase times incomplete')}
+            detail={<MeterDetail value={rings.coverage} tone="cyan" caption={`10 s intervals with a valid reading${pct(rings.coverage)}`} unavailable={s ? 'Phase times incomplete' : 'No check recorded'} />}
+          />
+          <ReadingRow label="Valid readings" value={s ? `${valid} / ${recorded}` : '--'} detail={s ? 'Valid of recorded heart-rate readings' : 'No check recorded'} tone={s ? undefined : 'muted'} />
+          <ReadingRow
+            label="Source quality"
+            value={!s ? '--' : excluded.length || extFlags ? `${excluded.length + extFlags} flagged` : 'All valid'}
+            detail={
+              !s
+                ? 'No check recorded'
+                : excluded.length
+                  ? `${plural(excluded.length, 'reading')} left out of the medians${extFlags ? ` · ${plural(extFlags, 'external flag')}` : ''}`
+                  : extFlags
+                    ? `${plural(extFlags, 'external reading')} flagged for source review`
+                    : 'Every heart-rate reading used'
+            }
+            tone={!s ? 'muted' : excluded.length || extFlags ? 'amber' : 'mint'}
+          />
+          <ReadingRow
+            label="Review state"
+            value={e ? REVIEW_META[e.review.state].label : '--'}
+            detail={e ? (e.review.reviewer ? `Reviewer: ${e.review.reviewer}` : `${STATUS_META[e.status].label} · ${ackLabel(e).text}`) : 'No event for this check'}
+            tone={e ? REVIEW_META[e.review.state].tone : 'muted'}
+          />
+          <ReadingRow
+            label="Review checklist"
+            value={ratio(rings.review)}
+            tone={rings.review ? undefined : 'muted'}
+            ariaLabel={meterLabel('Review checklist', rings.review, 'No event to review')}
+            detail={<MeterDetail value={rings.review} tone="neutral" caption={`Checklist items, v${REVIEW_CHECKLIST.version}${pct(rings.review)}`} unavailable="No event to review" />}
+          />
+          <ReadingRow
+            label="Last assessment"
+            value={latestSession ? utcStamp(latestSession.startedAt).slice(5, 16) + 'Z' : '--'}
+            detail={latestSession ? `${latestSession.summary ? `Watch summary: ${latestSession.summary.status.replace(/_/g, ' ').toLowerCase()}` : 'No watch summary'} · ${ago(latestSession.startedAt, nowMs)}` : 'No assessment recorded'}
+          />
+          <ReadingRow
+            label="Watch reachability"
+            value={LINK_META[link].label}
+            detail={device ? `${device.deviceModel ?? device.deviceId} · last contact ${ago(device.lastSeenAt, nowMs)}` : 'No watch has checked in for this crew member'}
+            tone={LINK_META[link].tone}
+          />
+        </div>
       </div>
-      <dl className="divide-y divide-hair py-1" data-testid="measurement-strip">
-        <Instrument
-          testId="strip-hr"
-          label="Latest heart rate"
-          value={hr ? (recent ? `${hr.value} bpm` : 'No recent data') : '--'}
-          sub={hr ? `${recent ? '' : `Last ${hr.value} bpm · `}${utcStamp(hr.at).slice(5)} · ${hr.source} · ${hr.mode}` : 'No valid heart-rate reading on record'}
-          tone={hr ? (recent ? hr.modeTone : 'muted') : 'muted'}
-        />
-        <Instrument
-          label="Sample coverage"
-          value={s ? `${valid} / ${recorded}` : '--'}
-          sub={s ? `Valid of recorded readings${cov?.status === 'CALCULATED' ? ` · ${cov.coveredIntervals} of ${cov.totalIntervals} intervals covered` : ''}` : 'No check recorded'}
-          tone={s ? 'cyan' : 'muted'}
-        />
-        <Instrument testId="strip-check" label="Session progress" value={check.value} sub={steps ? `${steps.done} of ${steps.total} protocol steps · ${check.sub}` : check.sub} tone={s ? 'mint' : 'muted'} />
-        <Instrument
-          label="Review state"
-          value={e ? REVIEW_META[e.review.state].label : '--'}
-          sub={e ? (e.review.reviewer ? `Reviewer: ${e.review.reviewer}` : `${STATUS_META[e.status].label} · ${ackLabel(e).text}`) : 'No event for this check'}
-          tone={e ? REVIEW_META[e.review.state].tone : 'muted'}
-        />
-        <Instrument
-          label="Source quality"
-          value={!s ? '--' : excluded.length || extFlags ? `${excluded.length + extFlags} flagged` : 'All valid'}
-          sub={
-            !s
-              ? 'No check recorded'
-              : excluded.length
-                ? `${plural(excluded.length, 'reading')} left out of the medians${extFlags ? ` · ${plural(extFlags, 'external flag')}` : ''}`
-                : extFlags
-                  ? `${plural(extFlags, 'external reading')} flagged for source review`
-                  : 'Every heart-rate reading used'
-          }
-          tone={!s ? 'muted' : excluded.length || extFlags ? 'amber' : 'mint'}
-        />
-        <Instrument
-          label="Last assessment"
-          value={latestSession ? utcStamp(latestSession.startedAt).slice(5, 16) + 'Z' : '--'}
-          sub={latestSession ? `${latestSession.summary ? `Watch summary: ${latestSession.summary.status.replace(/_/g, ' ').toLowerCase()}` : 'No watch summary'} · ${ago(latestSession.startedAt, nowMs)}` : 'No assessment recorded'}
-        />
-        <Instrument
-          label="Watch reachability"
-          value={LINK_META[link].label}
-          sub={device ? `${device.deviceModel ?? device.deviceId} · last contact ${ago(device.lastSeenAt, nowMs)}` : 'No watch has checked in for this crew member'}
-          tone={LINK_META[link].tone}
-        />
-      </dl>
     </section>
   )
 }
@@ -423,32 +455,29 @@ function MissionTimeline({ focus, onSymptom, selectedRegion }: { focus: Focus; o
     else if (focus.event) navigate(href.event(focus.event.eventId))
   }
   return (
-    <section className="panel" aria-label="Mission timeline" data-testid="timeline">
+    <section className="panel flex flex-1 flex-col" aria-label="Mission timeline" data-testid="timeline">
       <header className="pane-head">
         <h2 className="label">Mission timeline</h2>
-        <span className="text-[11.5px] text-ink-3">{items.length ? `Recorded steps · ${utcStamp(items[0].at).slice(0, 10)} · select a step for its source` : ''}</span>
+        <span className="text-[11.5px] text-ink-3">{items.length ? `${utcStamp(items[0].at).slice(0, 10)} · select a step for its source` : ''}</span>
       </header>
       {items.length ? (
-        <ol className="flex flex-col gap-0 px-2 py-3 lg:flex-row lg:overflow-x-auto">
+        <ol className="divide-y divide-hair">
           {items.map((i, idx) => {
             const sym = i.kind === 'SYMPTOM' ? symptomFor(i.at) : null
             const linked = sym ? symptomRegion(sym) : null
             const active = linked !== null && linked === selectedRegion
             return (
-              <li key={`${i.kind}-${idx}`} className="relative flex min-w-0 flex-1 lg:min-w-[128px]">
+              <li key={`${i.kind}-${idx}`}>
                 <button
-                  className={`group flex w-full gap-3 rounded-[4px] px-2 py-1.5 text-left transition-colors hover:bg-raised lg:flex-col lg:gap-1.5 ${active ? 'bg-raised' : ''}`}
+                  className={`grid w-full grid-cols-[62px_8px_minmax(0,1fr)] items-center gap-x-3 px-3 py-[6px] text-left transition-colors hover:bg-panel-2 ${active ? 'bg-raised hover:bg-raised' : ''}`}
                   onClick={() => act(i)}
                   data-testid={`tl-${i.kind}`}
                 >
-                  <span className="relative flex shrink-0 items-center lg:w-full">
-                    <span className={`relative z-10 h-2 w-2 rounded-full ${TL_TONE[i.tone]}`} aria-hidden />
-                    {idx < items.length - 1 && <span className="absolute top-1/2 left-2 hidden h-px w-[calc(100%+16px)] bg-line lg:block" aria-hidden />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] text-ink-3 tnum">{utcTime(i.at).replace(' UTC', 'Z')}</span>
-                    <span className="block text-[12.5px] leading-snug font-medium text-ink">{i.label}</span>
-                    {i.detail && <span className="mt-0.5 block truncate text-[11px] text-ink-3">{i.detail}</span>}
+                  <span className="text-[11.5px] text-ink-3 tnum">{utcTime(i.at).replace(' UTC', 'Z')}</span>
+                  <span className={`h-2 w-2 rounded-full ${TL_TONE[i.tone]}`} aria-hidden />
+                  <span className="min-w-0 md:truncate">
+                    <span className="text-[12.5px] font-medium text-ink">{i.label}</span>
+                    {i.detail && <span className="text-[11.5px] text-ink-3"> · {i.detail}</span>}
                   </span>
                 </button>
               </li>
@@ -617,7 +646,7 @@ export function Overview() {
       <ReviewFocus ds={ds} focus={focus} otherOpen={otherOpen} nowIso={snapshot.serverTime} />
 
       <section className="grid gap-4 xl:grid-cols-12">
-        <div className="panel flex flex-col xl:col-span-6" aria-label="Active crew health">
+        <div className="panel flex flex-col xl:col-span-5" aria-label="Active crew health">
           <header className="pane-head flex-wrap">
             <h2 className="label">Active crew health</h2>
             <span className="flex items-center gap-2 text-[12px] text-ink-2">
@@ -648,12 +677,12 @@ export function Overview() {
             )}
           </div>
         </div>
-        <div className="xl:col-span-6">
+        <div className="flex min-w-0 flex-col gap-4 xl:col-span-7">
           <Telemetry ds={ds} focus={focus} nowMs={nowMs} />
+          <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
         </div>
       </section>
 
-      <MissionTimeline focus={focus} onSymptom={(r) => setRegion(r)} selectedRegion={region} />
       <EventQueue ds={ds} focusId={focus.event?.eventId ?? null} />
     </div>
   )

@@ -23,6 +23,13 @@ describe('body regions', () => {
     expect(r.LEGS.state).toBe('neutral')
   })
 
+  it('callouts stay in capitals when a count is pluralised (READINGS, not READINGs)', () => {
+    const r = regionsFor(buildSession({ rest: [70, 71, 72], recovery: [90, 92, 94] }), [])
+    expect(r.CHEST.callout).toBe('HEART RATE · 6 VALID READINGS')
+    expect(r.CHEST.items[0].title).toBe('HEART RATE · 6 VALID READINGS')
+    expect(r.ARMS.callout).toBe('WRIST SENSOR · 6 READINGS')
+  })
+
   it('scenario F: a weakness reported at the legs lights the legs and nothing at the head', () => {
     const r = regionsFor(demo().sessions['sim-b-20261113a'], [])
     expect(r.LEGS.state).toBe('symptom')

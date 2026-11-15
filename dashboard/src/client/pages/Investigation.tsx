@@ -625,7 +625,7 @@ export function Investigation({ id }: { id: string }) {
               <ArrowLeft size={12} /> Event history
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] text-[#0d0f12] ${TONE[tone].bg}`}>{focusLabel(event)}</span>
+              <span className={`rounded-[3px] px-2 py-[3px] text-[11.5px] font-bold tracking-[0.04em] ${TONE[tone].solid}`}>{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
             <h1 className="mt-2 text-[20px] leading-tight font-semibold text-ink">{eventTitle(ctx)}</h1>

@@ -1,37 +1,49 @@
 @import "tailwindcss";
 
 /*
- * GRAVITYGUARD design system v3: a flight-operations console.
- * Modelled on working ops software (NASA Open MCT, bedside patient monitors), not on marketing
- * dashboards: flat neutral panes with title bars, ruled tables, one typeface, no glow, no
- * gradients, no tinted pills. Colour is reserved for meaning: cyan = interactive / selected,
- * mint = nominal or passed, amber = check the source, coral = a person should look,
- * violet = simulated. Tags are coloured text with a 1 px border; alerts are solid blocks.
- * Contrast on the pane surface: ink 15.9, ink-2 8.0, ink-3 5.9, accents >= 5.5.
+ * GRAVITYGUARD design system v4: a light clinical chart.
+ * Modelled on hospital record systems and printed charts, not on dark "mission control" mockups:
+ * white sheets on a grey desk, near-black text, grey ruled tables, a graphite app bar. Colour is
+ * reserved for meaning: blue = interactive or measured, green = nominal or passed, amber = check
+ * the source, red = a person should look, violet = simulated. Tags are coloured text with a 1 px
+ * border; alerts are solid blocks. Text contrast on the sheet: ink 17.4, ink-2 9.2, ink-3 5.9,
+ * accents 5.4-6.3; every text colour stays >= 4.5 on the grey desk and on hover rows.
  */
 @theme {
-  --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The platform UI face (SF Pro on a Mac, Segoe UI on Windows), as clinical systems use. It is
+   * installed on the machine, so nothing is fetched; its tabular zeros are plain, not slashed. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", "Mona Sans Variable", Arial, sans-serif;
   --font-display: var(--font-sans);
   /* IDs and record references read as data, not as code: same face, tabular figures. */
   --font-mono: var(--font-sans);
   --font-code: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --color-void: #0a0c0f;
-  --color-panel: #111418;
-  --color-panel-2: #171b20;
-  --color-raised: #1f242b;
-  --color-line: #2a3038;
-  --color-hair: #1d2228;
+  /* The desk, the sheets, and the rules between them. */
+  --color-void: #eceff3;
+  --color-panel: #fcfcfd;
+  --color-panel-2: #f3f5f7;
+  --color-raised: #e7ebf0;
+  --color-line: #cdd3da;
+  --color-hair: #e2e6eb;
 
-  --color-ink: #e9edf2;
-  --color-ink-2: #a8b1bd;
-  --color-ink-3: #8b95a2;
+  --color-ink: #14181d;
+  --color-ink-2: #3f4752;
+  --color-ink-3: #5a636f;
 
-  --color-cyan: #41c8f5;
-  --color-mint: #4fd69c;
-  --color-violet: #a783ff;
-  --color-coral: #ff5a6e;
-  --color-amber: #f0b45c;
+  --color-cyan: #1d5fc4;
+  --color-mint: #12784d;
+  --color-violet: #6a3fd0;
+  --color-coral: #c4253b;
+  --color-amber: #8f5300;
+  /* The solid caution block: yellow with black text, as on a clinical label. */
+  --color-amber-fill: #f2bf4f;
+
+  /* The app bar. */
+  --color-bar: #171b20;
+  --color-bar-2: #252a31;
+  --color-bar-line: #39404a;
+  --color-bar-ink: #f1f3f5;
+  --color-bar-ink-2: #a9b2bd;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -39,7 +51,7 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     background: var(--color-void);
     scrollbar-color: var(--color-line) transparent;
   }
@@ -49,11 +61,9 @@
     font-family: var(--font-sans);
     font-size: 13px;
     line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
   ::selection {
-    background: color-mix(in oklab, var(--color-cyan) 30%, transparent);
+    background: color-mix(in oklab, var(--color-cyan) 22%, transparent);
   }
   :focus-visible {
     outline: 2px solid var(--color-cyan);
@@ -77,10 +87,10 @@
     background: var(--color-void);
   }
 
-  /* Type: one face, hierarchy by size and weight. Labels are sentence case. */
+  /* Type: one face, hierarchy by size and weight, sentence case throughout. */
   .display {
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    letter-spacing: -0.012em;
     line-height: 1.2;
   }
   .eyebrow {
@@ -88,12 +98,11 @@
     font-weight: 500;
     color: var(--color-ink-3);
   }
+  /* Section and pane titles. */
   .label {
-    font-size: 11.5px;
+    font-size: 13px;
     font-weight: 650;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--color-ink-2);
+    color: var(--color-ink);
   }
   .micro {
     font-size: 11.5px;
@@ -101,7 +110,7 @@
     color: var(--color-ink-3);
   }
   .figure {
-    font-weight: 600;
+    font-weight: 650;
     letter-spacing: -0.01em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -119,38 +128,34 @@
     font-size: 0.92em;
   }
 
-  /* Surfaces: flat panes with a 1 px rule. */
-  .panel {
-    background: var(--color-panel);
-    border: 1px solid var(--color-line);
-    border-radius: 6px;
-  }
+  /* Surfaces: white sheets with a 1 px rule, square-ish corners. */
+  .panel,
   .panel-quiet {
     background: var(--color-panel);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: 4px;
   }
-  /* A pane's title bar. */
+  /* A sheet's title band. */
   .pane-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    min-height: 38px;
-    padding: 6px 14px;
+    min-height: 36px;
+    padding: 5px 12px;
     background: var(--color-panel-2);
     border-bottom: 1px solid var(--color-line);
-    border-radius: 6px 6px 0 0;
+    border-radius: 4px 4px 0 0;
   }
   .well {
     background: var(--color-panel-2);
     border: 1px solid var(--color-hair);
-    border-radius: 4px;
+    border-radius: 3px;
   }
   .rule {
     border-top: 1px solid var(--color-hair);
   }
-  /* Kept as hooks; v3 draws no hatching and no corner marks. */
+  /* Kept as hooks; nothing is drawn. */
   .sim-hatch {
     background-image: none;
   }
@@ -164,12 +169,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    min-height: 32px;
+    gap: 6px;
+    min-height: 30px;
     padding: 0 12px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 560;
+    border-radius: 3px;
+    font-size: 12.5px;
+    font-weight: 600;
     white-space: nowrap;
     transition:
       background-color 120ms var(--ease-out-quart),
@@ -195,60 +200,61 @@
     animation: gg-spin 700ms linear infinite;
   }
   .btn-primary {
-    background: var(--color-ink);
-    color: var(--color-void);
-    --btn-spin: var(--color-void);
+    background: var(--color-cyan);
+    color: var(--color-panel);
+    --btn-spin: var(--color-panel);
   }
   .btn-primary:hover:not(:disabled) {
-    background: #ffffff;
+    background: color-mix(in oklab, var(--color-cyan) 86%, black);
   }
   .btn-alert {
     background: var(--color-coral);
-    color: #1a0609;
-    --btn-spin: #1a0609;
+    color: var(--color-panel);
+    --btn-spin: var(--color-panel);
   }
   .btn-alert:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-coral) 86%, white);
+    background: color-mix(in oklab, var(--color-coral) 86%, black);
   }
   .btn-ghost {
     border: 1px solid var(--color-line);
     color: var(--color-ink);
-    background: var(--color-panel-2);
+    background: var(--color-panel);
   }
   .btn-ghost:hover:not(:disabled) {
-    background: var(--color-raised);
-    border-color: color-mix(in oklab, var(--color-ink-3) 55%, var(--color-line));
+    background: var(--color-panel-2);
+    border-color: color-mix(in oklab, var(--color-ink-3) 60%, var(--color-line));
   }
   .btn-sim {
-    border: 1px solid color-mix(in oklab, var(--color-violet) 65%, transparent);
-    color: color-mix(in oklab, var(--color-violet) 78%, white);
-    background: transparent;
+    border: 1px solid color-mix(in oklab, var(--color-violet) 55%, transparent);
+    color: var(--color-violet);
+    background: var(--color-panel);
     --btn-spin: var(--color-violet);
   }
   .btn-sim:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-violet) 10%, transparent);
+    background: color-mix(in oklab, var(--color-violet) 7%, var(--color-panel));
   }
   .btn-sm {
-    min-height: 28px;
-    padding: 0 10px;
+    min-height: 26px;
+    padding: 0 9px;
     font-size: 12px;
   }
 
   .field {
-    min-height: 32px;
-    border-radius: 4px;
+    min-height: 30px;
+    border-radius: 3px;
     border: 1px solid var(--color-line);
-    background: var(--color-void);
-    padding: 0 10px;
+    background: var(--color-panel);
+    padding: 0 9px;
     font-size: 13px;
     color: var(--color-ink);
   }
   .field:hover {
-    border-color: color-mix(in oklab, var(--color-ink-3) 55%, var(--color-line));
+    border-color: color-mix(in oklab, var(--color-ink-3) 60%, var(--color-line));
   }
   .field:focus {
     outline: none;
     border-color: var(--color-cyan);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-cyan) 20%, transparent);
   }
 
   /* Ruled grid with a header band and faint zebra rows. */
@@ -261,21 +267,21 @@
   .data-table th {
     text-align: left;
     font-size: 11.5px;
-    font-weight: 600;
+    font-weight: 650;
     color: var(--color-ink-2);
     background: var(--color-panel-2);
-    padding: 7px 10px;
+    padding: 6px 10px;
     border-top: 1px solid var(--color-line);
     border-bottom: 1px solid var(--color-line);
     white-space: nowrap;
   }
   .data-table td {
-    padding: 7px 10px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--color-hair);
     vertical-align: top;
   }
   .data-table tbody tr:nth-child(even) {
-    background: color-mix(in oklab, var(--color-ink) 1.8%, transparent);
+    background: color-mix(in oklab, var(--color-ink) 2.2%, transparent);
   }
   .data-table tbody tr.row-link {
     cursor: pointer;
@@ -287,28 +293,29 @@
 
   .seg {
     display: inline-flex;
-    border-radius: 4px;
+    border-radius: 3px;
     border: 1px solid var(--color-line);
     overflow: hidden;
   }
   .seg > button {
-    min-height: 28px;
+    min-height: 26px;
     padding: 0 10px;
     font-size: 12px;
-    font-weight: 560;
+    font-weight: 600;
     color: var(--color-ink-2);
-    background: var(--color-panel-2);
+    background: var(--color-panel);
   }
   .seg > button + button {
     border-left: 1px solid var(--color-line);
   }
   .seg > button[aria-selected="true"],
   .seg > button[aria-pressed="true"] {
-    background: var(--color-raised);
-    color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-panel);
   }
   .seg > button:hover:not([aria-selected="true"]):not([aria-pressed="true"]) {
     color: var(--color-ink);
+    background: var(--color-panel-2);
   }
 }
 
@@ -343,7 +350,7 @@
 }
 @keyframes gg-flash {
   0% {
-    background-color: color-mix(in oklab, currentColor 22%, transparent);
+    background-color: color-mix(in oklab, currentColor 18%, transparent);
   }
   100% {
     background-color: transparent;
@@ -382,17 +389,17 @@
   }
 }
 
-/* ---- Body evidence map: a flat technical drawing. */
+/* ---- Body evidence map: a grey line drawing, like the body diagram on a clinical chart. */
 .astro .part {
   transition:
-    fill 200ms var(--ease-out-quart),
-    stroke 200ms var(--ease-out-quart);
-  stroke-width: 1;
+    fill 160ms var(--ease-out-quart),
+    stroke 160ms var(--ease-out-quart);
+  stroke-width: 1.25;
   vector-effect: non-scaling-stroke;
 }
 .astro .seam {
   fill: none;
-  stroke: color-mix(in oklab, var(--color-ink) 10%, transparent);
+  stroke: color-mix(in oklab, var(--color-ink) 16%, transparent);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -401,30 +408,24 @@
   outline: none;
 }
 .astro .region .part {
-  fill: var(--color-panel-2);
-  stroke: color-mix(in oklab, var(--color-ink-3) 70%, transparent);
-}
-.astro .region[data-state="data"] .part {
-  stroke: var(--color-cyan);
-}
-.astro .region[data-state="caution"] .part {
-  stroke: var(--color-amber);
+  fill: var(--color-panel);
+  stroke: color-mix(in oklab, var(--color-ink) 42%, transparent);
 }
 .astro .region[data-state="symptom"] .part {
-  fill: color-mix(in oklab, var(--color-coral) 14%, var(--color-panel-2));
+  fill: color-mix(in oklab, var(--color-coral) 9%, var(--color-panel));
   stroke: var(--color-coral);
 }
 .astro .region:hover .part,
 .astro .region[data-selected="true"] .part {
-  stroke-width: 2;
+  stroke-width: 2.25;
 }
 .astro .region[data-selected="true"][data-state="neutral"] .part,
 .astro .region:hover[data-state="neutral"] .part {
-  stroke: var(--color-ink-2);
+  stroke: var(--color-ink);
 }
 .astro .region:focus-visible .part {
   stroke: var(--color-ink);
-  stroke-width: 2;
+  stroke-width: 2.25;
 }
 /* The selected marker rings out once when it is selected, then stays still. */
 .astro-pulse {

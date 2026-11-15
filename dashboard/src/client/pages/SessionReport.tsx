@@ -4,7 +4,7 @@ import { linkedReadings, REVIEW_CHECKLIST } from '../../shared/dataset'
 import { ringMetrics, timelineFor } from '../../shared/explain'
 import { SYMPTOM_LABEL, utcStamp } from '../../shared/format'
 import { EventRow, Timeline } from '../components/Events'
-import { Ring } from '../components/Ring'
+import { Meter } from '../components/Ring'
 import { Empty, KV, Panel, RealTag, SimTag } from '../components/ui'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
@@ -66,9 +66,9 @@ export function SessionReport({ id }: { id: string }) {
       <section className="grid gap-4 lg:grid-cols-12">
         <RecoveryPanel session={s} c={c} className="lg:col-span-8" />
         <Panel title="Record signals" className="lg:col-span-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Ring value={rings.completeness} tone="mint" label="Completeness" caption="Protocol steps present" size={120} />
-            <Ring value={rings.coverage} tone="cyan" label="HR coverage" caption="10-second intervals with a valid reading" unavailable="Phase times incomplete" size={120} />
+          <div className="flex flex-col gap-4">
+            <Meter value={rings.completeness} tone="mint" label="Completeness" caption="Protocol steps present" />
+            <Meter value={rings.coverage} tone="cyan" label="HR coverage" caption="10-second intervals with a valid reading" unavailable="Phase times incomplete" />
           </div>
           <div className="mt-5 border-t border-hair pt-4">
             <div className="micro mb-2">Symptom check</div>

@@ -9,7 +9,7 @@ interface Pt {
   current: boolean
 }
 
-const C = { cyan: '#45c4fa', violet: '#a876ff', ink: '#f4f7ff', ink2: '#a7b0c4', ink3: '#7d879f', line: '#2b3042', hair: '#20253a', panel: '#141721' }
+const C = { cyan: 'var(--color-cyan)', ink: 'var(--color-ink)', ink2: 'var(--color-ink-2)', ink3: 'var(--color-ink-3)', line: 'var(--color-line)', hair: 'var(--color-hair)', panel: 'var(--color-panel)' }
 
 function evenTicks(lo: number, hi: number): number[] {
   const span = hi - lo
@@ -24,8 +24,8 @@ const Dot = ({ cx = 0, cy = 0, payload }: ShapeProps) =>
   payload?.current ? (
     <g>
       <circle cx={cx} cy={cy} r={12} fill="transparent" />
-      <circle cx={cx} cy={cy} r={9} fill="none" stroke={C.violet} strokeOpacity={0.45} />
-      <circle cx={cx} cy={cy} r={5.5} fill={C.violet} stroke={C.panel} strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={9} fill="none" stroke={C.ink} strokeOpacity={0.4} />
+      <circle cx={cx} cy={cy} r={5.5} fill={C.ink} stroke={C.panel} strokeWidth={2} />
       <text x={cx - 12} y={cy + 4} textAnchor="end" fill={C.ink} fontSize={10.5} fontWeight={700}>
         this session {signed(payload.v)}
       </text>
@@ -41,11 +41,11 @@ function Tip({ active, payload }: { active?: boolean; payload?: { payload: Pt }[
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="rounded-[4px] border border-line bg-raised px-3 py-2 shadow-lg shadow-black/40">
+    <div className="rounded-[3px] border border-line bg-panel px-3 py-2 shadow-[0_6px_20px_rgb(20_24_29/0.14)]">
       <div className="text-[13px] font-bold">{signed(p.v)} bpm recovery − rest</div>
       <div className="mt-1 tnum text-[11px] text-ink-2">{utcStamp(p.startedAt)}</div>
       <div className="font-mono text-[10px] text-ink-3">{p.sessionId}</div>
-      {p.current && <div className="mt-1 text-[11px] text-violet">This session</div>}
+      {p.current && <div className="mt-1 text-[11px] font-semibold text-ink">This session</div>}
     </div>
   )
 }

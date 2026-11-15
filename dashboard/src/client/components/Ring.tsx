@@ -7,75 +7,49 @@ export interface RingValue {
   denominator: number
 }
 
+/** "4 of 5, 80 percent" or the reason it cannot be counted, for screen readers. */
+export function meterLabel(label: string, value: RingValue | null, unavailable: string) {
+  return `${label}: ${value ? `${value.numerator} of ${value.denominator}, ${Math.round(value.fraction * 100)} percent` : unavailable}`
+}
+
+/** A thin bar for a ratio of two counts. */
+export function MeterBar({ value, tone, className = '' }: { value: RingValue | null; tone: Tone; className?: string }) {
+  return (
+    <span className={`block h-[5px] overflow-hidden rounded-[1px] bg-hair ${className}`} aria-hidden>
+      {value && value.fraction > 0 && <span className="block h-full" style={{ width: `${Math.min(100, value.fraction * 100)}%`, background: TONE[tone].stroke }} />}
+    </span>
+  )
+}
+
 /**
- * A radial gauge for a ratio that is fully explained by its counts. It never shows a health
- * score: the caption says what is being counted, and N/A appears when it cannot be.
+ * A ratio that is fully explained by its counts: "4 / 5" over a thin bar. It never shows a
+ * health score: the caption says what is being counted, and N/A appears when it cannot be.
  */
-export function Ring({
+export function Meter({
   value,
   tone,
   label,
   caption,
   unavailable = 'Insufficient data',
-  size = 96,
 }: {
   value: RingValue | null
   tone: Tone
   label: string
   caption: string
   unavailable?: string
-  size?: number
 }) {
-  const stroke = 5
-  const r = size / 2 - stroke
-  const c = 2 * Math.PI * r
-  const cx = size / 2
   const pct = value ? Math.round(value.fraction * 100) : null
   return (
-    <figure className="flex min-w-0 flex-col items-center gap-2 text-center">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={`${label}: ${pct === null ? unavailable : `${pct} percent, ${value?.numerator} of ${value?.denominator}`}`}>
-          <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--color-raised)" strokeWidth={stroke} />
-          {value && value.fraction > 0 && (
-            <circle
-              cx={cx}
-              cy={cx}
-              r={r}
-              fill="none"
-              stroke={TONE[tone].stroke}
-              strokeWidth={stroke}
-              strokeLinecap="butt"
-              strokeDasharray={c}
-              strokeDashoffset={c * (1 - value.fraction)}
-              transform={`rotate(-90 ${cx} ${cx})`}
-            />
-          )}
-        </svg>
-        <div className="absolute inset-0 grid place-items-center">
-          {pct !== null ? (
-            <div>
-              <div className="figure text-ink" style={{ fontSize: Math.round(size * 0.24) }}>
-                {pct}
-                <span className="unit ml-px text-[0.5em]">%</span>
-              </div>
-              <div className="mt-0.5 text-[10.5px] text-ink-3 tnum">
-                {value!.numerator}/{value!.denominator}
-              </div>
-            </div>
-          ) : (
-            <div className="px-4">
-              <div className="figure text-ink-3" style={{ fontSize: Math.round(size * 0.18) }}>
-                N/A
-              </div>
-              <div className="mt-0.5 text-[9.5px] leading-tight text-ink-3">{unavailable}</div>
-            </div>
-          )}
-        </div>
+    <figure className="min-w-0" role="img" aria-label={meterLabel(label, value, unavailable)}>
+      <div className="flex items-baseline justify-between gap-3">
+        <figcaption className="text-[12.5px] font-semibold text-ink">{label}</figcaption>
+        <span className={`text-[15px] font-semibold tnum ${value ? 'text-ink' : 'text-ink-3'}`}>{value ? `${value.numerator} / ${value.denominator}` : 'N/A'}</span>
       </div>
-      <figcaption className="max-w-[20ch]">
-        <div className="text-[12px] font-semibold text-ink">{label}</div>
-        <div className="text-[11px] leading-snug text-ink-3">{caption}</div>
-      </figcaption>
+      <MeterBar value={value} tone={tone} className="mt-1.5" />
+      <div className="mt-1 flex items-baseline justify-between gap-3 text-[11.5px] text-ink-3">
+        <span>{value ? caption : unavailable}</span>
+        {pct !== null && <span className="tnum">{pct}%</span>}
+      </div>
     </figure>
   )
 }

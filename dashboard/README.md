@@ -64,7 +64,7 @@ fixtures/simulated/   deterministic SIMULATED scenarios A-F
 
 ## Watch integration checks
 
-System Status → **02 Integration check** shows nine checks, each PASS, FAIL or NOT TESTED, refreshed every 5 s: backend running, LAN endpoint enabled, network interface detected, pairing configured, LAN endpoint reachable, real device record received, record saved to disk, shown in this dashboard, and watch receipt or acknowledgement. The server decides eight of them (`GET /api/v1/integration/checks`). The dashboard decides "shown in this dashboard" by finding the device record in the mission records it has loaded. Simulated and demo data never pass a check, and no check can identify watch hardware.
+System Status → **Integration check** shows nine checks, each PASS, FAIL or NOT TESTED, refreshed every 5 s: backend running, LAN endpoint enabled, network interface detected, pairing configured, LAN endpoint reachable, real device record received, record saved to disk, shown in this dashboard, and watch receipt or acknowledgement. The server decides eight of them (`GET /api/v1/integration/checks`). The dashboard decides "shown in this dashboard" by finding the device record in the mission records it has loaded. Simulated and demo data never pass a check, and no check can identify watch hardware.
 
 **Run self-test (simulated)** (`POST /api/v1/integration/selftest`) sends real requests to this computer's own pairing and signal endpoints with a simulated signal, which lands in the demo workspace. It changes no check and is not evidence that a watch can connect. The on-device procedure is `../docs/WATCH_CONNECTION_TEST.md`.
 

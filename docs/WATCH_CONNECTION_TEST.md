@@ -82,7 +82,7 @@ Checks: no change. The `pairing` detail now says a pairing code is waiting to be
 
 ## 5. Pair: enter the code on the dashboard
 
-On the Mac: **System Status → 01 Watch connection** (sub-heading *Watch integration · connect a
+On the Mac: **System Status → Watch connection** (sub-heading *Watch integration · connect a
 watch*, step 4), type the code into **Watch pairing code** (with
 or without the dash) and press **Pair watch**. Expected: "Watch paired. Readings appear here when
 the watch sends them." **Share pairing link** on the watch shares
@@ -123,7 +123,7 @@ instrument feed that it flags. Without a real instrument, feed a hand-made test 
 adapter. That is why this test uses a throwaway data directory.
 
 1. On the Mac, copy the **Instrument adapter token** with its **Copy** button (it is masked). It
-   appears under System Status → 01 Watch connection after you paired on that page.
+   appears under System Status → Watch connection after you paired on that page.
 2. Feed a fresh frame every 2 s from the repository root. `status: "priority"` makes the watch flag
    it on the first frame:
 
