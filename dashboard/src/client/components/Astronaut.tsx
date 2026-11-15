@@ -2,32 +2,71 @@ import type { KeyboardEvent } from 'react'
 import type { Region, RegionInfo } from '../lib/view'
 
 /*
- * A stylised astronaut used as an evidence map, not an anatomical model. Coordinates are in
- * figure space (160 is the centre line); the figure sits inside a wider canvas so callouts
- * fit on both sides. The viewer's right arm is the astronaut's left, where the watch is worn.
+ * A suited crew member used as an evidence map, not an anatomical model. Front view; the
+ * viewer's right arm is the crew member's left, where the watch is worn. Coordinates are in a
+ * 560 x 640 canvas with the figure on the centre line (x = 280) and callouts in both margins.
+ *
+ * Marker grammar:
+ *   coral circle  = REPORTED   (a symptom someone reported; never a detection)
+ *   cyan diamond  = MEASURED   (where a recorded measurement was taken or what it describes)
+ *   amber diamond = CHECK      (a recorded measurement whose source needs verifying)
  */
 
-const MIRROR = 'translate(320 0) scale(-1 1)'
-const ARM = 'M102 144 C84 148 74 162 71 184 L63 252 C61 280 59 304 59 326 L85 328 C87 304 91 282 95 256 L105 196 Z'
-const LEG = 'M114 320 L157 320 L155 416 C154 440 153 470 151 500 L121 500 C119 470 118 440 117 416 Z'
-const BOOT = 'M117 500 L153 500 L157 518 C158 526 152 530 145 530 L113 530 C106 530 104 523 107 517 Z'
-const TORSO = 'M104 138 C120 128 200 128 216 138 C227 145 231 158 229 176 L219 234 C215 262 211 286 207 304 L113 304 C109 286 105 262 101 234 L91 176 C89 158 93 145 104 138 Z'
-const VISOR = 'M126 70 C126 48 194 48 194 70 L194 84 C194 102 178 110 160 110 C142 110 126 102 126 84 Z'
+const MIRROR = 'translate(560 0) scale(-1 1)'
 
-const OFFSET = { x: 100, y: 16 }
-
-const CALLOUT: Record<Region, { anchor: [number, number]; elbow: [number, number]; box: { x: number; y: number }; side: 'left' | 'right' }> = {
-  HEAD: { anchor: [198, 62], elbow: [250, 40], box: { x: 352, y: 22 }, side: 'right' },
-  CHEST: { anchor: [100, 214], elbow: [64, 196], box: { x: 8, y: 172 }, side: 'left' },
-  ARMS: { anchor: [262, 330], elbow: [296, 352], box: { x: 352, y: 342 }, side: 'right' },
-  LEGS: { anchor: [118, 452], elbow: [80, 470], box: { x: 8, y: 446 }, side: 'left' },
+const P = {
+  helmet: 'M230 96 C230 58 252 40 280 40 C308 40 330 58 330 96 C330 128 310 150 280 150 C250 150 230 128 230 96 Z',
+  visor: 'M242 92 C242 70 258 60 280 60 C302 60 318 70 318 92 L318 104 C318 124 302 136 280 136 C258 136 242 124 242 104 Z',
+  pack: 'M200 176 C200 166 208 160 218 160 L342 160 C352 160 360 166 360 176 L360 330 C360 340 352 346 342 346 L218 346 C208 346 200 340 200 330 Z',
+  torso:
+    'M214 182 C234 168 326 168 346 182 C360 192 366 210 362 232 L352 290 C348 312 342 326 336 336 L224 336 C218 326 212 312 208 290 L198 232 C194 210 200 192 214 182 Z',
+  arm: 'M204 182 C184 186 170 202 167 222 L157 286 C155 302 153 322 151 344 L148 373 L183 377 L187 347 C189 325 193 305 197 291 L211 236 Z',
+  glove: 'M147 377 C139 388 138 404 144 416 C150 428 170 430 179 418 C186 406 186 390 183 377 Z',
+  thumb: 'M180 388 C188 388 193 395 190 403 C188 409 182 410 178 406',
+  hip: 'M224 350 L336 350 L334 396 C320 402 240 402 226 396 Z',
+  leg: 'M228 394 L277 394 L273 478 C272 502 271 530 269 556 L237 556 C235 530 233 502 232 478 Z',
+  boot: 'M233 558 L273 558 L277 582 C278 592 271 597 262 597 L228 597 C220 597 216 591 219 582 Z',
 }
 
-const STROKE: Record<RegionInfo['state'], string> = {
-  neutral: 'var(--color-cyan)',
-  data: 'var(--color-cyan)',
-  caution: 'var(--color-amber)',
-  symptom: 'var(--color-coral)',
+const ANCHOR: Record<Region, { x: number; y: number; side: 'left' | 'right'; boxY: number; id: string }> = {
+  HEAD: { x: 322, y: 86, side: 'right', boxY: 46, id: 'R1' },
+  CHEST: { x: 256, y: 232, side: 'left', boxY: 196, id: 'R2' },
+  ARMS: { x: 394, y: 368, side: 'right', boxY: 336, id: 'R3' },
+  LEGS: { x: 252, y: 478, side: 'left', boxY: 446, id: 'R4' },
+}
+
+const KIND: Record<RegionInfo['state'], { tag: string; color: string } | null> = {
+  symptom: { tag: 'REPORTED', color: 'var(--color-coral)' },
+  data: { tag: 'MEASURED', color: 'var(--color-cyan)' },
+  caution: { tag: 'CHECK SOURCE', color: 'var(--color-amber)' },
+  neutral: null,
+}
+
+function Marker({ state, x, y, active }: { state: RegionInfo['state']; x: number; y: number; active: boolean }) {
+  const k = KIND[state]
+  if (!k) return null
+  if (state === 'symptom')
+    return (
+      <g>
+        {active && <circle className="astro-pulse" cx={x} cy={y} r={7} fill="none" stroke={k.color} strokeWidth={1.5} />}
+        <circle cx={x} cy={y} r={5.5} fill={k.color} stroke="var(--color-void)" strokeWidth={2} />
+      </g>
+    )
+  return (
+    <g>
+      {active && <rect className="astro-pulse" x={x - 6} y={y - 6} width={12} height={12} fill="none" stroke={k.color} strokeWidth={1.5} transform={`rotate(45 ${x} ${y})`} />}
+      <rect
+        x={x - 4.5}
+        y={y - 4.5}
+        width={9}
+        height={9}
+        fill={state === 'caution' ? 'var(--color-void)' : k.color}
+        stroke={k.color}
+        strokeWidth={1.8}
+        transform={`rotate(45 ${x} ${y})`}
+      />
+    </g>
+  )
 }
 
 export function Astronaut({
@@ -60,150 +99,142 @@ export function Astronaut({
   })
 
   return (
-    <svg viewBox="0 0 520 590" className="astro h-auto w-full select-none" role="group" aria-label={label}>
+    <svg viewBox="0 0 560 640" className="astro h-auto w-full select-none" role="group" aria-label={label}>
       <defs>
-        <linearGradient id="gg-suit" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1f2844" />
-          <stop offset="1" stopColor="#111624" />
+        <linearGradient id="gg-suit" x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="#2c3750" />
+          <stop offset="0.55" stopColor="#1a2234" />
+          <stop offset="1" stopColor="#111724" />
         </linearGradient>
-        <linearGradient id="gg-suit-data" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#173a55" />
-          <stop offset="1" stopColor="#10202f" />
+        <linearGradient id="gg-suit-alert" x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="#4a2333" />
+          <stop offset="0.6" stopColor="#2a1622" />
+          <stop offset="1" stopColor="#181019" />
         </linearGradient>
-        <linearGradient id="gg-suit-caution" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#3a3020" />
-          <stop offset="1" stopColor="#1b1812" />
+        <linearGradient id="gg-pack" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#141b29" />
+          <stop offset="1" stopColor="#0c1019" />
         </linearGradient>
-        <linearGradient id="gg-suit-alert" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4a1a2a" />
-          <stop offset="1" stopColor="#1e1018" />
-        </linearGradient>
-        <linearGradient id="gg-beam" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#45c4fa" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#45c4fa" stopOpacity="0.16" />
-          <stop offset="1" stopColor="#45c4fa" stopOpacity="0" />
+        <linearGradient id="gg-visor" x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor="#1b3047" />
+          <stop offset="0.45" stopColor="#0b1422" />
+          <stop offset="1" stopColor="#05080f" />
         </linearGradient>
         <radialGradient id="gg-floor" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#45c4fa" stopOpacity="0.22" />
-          <stop offset="1" stopColor="#45c4fa" stopOpacity="0" />
+          <stop offset="0" stopColor="#41c8f5" stopOpacity="0.16" />
+          <stop offset="0.6" stopColor="#41c8f5" stopOpacity="0.04" />
+          <stop offset="1" stopColor="#41c8f5" stopOpacity="0" />
         </radialGradient>
-        <pattern id="gg-lines" width="6" height="5" patternUnits="userSpaceOnUse">
-          <rect width="6" height="1" fill="#45c4fa" opacity="0.09" />
-        </pattern>
-        <filter id="gg-glow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="5" in="SourceAlpha" result="blur" />
-          <feFlood floodColor="#ff4b65" floodOpacity="0.55" />
-          <feComposite in2="blur" operator="in" result="glow" />
-          <feMerge>
-            <feMergeNode in="glow" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <clipPath id="gg-body">
-          <circle cx="160" cy="74" r="44" />
-          <rect x="138" y="114" width="44" height="14" rx="6" />
-          <path d={TORSO} />
-          <rect x="110" y="304" width="100" height="16" rx="6" />
-          <path d={ARM} />
-          <path d={ARM} transform={MIRROR} />
-          <ellipse cx="72" cy="346" rx="14" ry="17" />
-          <ellipse cx="72" cy="346" rx="14" ry="17" transform={MIRROR} />
-          <path d={LEG} />
-          <path d={LEG} transform={MIRROR} />
-          <path d={BOOT} />
-          <path d={BOOT} transform={MIRROR} />
-        </clipPath>
+        <radialGradient id="gg-keylight" cx="0.32" cy="0.18" r="0.75">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.07" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
-      <g transform={`translate(${OFFSET.x} ${OFFSET.y})`}>
-        {/* floor */}
-        <ellipse cx="160" cy="542" rx="150" ry="22" fill="url(#gg-floor)" />
-        <ellipse cx="160" cy="542" rx="124" ry="15" fill="none" stroke="#45c4fa" strokeOpacity="0.28" />
-        <ellipse cx="160" cy="542" rx="84" ry="9" fill="none" stroke="#45c4fa" strokeOpacity="0.18" />
+      {/* body axis and scale: a quiet measuring frame, no data */}
+      <g aria-hidden pointerEvents="none">
+        <line x1="280" y1="24" x2="280" y2="618" stroke="var(--color-ink)" strokeOpacity="0.05" strokeDasharray="2 6" />
+        <ellipse cx="280" cy="604" rx="150" ry="20" fill="url(#gg-floor)" />
+        <ellipse cx="280" cy="604" rx="112" ry="12" fill="none" stroke="#41c8f5" strokeOpacity="0.22" />
+      </g>
 
-        {/* arms (behind the torso) */}
-        <g {...regionProps('ARMS')}>
-          {[undefined, MIRROR].map((tf, i) => (
-            <g key={i} transform={tf}>
-              <path className="shape" d={ARM} />
-              <ellipse className="shape" cx="72" cy="346" rx="14" ry="17" />
-              <rect className="detail" x="57" y="322" width="30" height="9" rx="3.5" />
-              <ellipse className="detail" cx="79" cy="252" rx="12" ry="7" />
-            </g>
-          ))}
-          <g aria-hidden>
-            <rect x="235" y="315" width="26" height="21" rx="5.5" fill="#0a0b12" stroke="#45c4fa" strokeOpacity="0.9" />
-            <rect x="239" y="319" width="18" height="13" rx="3" fill="#45c4fa" fillOpacity="0.22" />
+
+      <g {...regionProps('ARMS')}>
+        {[undefined, MIRROR].map((tf, i) => (
+          <g key={i} transform={tf}>
+            <path className="part" d={P.arm} />
+            <circle className="part" cx="204" cy="196" r="20" />
+            <path className="part" d={P.glove} />
+            <path className="seam" d={P.thumb} />
+            <ellipse className="seam" cx="172" cy="292" rx="15" ry="5.5" transform="rotate(-8 172 292)" />
+            <ellipse className="seam" cx="166" cy="376" rx="16" ry="5" />
           </g>
+        ))}
+        {/* the watch, on the crew member's left wrist */}
+        <g aria-hidden>
+          <rect x="383" y="358" width="22" height="20" rx="5" fill="#05080f" stroke="#41c8f5" strokeOpacity="0.85" />
+          <rect x="387" y="362" width="14" height="12" rx="3" fill="#41c8f5" fillOpacity="0.2" />
         </g>
+      </g>
 
-        {/* legs */}
-        <g {...regionProps('LEGS')}>
-          {[undefined, MIRROR].map((tf, i) => (
-            <g key={i} transform={tf}>
-              <path className="shape" d={LEG} />
-              <ellipse className="detail" cx="136" cy="418" rx="16" ry="8" />
-              <path className="shape" d={BOOT} />
-            </g>
-          ))}
-        </g>
-
-        {/* torso */}
-        <g {...regionProps('CHEST')}>
-          <path className="shape" d={TORSO} />
-          <rect className="shape" x="110" y="304" width="100" height="16" rx="6" />
-          <rect className="detail" x="134" y="166" width="52" height="38" rx="7" />
-          <line className="detail" x1="142" y1="179" x2="178" y2="179" />
-          <line className="detail" x1="142" y1="190" x2="166" y2="190" />
-          <line className="detail" x1="160" y1="208" x2="160" y2="300" />
-        </g>
-
-        {/* helmet */}
-        <g {...regionProps('HEAD')}>
-          <rect className="shape" x="138" y="114" width="44" height="14" rx="6" />
-          <circle className="shape" cx="160" cy="74" r="44" />
-          <path d={VISOR} fill="#06080f" fillOpacity="0.82" stroke="#45c4fa" strokeOpacity="0.45" />
-          <path d="M136 62 C144 54 162 52 176 57" fill="none" stroke="#f4f7ff" strokeOpacity="0.22" strokeWidth="2" strokeLinecap="round" />
-        </g>
-
-        {/* hologram texture and scan beam, clipped to the body and ignored by the pointer */}
-        <g clipPath="url(#gg-body)" pointerEvents="none" aria-hidden>
-          <rect x="40" y="20" width="240" height="520" fill="url(#gg-lines)" />
-          <g className="astro-scan">
-            <rect x="40" y="-60" width="240" height="70" fill="url(#gg-beam)" />
+      <g {...regionProps('LEGS')}>
+        <path className="part" d={P.hip} />
+        {[undefined, MIRROR].map((tf, i) => (
+          <g key={i} transform={tf}>
+            <path className="part" d={P.leg} />
+            <path className="part" d={P.boot} />
+            <ellipse className="seam" cx="252" cy="478" rx="21" ry="7" />
+            <ellipse className="seam" cx="253" cy="556" rx="18" ry="5" />
+            <path className="seam" d="M236 584 L274 584" />
           </g>
-        </g>
+        ))}
+      </g>
 
-        {/* callouts */}
-        {(Object.keys(CALLOUT) as Region[]).map((r) => {
-          const info = regions[r]
-          if (!info.callout) return null
-          const c = CALLOUT[r]
-          const color = STROKE[info.state]
-          const [ax, ay] = c.anchor
-          const [ex, ey] = c.elbow
-          const bx = c.box.x - OFFSET.x
-          const by = c.box.y - OFFSET.y
-          const endX = c.side === 'right' ? bx : bx + 158
+      <g {...regionProps('CHEST')}>
+        <path className="part" d={P.torso} />
+        <rect className="part" x="222" y="334" width="116" height="18" rx="8" />
+        <rect className="seam" x="252" y="212" width="56" height="40" rx="7" />
+        <path className="seam" d="M260 224 H300 M260 234 H288 M260 244 H294" />
+        <path className="seam" d="M280 258 V330" />
+        <path className="seam" d="M216 196 C238 186 322 186 344 196" />
+      </g>
+
+      <g {...regionProps('HEAD')}>
+        <ellipse className="part" cx="280" cy="158" rx="44" ry="10" />
+        <path className="part" d={P.helmet} />
+        <path d={P.visor} fill="url(#gg-visor)" stroke="var(--color-ink)" strokeOpacity="0.22" />
+        <path d="M252 76 C262 66 284 63 300 68" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M300 118 C306 112 310 104 311 96" fill="none" stroke="#41c8f5" strokeOpacity="0.25" strokeWidth="1.5" strokeLinecap="round" />
+      </g>
+
+
+      {/* region ids and evidence callouts */}
+      {(Object.keys(ANCHOR) as Region[]).map((r) => {
+        const a = ANCHOR[r]
+        const info = regions[r]
+        const kind = KIND[info.state]
+        const active = selected === r
+        if (!kind || !info.callout)
           return (
             <g key={r} pointerEvents="none" aria-hidden>
-              <polyline points={`${ax},${ay} ${ex},${ey} ${endX},${by + 20}`} fill="none" stroke={color} strokeOpacity="0.75" strokeWidth="1" />
-              <circle cx={ax} cy={ay} r="3" fill={color} />
-              <foreignObject x={bx} y={by} width="160" height="54">
-                <div
-                  className={`rounded-lg border px-2.5 py-1.5 ${c.side === 'left' ? 'text-right' : 'text-left'}`}
-                  style={{ borderColor: `color-mix(in oklab, ${color} 55%, transparent)`, background: 'color-mix(in oklab, var(--color-void) 82%, transparent)' }}
-                >
-                  <div className="text-[9.5px] leading-tight font-bold tracking-[0.08em]" style={{ color }}>
-                    {info.callout}
-                  </div>
-                  <div className="mt-0.5 text-[8.5px] leading-tight tracking-[0.12em] text-ink-3 uppercase">{info.name}</div>
-                </div>
-              </foreignObject>
+              <line x1={a.x - 4} y1={a.y} x2={a.x + 4} y2={a.y} stroke="var(--color-ink)" strokeOpacity="0.25" />
+              <line x1={a.x} y1={a.y - 4} x2={a.x} y2={a.y + 4} stroke="var(--color-ink)" strokeOpacity="0.25" />
+              <text x={a.x + (a.side === 'right' ? 8 : -8)} y={a.y - 6} textAnchor={a.side === 'right' ? 'start' : 'end'} fill="var(--color-ink-3)" fontSize="9" fontFamily="JetBrains Mono" opacity="0.8">
+                {a.id}
+              </text>
             </g>
           )
-        })}
-      </g>
+        const boxX = a.side === 'right' ? 404 : 8
+        const boxW = 148
+        const edgeX = a.side === 'right' ? boxX : boxX + boxW
+        const elbowX = a.side === 'right' ? Math.max(a.x + 18, boxX - 22) : Math.min(a.x - 18, edgeX + 22)
+        const midY = a.boxY + 24
+        const sub = info.items[0]?.detail ?? ''
+        return (
+          <g key={r} pointerEvents="none" aria-hidden data-testid={`callout-${r}`}>
+            <polyline points={`${a.x},${a.y} ${elbowX},${midY} ${edgeX},${midY}`} fill="none" stroke={kind.color} strokeOpacity={active ? 0.95 : 0.6} strokeWidth={active ? 1.4 : 1} />
+            <Marker state={info.state} x={a.x} y={a.y} active={active} />
+            <foreignObject x={boxX} y={a.boxY} width={boxW} height={96}>
+              <div
+                className={`rounded-[10px] border px-2.5 py-2 ${a.side === 'left' ? 'text-right' : 'text-left'}`}
+                style={{
+                  borderColor: `color-mix(in oklab, ${kind.color} ${active ? 70 : 42}%, transparent)`,
+                  background: `color-mix(in oklab, ${kind.color} ${active ? 10 : 5}%, var(--color-void))`,
+                }}
+              >
+                <div className="flex items-center gap-1.5" style={{ justifyContent: a.side === 'left' ? 'flex-end' : 'flex-start' }}>
+                  <span className="font-mono text-[8px] tracking-[0.1em] text-ink-3">{a.id}</span>
+                  <span className="text-[8.5px] font-bold tracking-[0.14em]" style={{ color: kind.color }}>
+                    {kind.tag}
+                  </span>
+                </div>
+                <div className="mt-1 text-[10.5px] leading-tight font-semibold tracking-[0.02em] text-ink">{info.callout}</div>
+                <div className="mt-0.5 line-clamp-2 text-[9px] leading-snug text-ink-3">{sub}</div>
+              </div>
+            </foreignObject>
+          </g>
+        )
+      })}
     </svg>
   )
 }

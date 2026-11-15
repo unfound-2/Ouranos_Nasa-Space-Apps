@@ -11,19 +11,20 @@ interface Pt {
   kind: Kind
   m: StoredMeasurement
   reason: string | null
+  sel?: boolean
 }
 
 const C = {
-  cyan: '#45c4fa',
-  violet: '#a876ff',
-  amber: '#f2b45a',
-  coral: '#ff4b65',
-  ink: '#f4f7ff',
-  ink2: '#a7b0c4',
-  ink3: '#7d879f',
-  line: '#2b3042',
-  hair: '#20253a',
-  panel: '#141721',
+  cyan: '#41c8f5',
+  violet: '#a783ff',
+  amber: '#f0b45c',
+  coral: '#ff526b',
+  ink: '#f5f8ff',
+  ink2: '#98a7be',
+  ink3: '#8391aa',
+  line: '#293346',
+  hair: '#1b2231',
+  panel: '#101520',
 }
 
 function points(session: StoredSession, c: PhaseComparison, floor: number): Pt[] {
@@ -44,22 +45,27 @@ function points(session: StoredSession, c: PhaseComparison, floor: number): Pt[]
 }
 
 /* Scatter shapes: each has a transparent 11 px hit area so the hover target is bigger than the mark. */
-type ShapeProps = { cx?: number; cy?: number }
-const UsedDot = ({ cx = 0, cy = 0 }: ShapeProps) => (
-  <g>
+type ShapeProps = { cx?: number; cy?: number; payload?: Pt }
+const SelRing = ({ cx = 0, cy = 0, payload }: ShapeProps) =>
+  payload?.sel ? <circle cx={cx} cy={cy} r={9} fill="none" stroke={C.ink} strokeWidth={1.5} /> : null
+const UsedDot = ({ cx = 0, cy = 0, payload }: ShapeProps) => (
+  <g style={{ cursor: 'pointer' }}>
+    <SelRing cx={cx} cy={cy} payload={payload} />
     <circle cx={cx} cy={cy} r={11} fill="transparent" />
     <circle cx={cx} cy={cy} r={4.5} fill={C.cyan} stroke={C.panel} strokeWidth={2} />
   </g>
 )
-const ExcludedDot = ({ cx = 0, cy = 0 }: ShapeProps) => (
-  <g>
+const ExcludedDot = ({ cx = 0, cy = 0, payload }: ShapeProps) => (
+  <g style={{ cursor: 'pointer' }}>
+    <SelRing cx={cx} cy={cy} payload={payload} />
     <circle cx={cx} cy={cy} r={11} fill="transparent" />
     <circle cx={cx} cy={cy} r={5} fill={C.panel} stroke={C.amber} strokeWidth={1.5} />
     <path d={`M${cx - 2.6} ${cy - 2.6} L${cx + 2.6} ${cy + 2.6} M${cx + 2.6} ${cy - 2.6} L${cx - 2.6} ${cy + 2.6}`} stroke={C.amber} strokeWidth={1.3} />
   </g>
 )
-const MissingMark = ({ cx = 0, cy = 0 }: ShapeProps) => (
-  <g>
+const MissingMark = ({ cx = 0, cy = 0, payload }: ShapeProps) => (
+  <g style={{ cursor: 'pointer' }}>
+    <SelRing cx={cx} cy={cy} payload={payload} />
     <circle cx={cx} cy={cy - 4} r={11} fill="transparent" />
     <line x1={cx} y1={cy - 12} x2={cx} y2={cy - 2} stroke={C.ink3} strokeWidth={1.5} strokeDasharray="2 2" />
     <circle cx={cx} cy={cy} r={2.2} fill={C.ink3} />
@@ -83,14 +89,26 @@ function HrTooltip({ active, payload }: { active?: boolean; payload?: { payload:
   )
 }
 
-export function HrChart({ session, comparison, height = 300 }: { session: StoredSession; comparison: PhaseComparison; height?: number }) {
+export function HrChart({
+  session,
+  comparison,
+  height = 300,
+  selectedId = null,
+  onSelect,
+}: {
+  session: StoredSession
+  comparison: PhaseComparison
+  height?: number
+  selectedId?: string | null
+  onSelect?: (measurementId: string) => void
+}) {
   const [view, setView] = useState<'chart' | 'table'>('chart')
   const model = useMemo(() => {
     const values = session.measurements.filter((m) => m.indicator === 'HEART_RATE' && m.value !== null).map((m) => m.value as number)
     const lo = values.length ? Math.max(0, Math.floor((Math.min(...values) - 8) / 5) * 5) : 50
     const hi = values.length ? Math.ceil((Math.max(...values) + 6) / 5) * 5 : 120
     const band = Math.max(4, Math.round((hi - lo) * 0.14))
-    const pts = points(session, comparison, lo - band / 2)
+    const pts = points(session, comparison, lo - band / 2).map((p) => ({ ...p, sel: p.m.measurementId === selectedId }))
     const x0 = Date.parse(session.startedAt)
     const lastT = Math.max(x0 + 60_000, ...pts.map((p) => p.t), session.endedAt ? Date.parse(session.endedAt) : 0)
     const span = lastT - x0
@@ -101,7 +119,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
     const yticks: number[] = []
     for (let v = Math.ceil(lo / ystep) * ystep; v <= hi; v += ystep) yticks.push(v)
     return { lo, hi, band, pts, x0, x1: lastT, ticks, yticks }
-  }, [session, comparison])
+  }, [session, comparison, selectedId])
 
   const phases = session.phases.map((p) => ({ ...p, a: Date.parse(p.startedAt), b: p.endedAt ? Date.parse(p.endedAt) : model.x1 }))
   const medians = [comparison.rest, comparison.recovery]
@@ -180,7 +198,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                 ticks={model.ticks}
                 tickFormatter={(v: number) => utcClock(new Date(v).toISOString())}
                 stroke={C.line}
-                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'B612' }}
+                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
                 tickLine={false}
               />
               <YAxis
@@ -190,7 +208,7 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                 ticks={model.yticks}
                 interval={0}
                 stroke={C.line}
-                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'B612' }}
+                tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
                 tickLine={false}
                 width={44}
                 unit=""
@@ -216,17 +234,22 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                   stroke={C.coral}
                   strokeWidth={1.5}
                   ifOverflow="extendDomain"
-                  label={(props: { viewBox?: { x?: number; y?: number } }) => (
-                    <text x={(props.viewBox?.x ?? 0) - 6} y={(props.viewBox?.y ?? 0) + 12} textAnchor="end" fill={C.coral} fontSize={10} fontWeight={700} letterSpacing={1}>
-                      {SYMPTOM_LABEL[s.code]} · {s.reportedBy === 'SELF_REPORTED' ? 'SELF-REPORTED' : 'CREW-OBSERVED'}
-                    </text>
-                  )}
+                  label={(props: { viewBox?: { x?: number; y?: number } }) => {
+                    // Written up the line, just left of it: it never meets the phase labels across the top.
+                    const x = (props.viewBox?.x ?? 0) - 5
+                    const y = (props.viewBox?.y ?? 0) + 4
+                    return (
+                      <text x={x} y={y} transform={`rotate(-90 ${x} ${y})`} textAnchor="end" fill={C.coral} fontSize={10} fontWeight={700} letterSpacing={1}>
+                        {SYMPTOM_LABEL[s.code]} · {s.reportedBy === 'SELF_REPORTED' ? 'SELF-REPORTED' : 'CREW-OBSERVED'}
+                      </text>
+                    )
+                  }}
                 />
               ))}
-              <Tooltip content={<HrTooltip />} cursor={false} isAnimationActive={false} />
-              <Scatter data={model.pts.filter((p) => p.kind === 'missing')} shape={<MissingMark />} isAnimationActive={false} />
-              <Scatter data={model.pts.filter((p) => p.kind === 'excluded')} shape={<ExcludedDot />} isAnimationActive={false} />
-              <Scatter data={model.pts.filter((p) => p.kind === 'used')} shape={<UsedDot />} isAnimationActive={false} />
+              <Tooltip content={<HrTooltip />} cursor={{ stroke: C.cyan, strokeOpacity: 0.35, strokeDasharray: '3 3' }} isAnimationActive={false} />
+              <Scatter data={model.pts.filter((p) => p.kind === 'missing')} shape={<MissingMark />} isAnimationActive={false} onClick={(d: { payload?: Pt }) => d?.payload && onSelect?.(d.payload.m.measurementId)} />
+              <Scatter data={model.pts.filter((p) => p.kind === 'excluded')} shape={<ExcludedDot />} isAnimationActive={false} onClick={(d: { payload?: Pt }) => d?.payload && onSelect?.(d.payload.m.measurementId)} />
+              <Scatter data={model.pts.filter((p) => p.kind === 'used')} shape={<UsedDot />} isAnimationActive={false} onClick={(d: { payload?: Pt }) => d?.payload && onSelect?.(d.payload.m.measurementId)} />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
@@ -249,7 +272,12 @@ export function HrChart({ session, comparison, height = 300 }: { session: Stored
                 .slice()
                 .sort((a, b) => a.t - b.t)
                 .map((p) => (
-                  <tr key={p.m.measurementId}>
+                  <tr
+                    key={p.m.measurementId}
+                    className={onSelect ? 'row-link' : undefined}
+                    data-selected={p.m.measurementId === selectedId}
+                    onClick={() => onSelect?.(p.m.measurementId)}
+                  >
                     <td className="tnum text-ink-2">{utcStamp(p.m.measuredAt)}</td>
                     <td>{p.m.phase ?? '--'}</td>
                     <td className="font-mono">{p.m.value === null ? '--' : `${p.m.value} bpm`}</td>

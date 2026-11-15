@@ -17,7 +17,7 @@ describe('body regions', () => {
     const ds = demo()
     const r = regionsFor(ds.sessions['sim-a-20261112'], [])
     expect(r.HEAD.state).toBe('symptom')
-    expect(r.HEAD.callout).toBe('DIZZINESS — SELF-REPORTED')
+    expect(r.HEAD.callout).toBe('SELF-REPORTED DIZZINESS')
     expect(r.CHEST.state).toBe('data')
     expect(r.ARMS.state).toBe('caution')
     expect(r.LEGS.state).toBe('neutral')
@@ -26,7 +26,7 @@ describe('body regions', () => {
   it('scenario F: a weakness reported at the legs lights the legs and nothing at the head', () => {
     const r = regionsFor(demo().sessions['sim-b-20261113a'], [])
     expect(r.LEGS.state).toBe('symptom')
-    expect(r.LEGS.callout).toBe('WEAKNESS — SELF-REPORTED')
+    expect(r.LEGS.callout).toBe('SELF-REPORTED WEAKNESS')
     expect(r.HEAD.state).toBe('neutral')
   })
 

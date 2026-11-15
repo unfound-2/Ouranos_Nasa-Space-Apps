@@ -216,7 +216,7 @@ export function regionsFor(
       continue
     }
     const who = s.reportedBy === 'SELF_REPORTED' ? 'SELF-REPORTED' : 'CREW-OBSERVED'
-    const title = `${SYMPTOM_LABEL[s.code]} — ${who}`
+    const title = `${who} ${SYMPTOM_LABEL[s.code]}`
     const target = r[region]
     target.state = 'symptom'
     target.callout ??= title

@@ -1,19 +1,50 @@
-import { ArrowLeft, Check, ClipboardCheck, Download, Hand } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, Check, ClipboardCheck, Download, Hand, Minus } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BASELINE_EXCLUSION_LABEL, EXCLUSION_LABEL, RULES, type PhaseComparison } from '../../shared/analysis'
-import type { StoredEvent, StoredSession } from '../../shared/contract'
-import { REVIEW_CHECKLIST, type Dataset, type ResolvedEvidence } from '../../shared/dataset'
-import { baselineBasis, buildEventContext, explainEvent, knownsAndUnknowns, reasonInfo, timelineFor, type EventContext, type Fact } from '../../shared/explain'
-import { plural, signed, SYMPTOM_LABEL, utcStamp, utcTime } from '../../shared/format'
+import type { StoredEvent, StoredMeasurement, StoredSession } from '../../shared/contract'
+import { recordSourceMode, REVIEW_CHECKLIST, type Dataset, type LinkState, type ResolvedEvidence } from '../../shared/dataset'
+import {
+  baselineBasis,
+  buildEventContext,
+  conclusionsFor,
+  eventTitle,
+  explainEvent,
+  focusLabel,
+  knownsAndUnknowns,
+  reasonInfo,
+  reasonLine,
+  timelineFor,
+  type EventContext,
+  type Fact,
+} from '../../shared/explain'
+import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp, utcTime } from '../../shared/format'
 import { BaselineChart } from '../components/BaselineChart'
-import { ackLabel, Timeline } from '../components/Events'
+import { ackLabel } from '../components/Events'
 import { HrChart } from '../components/HrChart'
-import { Empty, KV, Panel, Pill, RealTag, SimTag, TONE } from '../components/ui'
+import { Empty, Pill, RealTag, SimTag, TONE } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
-import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SOURCE_META, STATUS_META, subjectLabel } from '../lib/view'
-import { CrewReport, headlineFor } from './Overview'
+import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SOURCE_META, STATUS_META, subjectLabel, type Tone } from '../lib/view'
+import { CrewReport } from './Overview'
+
+function Section({ index, title, children, className = '', aside }: { index?: string; title: string; children: ReactNode; className?: string; aside?: ReactNode }) {
+  return (
+    <section className={`panel p-5 ${className}`}>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="label flex items-center gap-2.5">
+          {index && <span className="font-mono text-[10.5px] tracking-normal text-ink-3">{index}</span>}
+          {title}
+        </h2>
+        {aside}
+      </header>
+      {children}
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Evidence items
 
 function EvidenceItem({ r }: { r: ResolvedEvidence }) {
   if (r.ref.reasonCode === 'WATCH_TELEMETRY_FLAG' && r.ref.note) {
@@ -30,7 +61,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
     case 'SYMPTOM':
       return (
         <div className="text-[12.5px]">
-          <span className="font-bold text-coral">{SYMPTOM_LABEL[r.symptom.code]}</span>
+          <span className="font-semibold text-coral">{SYMPTOM_LABEL[r.symptom.code]}</span>
           <span className="text-ink-2"> — {r.symptom.reportedBy === 'SELF_REPORTED' ? 'self-reported' : 'crew-observed'} at {utcTime(r.symptom.reportedAt)}</span>
           {r.symptom.phase && <span className="text-ink-3"> · {r.symptom.phase.toLowerCase()} phase</span>}
           {r.symptom.note && <div className="text-[12px] text-ink-3">“{r.symptom.note}”</div>}
@@ -40,7 +71,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
       const m = r.measurement
       return (
         <div className="text-[12.5px]">
-          <span className="font-bold text-ink">
+          <span className="font-semibold text-ink">
             {m.indicator.replace(/_/g, ' ').toLowerCase()} {m.value ?? '--'} {m.unit}
           </span>
           <span className="text-ink-2">
@@ -54,7 +85,7 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
     case 'PHASE':
       return (
         <div className="text-[12.5px] text-ink-2">
-          <span className="font-bold text-ink">{r.phase.phase} phase</span> {utcTime(r.phase.startedAt)} → {r.phase.endedAt ? utcTime(r.phase.endedAt) : 'no end time'}
+          <span className="font-semibold text-ink">{r.phase.phase} phase</span> {utcTime(r.phase.startedAt)} → {r.phase.endedAt ? utcTime(r.phase.endedAt) : 'no end time'}
         </div>
       )
     case 'SESSION':
@@ -68,30 +99,47 @@ function EvidenceItem({ r }: { r: ResolvedEvidence }) {
   }
 }
 
-function WhyFlagged({ ctx }: { ctx: EventContext }) {
+// ---------------------------------------------------------------------------
+// The three questions
+
+function Narrative({ ctx }: { ctx: EventContext }) {
+  const timeline = timelineFor(ctx.event, ctx.session)
   const sentences = explainEvent(ctx)
+  const concl = conclusionsFor(ctx)
   const watchAction = ctx.event.extensions?.watchReviewAction
   return (
-    <Panel title="Why this was flagged" meta={<span className="text-[11.5px] text-ink-3">From the event’s own reason codes</span>} className="lg:col-span-5">
-      <div data-testid="explanation">
-        <p className="text-[15px] leading-relaxed font-bold text-ink">{sentences[0]}</p>
-        <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-ink-2">
-          {sentences.slice(1).map((s, i) => (
-            <p key={i}>{s}</p>
+    <section className="grid gap-5 xl:grid-cols-3" aria-label="Evidence narrative">
+      <Section index="01" title="What happened?">
+        <ol className="space-y-2.5" data-testid="what-happened">
+          {timeline.map((i, idx) => (
+            <li key={idx} className="grid grid-cols-[62px_minmax(0,1fr)] gap-x-3 text-[12.5px]">
+              <span className="pt-px text-ink-3 tnum">
+                {utcTime(i.at).replace(' UTC', 'Z')}
+                {(idx === 0 || utcDate(i.at) !== utcDate(timeline[idx - 1].at)) && <span className="block text-[10px] text-ink-3">{utcDate(i.at)}</span>}
+              </span>
+              <span>
+                <span className="font-semibold text-ink">{i.label}</span>
+                {i.detail && <span className="block text-[11.5px] text-ink-3">{i.detail}</span>}
+              </span>
+            </li>
           ))}
+          {!timeline.length && <li className="text-[13px] text-ink-3">Nothing recorded.</li>}
+        </ol>
+      </Section>
+
+      <Section index="02" title="Why was this flagged?">
+        <div data-testid="explanation">
+          <p className="text-[14px] leading-relaxed font-semibold text-ink">{sentences[0]}</p>
+          {typeof watchAction === 'string' && <p className="mt-3 text-[12.5px] text-ink-2">{watchAction}</p>}
         </div>
-      </div>
-      {typeof watchAction === 'string' && <p className="mt-3 text-[12.5px] text-ink-2">{watchAction}</p>}
-      <div className="mt-5 border-t border-hair pt-4">
-        <div className="micro mb-3">Reason codes and the records behind them</div>
-        <ul className="space-y-3" data-testid="reason-codes">
+        <ul className="mt-4 space-y-2.5" data-testid="reason-codes">
           {ctx.event.reasonCodes.map((code) => {
             const info = reasonInfo(code)
             const ev = ctx.evidence.filter((e) => e.ref.reasonCode === code)
             return (
               <li key={code} className="well px-3.5 py-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-md border border-line bg-void px-1.5 py-0.5 font-mono text-[11px] font-bold text-ink">{code}</span>
+                  <span className="rounded-md border border-line bg-void px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink">{code}</span>
                   <span className="text-[12.5px] text-ink">{info.known ? info.label : 'Unrecognised code'}</span>
                 </div>
                 <p className="mt-1.5 text-[12px] text-ink-3">{info.meaning}</p>
@@ -102,8 +150,81 @@ function WhyFlagged({ ctx }: { ctx: EventContext }) {
             )
           })}
         </ul>
+      </Section>
+
+      <Section index="03" title="What can we actually conclude?">
+        <div data-testid="conclusions">
+          <div className="micro text-mint">The record shows</div>
+          <ul className="mt-2.5 space-y-2">
+            {concl.supported.map((t, i) => (
+              <li key={i} className="flex gap-2.5 text-[12.5px] leading-snug text-ink">
+                <Check size={14} className="mt-0.5 shrink-0 text-mint" aria-hidden />
+                {t}
+              </li>
+            ))}
+            {!concl.supported.length && <li className="text-[12.5px] text-ink-3">Nothing that supports a conclusion.</li>}
+          </ul>
+          <div className="micro rule mt-4 pt-4 text-amber">The record cannot show</div>
+          <ul className="mt-2.5 space-y-2">
+            {concl.unsupported.map((t, i) => (
+              <li key={i} className="flex gap-2.5 text-[12.5px] leading-snug text-ink-2">
+                <Minus size={14} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Section>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Heart-rate analysis with the measurement inspector
+
+function ProvenanceRow({ k, children, mono = false }: { k: string; children: ReactNode; mono?: boolean }) {
+  return (
+    <div className="grid grid-cols-[108px_minmax(0,1fr)] gap-x-3 py-1.5">
+      <dt className="micro pt-0.5">{k}</dt>
+      <dd className={`min-w-0 text-[12.5px] break-words text-ink ${mono ? 'font-mono text-[11.5px]' : ''}`}>{children}</dd>
+    </div>
+  )
+}
+
+function MeasurementInspector({ m, c, links }: { m: StoredMeasurement | null; c: PhaseComparison; links: Record<string, LinkState> }) {
+  if (!m) return <p className="text-[12.5px] text-ink-3">Select a reading in the chart or the table to see where it came from.</p>
+  const used = [...c.rest.valid, ...c.recovery.valid].some((x) => x.measurementId === m.measurementId)
+  const excl = [...c.rest.excluded, ...c.recovery.excluded].find((x) => x.measurement.measurementId === m.measurementId)
+  const mode = recordSourceMode(m, m.provenance.deviceId ? (links[m.provenance.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED')
+  const modeTone: Tone = SOURCE_META[mode].tone
+  return (
+    <dl className="divide-y divide-hair" data-testid="provenance-inspector">
+      <div className="pb-3">
+        <div className="text-[26px] font-semibold tnum text-ink">
+          {m.value === null ? 'No value' : m.value}
+          {m.value !== null && <span className="unit ml-1.5 text-[14px]">{m.unit}</span>}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <Pill tone={modeTone}>{mode}</Pill>
+          <Pill tone={used ? 'cyan' : 'amber'}>{used ? 'Used in median' : 'Left out'}</Pill>
+        </div>
       </div>
-    </Panel>
+      <ProvenanceRow k="Measured">{utcStamp(m.measuredAt)}</ProvenanceRow>
+      <ProvenanceRow k="Received">{m.receivedAt ? utcStamp(m.receivedAt) : '--'}</ProvenanceRow>
+      <ProvenanceRow k="Phase">{m.phase ? m.phase.toLowerCase() : 'not tagged'}</ProvenanceRow>
+      <ProvenanceRow k="Quality">
+        {m.quality.toLowerCase()}
+        {excl && <span className="text-amber"> · {EXCLUSION_LABEL[excl.reason].toLowerCase()}</span>}
+      </ProvenanceRow>
+      <ProvenanceRow k="Device">{m.source.device ?? 'not recorded'}</ProvenanceRow>
+      <ProvenanceRow k="Sensor">{m.source.sensor ?? 'not recorded'}</ProvenanceRow>
+      <ProvenanceRow k="Source kind">{m.source.kind.replace(/_/g, ' ').toLowerCase()}</ProvenanceRow>
+      <ProvenanceRow k="Arrived via">{(m.provenance.ingestPath ?? 'created on this computer').replace(/_/g, ' ').toLowerCase()}</ProvenanceRow>
+      {m.provenance.importFileName && <ProvenanceRow k="Import file">{m.provenance.importFileName}</ProvenanceRow>}
+      <ProvenanceRow k="Reading id" mono>
+        {m.measurementId}
+      </ProvenanceRow>
+    </dl>
   )
 }
 
@@ -119,9 +240,32 @@ function WatchSummaryCheck({ session, c }: { session: StoredSession; c: PhaseCom
   )
 }
 
-export function RecoveryPanel({ session, c, className = '', unlinked = false }: { session: StoredSession | null; c: PhaseComparison | null; className?: string; unlinked?: boolean }) {
+export function RecoveryPanel({ session, c, className = '', unlinked = false, index }: { session: StoredSession | null; c: PhaseComparison | null; className?: string; unlinked?: boolean; index?: string }) {
+  const { snapshot } = useData()
+  const hr = session ? session.measurements.filter((m) => m.indicator === 'HEART_RATE') : []
+  const [picked, setSelectedId] = useState<string | null>(null)
+  const latestValid = [...hr].filter((m) => m.value !== null && m.quality === 'VALID').sort((a, b) => Date.parse(b.measuredAt) - Date.parse(a.measuredAt))[0] ?? null
+  const selectedId = picked ?? latestValid?.measurementId ?? null
+  const selected = hr.find((m) => m.measurementId === selectedId) ?? null
+  const src = hr[0]
+  const mode = src ? recordSourceMode(src, src.provenance.deviceId ? (snapshot?.links[src.provenance.deviceId] ?? 'NOT_PAIRED') : 'NOT_PAIRED') : null
   return (
-    <Panel title="Recovery heart rate" meta={session?.isSimulated ? <SimTag /> : session ? <RealTag /> : undefined} className={className}>
+    <Section
+      index={index}
+      title="Heart-rate analysis"
+      className={className}
+      aside={
+        session ? (
+          <span className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-3">
+            <span>
+              {src?.source.device ?? 'Unknown device'} · {plural(hr.length, 'reading')}
+            </span>
+            {session.isSimulated ? <SimTag /> : <RealTag />}
+            {mode && !session.isSimulated && <Pill tone={SOURCE_META[mode].tone}>{mode}</Pill>}
+          </span>
+        ) : undefined
+      }
+    >
       {!session || !c ? (
         unlinked ? (
           <Empty title="Not linked to a recovery session">This event concerns readings outside a recovery check, so there is no heart-rate comparison to show.</Empty>
@@ -129,54 +273,70 @@ export function RecoveryPanel({ session, c, className = '', unlinked = false }: 
           <Empty title="Session record not received">The event arrived without its session, so there are no readings to show. Nothing is estimated in their place.</Empty>
         )
       ) : (
-        <>
-          {c.status === 'CALCULATED' ? (
-            <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-hair bg-hair sm:grid-cols-4" data-testid="phase-stats">
-              {[
-                ['Rest median', `${c.restMedian} bpm`, `${plural(c.rest.valid.length, 'valid reading')}`],
-                ['Recovery median', `${c.recoveryMedian} bpm`, `${plural(c.recovery.valid.length, 'valid reading')}`],
-                ['Observed difference', `${signed(c.observedDelta)} bpm`, 'Recovery − rest, descriptive'],
-                ['Left out', `${c.rest.excluded.length + c.recovery.excluded.length}`, 'Readings not used'],
-              ].map(([k, v, sub]) => (
-                <div key={k} className="bg-panel px-4 py-3">
-                  <dt className="micro">{k}</dt>
-                  <dd className="mt-1.5 text-[20px] leading-none font-bold text-ink">{v}</dd>
-                  <dd className="mt-1.5 text-[11px] text-ink-3">{sub}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <div className="mb-4 rounded-xl border border-amber/40 bg-amber/[0.07] px-4 py-3" data-testid="insufficient">
-              <div className="text-[12px] font-bold tracking-[0.14em] text-amber uppercase">Insufficient samples to calculate phase comparison</div>
-              <p className="mt-1 text-[12.5px] text-ink-2">
-                Rest has {plural(c.rest.valid.length, 'valid reading')}, recovery has {plural(c.recovery.valid.length, 'valid reading')}. At least {RULES.minValidSamplesPerPhase} are needed in each
-                phase. No difference is shown.
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="min-w-0">
+            {c.status === 'CALCULATED' ? (
+              <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-hair sm:grid-cols-4" data-testid="phase-stats">
+                {[
+                  ['Rest median', `${c.restMedian}`, 'bpm', plural(c.rest.valid.length, 'valid reading')],
+                  ['Recovery median', `${c.recoveryMedian}`, 'bpm', plural(c.recovery.valid.length, 'valid reading')],
+                  ['Observed difference', signed(c.observedDelta), 'bpm', 'Recovery − rest, descriptive'],
+                  ['Left out', `${c.rest.excluded.length + c.recovery.excluded.length}`, '', 'Readings not used'],
+                ].map(([k, v, u, sub]) => (
+                  <div key={k} className="bg-panel-2 px-4 py-3">
+                    <dt className="micro">{k}</dt>
+                    <dd className="mt-1.5 text-[22px] leading-none font-semibold tnum text-ink">
+                      {v}
+                      {u && (
+                        <>
+                          {' '}
+                          <span className="unit text-[12px]">{u}</span>
+                        </>
+                      )}
+                    </dd>
+                    <dd className="mt-1.5 text-[11px] text-ink-3">{sub}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <div className="mb-4 rounded-xl border border-amber/40 bg-amber/[0.07] px-4 py-3" data-testid="insufficient">
+                <div className="label text-amber">Insufficient samples to calculate phase comparison</div>
+                <p className="mt-1 text-[12.5px] text-ink-2">
+                  Rest has {plural(c.rest.valid.length, 'valid reading')}, recovery has {plural(c.recovery.valid.length, 'valid reading')}. At least {RULES.minValidSamplesPerPhase} are needed in each
+                  phase. No difference is shown.
+                </p>
+              </div>
+            )}
+            <HrChart session={session} comparison={c} selectedId={selectedId} onSelect={setSelectedId} />
+            <div className="mt-3 space-y-1">
+              <p className="text-[11.5px] text-ink-3">
+                Each dot is one recorded reading; nothing is drawn between readings. Medians use valid readings timestamped inside each recorded phase. The difference is descriptive, not a clinical threshold.
               </p>
+              <WatchSummaryCheck session={session} c={c} />
             </div>
-          )}
-          <HrChart session={session} comparison={c} />
-          <div className="mt-3 space-y-1">
-            <p className="text-[11.5px] text-ink-3">Medians use valid readings timestamped inside each recorded phase. The difference is descriptive and is not a clinical threshold.</p>
-            <WatchSummaryCheck session={session} c={c} />
           </div>
-        </>
+          <div className="well px-4 py-4">
+            <div className="label mb-3">Measurement provenance</div>
+            <MeasurementInspector m={selected} c={c} links={snapshot?.links ?? {}} />
+          </div>
+        </div>
       )}
-    </Panel>
+    </Section>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Know / don't know, history
 
 function FactList({ facts, mark }: { facts: Fact[]; mark: 'known' | 'unknown' }) {
   return (
     <ul className="space-y-2.5">
       {facts.map((f) => (
         <li key={f.id} className="flex gap-2.5 text-[12.5px] leading-snug" data-testid={`fact-${f.id}`}>
-          <span
-            className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${mark === 'known' ? 'bg-mint' : f.kind === 'limit' ? 'bg-ink-3' : 'bg-amber'}`}
-            aria-hidden
-          />
+          <span className={`mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full ${mark === 'known' ? 'bg-mint' : f.kind === 'limit' ? 'bg-ink-3' : 'bg-amber'}`} aria-hidden />
           <span className={mark === 'known' ? 'text-ink' : 'text-ink-2'}>
             {f.text}
-            {f.kind === 'limit' && <span className="ml-1.5 text-[10px] tracking-[0.14em] text-ink-3 uppercase">Not measured</span>}
+            {f.kind === 'limit' && <span className="micro ml-1.5">Not measured</span>}
           </span>
         </li>
       ))}
@@ -184,46 +344,51 @@ function FactList({ facts, mark }: { facts: Fact[]; mark: 'known' | 'unknown' })
   )
 }
 
-function KnowPanel({ ctx }: { ctx: EventContext }) {
+function KnowPanel({ ctx, index }: { ctx: EventContext; index: string }) {
   const k = knownsAndUnknowns(ctx)
   return (
-    <Panel title="What we know / what we don't know" className="lg:col-span-4">
+    <Section index={index} title="What we know / what we don't know" className="lg:col-span-4">
       <div className="grid gap-5" data-testid="knowns">
         <div>
           <div className="micro mb-2.5 text-mint">What we know</div>
           <FactList facts={k.known} mark="known" />
         </div>
-        <div className="border-t border-hair pt-4">
+        <div className="rule pt-4">
           <div className="micro mb-2.5 text-amber">What we don’t know</div>
-          <FactList facts={k.unknown} mark="unknown" />
+          <FactList facts={[...k.unknown, { id: 'diagnosis', kind: 'limit', text: 'Heart-rate data alone cannot diagnose orthostatic intolerance.' }]} mark="unknown" />
         </div>
       </div>
-    </Panel>
+    </Section>
   )
 }
 
-export function HistoryPanel({ ctx, className = '' }: { ctx: Pick<EventContext, 'baseline' | 'session' | 'comparison'>; className?: string }) {
+export function HistoryPanel({ ctx, className = '', index }: { ctx: Pick<EventContext, 'baseline' | 'session' | 'comparison'>; className?: string; index?: string }) {
   const b = ctx.baseline
   const s = ctx.session
   return (
-    <Panel title="Personal history" className={className} meta={b ? <Pill tone={b.status === 'ESTABLISHED' ? 'cyan' : 'muted'}>{b.status === 'ESTABLISHED' ? 'Baseline established' : 'Not established'}</Pill> : undefined}>
+    <Section
+      index={index}
+      title="Personal history"
+      className={className}
+      aside={b ? <Pill tone={b.status === 'ESTABLISHED' ? 'cyan' : 'muted'}>{b.status === 'ESTABLISHED' ? 'Baseline established' : 'Not established'}</Pill> : undefined}
+    >
       {!b || !s ? (
         <Empty title="No session to compare" />
       ) : (
         <div data-testid="history">
           {b.status === 'ESTABLISHED' ? (
             <p className="text-[13px] text-ink-2">
-              Baseline <span className="font-bold text-ink">{signed(b.baselineDelta ?? 0)} bpm</span>: median recovery − rest difference {baselineBasis(b)}.
+              Baseline <span className="font-semibold text-ink">{signed(b.baselineDelta ?? 0)} bpm</span>: median recovery − rest difference {baselineBasis(b)}.
               {b.differenceFromBaseline !== null && (
                 <>
                   {' '}
-                  This session: <span className="font-bold text-ink">{signed(b.currentDelta ?? 0)} bpm</span>, {signed(b.differenceFromBaseline)} bpm from the baseline. Descriptive only.
+                  This session: <span className="font-semibold text-ink">{signed(b.currentDelta ?? 0)} bpm</span>, {signed(b.differenceFromBaseline)} bpm from the baseline. Descriptive only.
                 </>
               )}
             </p>
           ) : (
             <div className="rounded-xl border border-line px-4 py-3">
-              <div className="text-[12px] font-bold tracking-[0.14em] text-ink uppercase">Personal baseline not established</div>
+              <div className="label text-ink">Personal baseline not established</div>
               <p className="mt-1 text-[12.5px] text-ink-2">
                 {b.compatibleCount} of {b.required} earlier comparable sessions. A baseline needs {b.required} {s.isSimulated ? 'simulated' : 'genuine'} sessions with the same protocol and enough readings.
               </p>
@@ -242,7 +407,7 @@ export function HistoryPanel({ ctx, className = '' }: { ctx: Pick<EventContext, 
             <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2" aria-label="Sessions compared" data-testid="compared-sessions">
               {b.used.map((u) => (
                 <li key={u.sessionId}>
-                  <span className="tnum text-ink-3">{utcStamp(u.startedAt).slice(5, 10)}</span> <span className="font-bold text-ink">{signed(u.observedDelta)}</span> bpm
+                  <span className="tnum text-ink-3">{utcStamp(u.startedAt).slice(5, 10)}</span> <span className="font-semibold text-ink">{signed(u.observedDelta)}</span> bpm
                 </li>
               ))}
             </ul>
@@ -253,7 +418,7 @@ export function HistoryPanel({ ctx, className = '' }: { ctx: Pick<EventContext, 
               <ul className="mt-2 space-y-1">
                 {b.excluded.map((x) => (
                   <li key={x.sessionId}>
-                    <span className="tnum text-[11px]">{utcStamp(x.startedAt).slice(0, 16)}</span> · {BASELINE_EXCLUSION_LABEL[x.reason]}
+                    <span className="tnum">{utcStamp(x.startedAt).slice(0, 16)}</span> · {BASELINE_EXCLUSION_LABEL[x.reason]}
                   </li>
                 ))}
               </ul>
@@ -261,9 +426,12 @@ export function HistoryPanel({ ctx, className = '' }: { ctx: Pick<EventContext, 
           )}
         </div>
       )}
-    </Panel>
+    </Section>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Review workflow
 
 function ReviewWorkflow({ event }: { event: StoredEvent }) {
   const { actions } = useData()
@@ -314,7 +482,7 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
                     onChange={() => setChecked((c) => (c.includes(item.id) ? c.filter((x) => x !== item.id) : [...c, item.id]))}
                     data-testid={`check-${item.id}`}
                   />
-                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border peer-focus-visible:outline-2 peer-focus-visible:outline-cyan ${on ? 'border-violet bg-violet text-void' : 'border-line'}`} aria-hidden>
+                  <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-cyan ${on ? 'border-violet bg-violet text-void' : 'border-line'}`} aria-hidden>
                     {on && <Check size={13} strokeWidth={3} />}
                   </span>
                   <span className="text-[13px] text-ink">
@@ -339,17 +507,17 @@ function ReviewWorkflow({ event }: { event: StoredEvent }) {
         <div className="flex flex-wrap gap-2">
           {!locked && (
             <>
-              <button className="btn btn-ghost" disabled={!!busy} onClick={() => run('SAVE_PROGRESS')}>
-                {busy === 'SAVE_PROGRESS' ? 'Saving' : 'Save progress'}
+              <button className="btn btn-ghost" aria-busy={busy === 'SAVE_PROGRESS'} disabled={!!busy} onClick={() => run('SAVE_PROGRESS')}>
+                Save progress
               </button>
-              <button className="btn btn-primary" disabled={!!busy || !all || !reviewer.trim()} onClick={() => run('MARK_REVIEWED')} data-testid="mark-reviewed">
-                <ClipboardCheck size={15} /> {busy === 'MARK_REVIEWED' ? 'Saving' : 'Mark reviewed'}
+              <button className="btn btn-primary" aria-busy={busy === 'MARK_REVIEWED'} disabled={!!busy || !all || !reviewer.trim()} onClick={() => run('MARK_REVIEWED')} data-testid="mark-reviewed">
+                <ClipboardCheck size={15} /> Mark reviewed
               </button>
             </>
           )}
           {r.state === 'REVIEWED' && (
-            <button className="btn btn-ghost" disabled={!!busy || !reviewer.trim()} onClick={() => run('CLOSE')} data-testid="close-event">
-              {busy === 'CLOSE' ? 'Closing' : 'Close event'}
+            <button className="btn btn-ghost" aria-busy={busy === 'CLOSE'} disabled={!!busy || !reviewer.trim()} onClick={() => run('CLOSE')} data-testid="close-event">
+              Close event
             </button>
           )}
         </div>
@@ -381,6 +549,18 @@ function download(name: string, data: unknown) {
   a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+// ---------------------------------------------------------------------------
+// Page
+
+function HeaderField({ k, children, testId }: { k: string; children: ReactNode; testId?: string }) {
+  return (
+    <div className="min-w-0" data-testid={testId}>
+      <dt className="micro">{k}</dt>
+      <dd className="mt-1.5 text-[13px] break-words text-ink">{children}</dd>
+    </div>
+  )
 }
 
 export function Investigation({ id }: { id: string }) {
@@ -420,6 +600,7 @@ export function Investigation({ id }: { id: string }) {
 
   const ctx = buildEventContext(event, ds, snapshot.serverTime)
   const cat = CATEGORY_META[event.category]
+  const tone: Tone = event.review.state === 'REVIEWED' || event.review.state === 'CLOSED' ? 'mint' : cat.tone
   const status = STATUS_META[event.status]
   const ack = ackLabel(event)
   const canSimAck = event.isSimulated && event.delivery.state === 'PRESENTED' && !event.acknowledgement
@@ -427,21 +608,36 @@ export function Investigation({ id }: { id: string }) {
     setReviewOpen(true)
     requestAnimationFrame(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
+  const delivery =
+    event.delivery.state === 'PRESENTED'
+      ? `Presented on the ${event.delivery.channel === 'SIMULATED_WATCH' ? 'simulated watch' : 'watch'} ${event.delivery.presentedAt ? utcTime(event.delivery.presentedAt) : ''}`
+      : event.delivery.state === 'WATCH_UNREACHABLE'
+        ? 'Not delivered · watch unreachable'
+        : event.delivery.state === 'UNCONFIRMED'
+          ? 'Queued, never confirmed'
+          : event.delivery.state === 'QUEUED'
+            ? 'Queued for the watch'
+            : 'Not attempted'
 
   return (
     <div className="flex flex-col gap-5" data-testid="investigation">
-      <section className={`panel rise relative overflow-hidden px-6 py-5`}>
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${TONE[cat.tone].stroke}, transparent 70%)` }} aria-hidden />
+      <section className="panel rise relative overflow-hidden px-6 pt-5 pb-6">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${TONE[tone].stroke}, transparent 60%)` }} aria-hidden />
         <a href={href.events} className="micro inline-flex items-center gap-1.5 hover:text-ink-2">
           <ArrowLeft size={12} /> Event history
         </a>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`text-[12px] font-bold tracking-[0.18em] uppercase ${TONE[cat.tone].text}`}>{cat.title}</span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className={`h-2 w-2 rounded-full ${TONE[tone].dot}`} aria-hidden />
+              <span className={`font-display text-[11.5px] font-bold tracking-[0.18em] [font-stretch:112%] ${TONE[tone].text}`}>{focusLabel(event)}</span>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
-            <h1 className="mt-2 text-[clamp(20px,2.1vw,27px)] leading-tight font-bold text-ink">{headlineFor(event, ds)}</h1>
+            <h1 className="mt-3 text-[clamp(22px,2.3vw,30px)] leading-tight font-semibold tracking-[-0.01em] text-ink">{eventTitle(ctx)}</h1>
+            <p className="mt-1.5 text-[15px] text-ink-2">
+              <span className="text-ink-3">Reason · </span>
+              {reasonLine(ctx)}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="btn btn-primary" onClick={openReview} data-testid="open-review">
@@ -450,6 +646,7 @@ export function Investigation({ id }: { id: string }) {
             {canSimAck && (
               <button
                 className="btn btn-sim"
+                aria-busy={ackBusy}
                 disabled={ackBusy}
                 onClick={async () => {
                   setAckBusy(true)
@@ -471,52 +668,57 @@ export function Investigation({ id }: { id: string }) {
             </button>
           </div>
         </div>
-        <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-4 xl:grid-cols-7" data-testid="event-header">
-          <KV k="Event ID" mono>
-            {event.eventId}
-          </KV>
-          <KV k="Astronaut">{subjectLabel(event.subjectId)}</KV>
-          <KV k="Created (UTC)">
-            {utcStamp(event.createdAt)}
-          </KV>
-          <KV k="Status">
+        <dl className="rule mt-5 grid grid-cols-2 gap-x-6 gap-y-4 pt-5 md:grid-cols-4" data-testid="event-header">
+          <HeaderField k="Event ID">
+            <span className="font-mono text-[12px]">{event.eventId}</span>
+          </HeaderField>
+          <HeaderField k="Astronaut">{subjectLabel(event.subjectId)}</HeaderField>
+          <HeaderField k="Timestamp (UTC)">
+            <span className="tnum">{utcStamp(event.createdAt)}</span>
+          </HeaderField>
+          <HeaderField k="Event reason">
+            <span className="font-mono text-[11.5px]">{event.reasonCodes.join(', ')}</span>
+          </HeaderField>
+          <HeaderField k="Status">
             <Pill tone={status.tone}>{status.label}</Pill>
-          </KV>
-          <KV k="Trigger source">
+          </HeaderField>
+          <HeaderField k="Source">
             {ORIGIN_LABEL[event.origin.kind]}
             {event.origin.ruleSet ? <span className="text-ink-3"> · {event.origin.ruleSet}</span> : null}
-          </KV>
-          <KV k="Data">
-            <span className={TONE[SOURCE_META[ctx.sourceMode].tone].text}>{event.isSimulated ? 'SIMULATED' : `REAL · ${ctx.sourceMode}`}</span>
-          </KV>
-          <KV k="Acknowledgement">
-            <span className={TONE[ack.tone].text}>{ack.text}</span>
-          </KV>
+            <span className={`mt-0.5 block text-[11.5px] ${TONE[SOURCE_META[ctx.sourceMode].tone].text}`}>{event.isSimulated ? 'SIMULATED' : `REAL · ${ctx.sourceMode}`}</span>
+          </HeaderField>
+          <HeaderField k="Delivery">
+            <span className={event.delivery.state === 'PRESENTED' ? 'text-ink' : 'text-amber'}>{delivery}</span>
+          </HeaderField>
+          <HeaderField k="Acknowledgement">
+            <span className={TONE[ack.tone].text}>{event.acknowledgement ? ack.text : event.delivery.state === 'PRESENTED' ? 'Presented · not acknowledged' : ack.text}</span>
+          </HeaderField>
         </dl>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-12">
-        <WhyFlagged ctx={ctx} />
-        <RecoveryPanel session={ctx.session} c={ctx.comparison} className="lg:col-span-7" unlinked={event.sessionId === null} />
-      </section>
+      <Narrative ctx={ctx} />
+
+      <RecoveryPanel index="04" session={ctx.session} c={ctx.comparison} unlinked={event.sessionId === null} />
 
       <section className="grid gap-5 lg:grid-cols-12">
-        <Panel title="Crew health report" className="ticks lg:col-span-4">
+        <Section index="05" title="Body evidence map" className="ticks lg:col-span-4">
           <CrewReport ds={ds} session={ctx.session} subjectId={event.subjectId} compact />
-        </Panel>
-        <KnowPanel ctx={ctx} />
-        <HistoryPanel ctx={ctx} className="lg:col-span-4" />
+        </Section>
+        <KnowPanel ctx={ctx} index="06" />
+        <HistoryPanel ctx={ctx} className="lg:col-span-4" index="07" />
       </section>
 
-      <div ref={reviewRef} className="scroll-mt-40">
+      <div ref={reviewRef} className="scroll-mt-32">
         {reviewOpen ? (
-          <Panel title="Review workflow" meta={<span className="text-[11.5px] text-ink-3">Offline · stored on this computer</span>}>
+          <Section index="08" title="Review workflow" aside={<span className="text-[11.5px] text-ink-3">Offline · stored on this computer</span>}>
             <ReviewWorkflow key={`${event.eventId}-${event.review.updatedAt ?? 'new'}`} event={event} />
-          </Panel>
+          </Section>
         ) : (
           <div className="panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
-              <div className="label text-ink">Review workflow</div>
+              <div className="label flex items-center gap-2.5">
+                <span className="font-mono text-[10.5px] tracking-normal text-ink-3">08</span>Review workflow
+              </div>
               <div className="mt-1 text-[12.5px] text-ink-3">{REVIEW_META[event.review.state].label}. The checklist works offline and records who reviewed what, and when.</div>
             </div>
             <button className="btn btn-ghost" onClick={openReview}>
@@ -527,10 +729,21 @@ export function Investigation({ id }: { id: string }) {
       </div>
 
       <section className="grid gap-5 lg:grid-cols-12">
-        <Panel title="Event activity" className="lg:col-span-5">
-          <Timeline items={timelineFor(event, ctx.session)} />
-        </Panel>
-        <Panel title="Source record" className="lg:col-span-7" meta={<span className="text-[11.5px] text-ink-3">Exactly as stored · provenance included</span>}>
+        <Section index="09" title="State history" className="lg:col-span-5" aside={<span className="text-[11.5px] text-ink-3">Every status change, who made it</span>}>
+          <ol className="divide-y divide-hair" data-testid="state-history">
+            {event.statusHistory.map((h, i) => (
+              <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 py-2.5">
+                <span>
+                  <span className="text-[12.5px] font-semibold text-ink">{STATUS_META[h.status].label}</span>
+                  <span className="micro ml-2">{h.actor.replace('_', ' ')}</span>
+                  {h.note && <span className="block text-[11.5px] text-ink-3">{h.note}</span>}
+                </span>
+                <span className="text-right text-[11.5px] text-ink-2 tnum">{utcStamp(h.at).slice(5)}</span>
+              </li>
+            ))}
+          </ol>
+        </Section>
+        <Section index="10" title="Source record" className="lg:col-span-7" aside={<span className="text-[11.5px] text-ink-3">Exactly as stored · provenance included</span>}>
           <details className="group">
             <summary className="cursor-pointer text-[12.5px] text-ink-2 hover:text-ink">Show the stored event and session JSON</summary>
             <pre className="mt-3 max-h-[420px] overflow-auto rounded-xl border border-hair bg-void p-4 font-mono text-[11px] leading-relaxed text-ink-2">
@@ -538,19 +751,13 @@ export function Investigation({ id }: { id: string }) {
             </pre>
           </details>
           <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <KV k="Ingest path">{event.provenance.ingestPath ?? 'Created on this computer'}</KV>
-            <KV k="Received">
-              {event.provenance.receivedAt ? utcStamp(event.provenance.receivedAt) : '--'}
-            </KV>
-            <KV k="Import file">{event.provenance.importFileName ?? '--'}</KV>
+            <HeaderField k="Ingest path">{event.provenance.ingestPath ?? 'Created on this computer'}</HeaderField>
+            <HeaderField k="Received">
+              <span className="tnum">{event.provenance.receivedAt ? utcStamp(event.provenance.receivedAt) : '--'}</span>
+            </HeaderField>
+            <HeaderField k="Import file">{event.provenance.importFileName ?? '--'}</HeaderField>
           </dl>
-          {ctx.session && ctx.comparison && ctx.comparison.rest.excluded.length + ctx.comparison.recovery.excluded.length > 0 && (
-            <p className="mt-3 text-[11.5px] text-ink-3">
-              Left out of the medians:{' '}
-              {[...ctx.comparison.rest.excluded, ...ctx.comparison.recovery.excluded].map((x) => `${x.measurement.measurementId} (${EXCLUSION_LABEL[x.reason].toLowerCase()})`).join(', ')}.
-            </p>
-          )}
-        </Panel>
+        </Section>
       </section>
     </div>
   )

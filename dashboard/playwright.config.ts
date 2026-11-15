@@ -25,7 +25,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'desktop', testIgnore: /responsive/, use: { ...devices['Desktop Chrome'], channel: 'chromium', viewport: { width: 1440, height: 900 } } },
-    { name: 'phone', testMatch: /responsive/, use: { ...devices['Pixel 7'], channel: 'chromium' } },
+    // 390 px: the narrowest phone width the brief asks for (Pixel 7 is 412 px by default).
+    { name: 'phone', testMatch: /responsive/, use: { ...devices['Pixel 7'], channel: 'chromium', viewport: { width: 390, height: 844 } } },
   ],
   webServer: {
     command: `npm run build && NODE_ENV=production GG_PORT=${E2E_PORT} GG_DATA_DIR="${dataDir}" GG_DEVICE_TOKEN=${E2E_TOKEN} npx tsx src/server/main.ts`,

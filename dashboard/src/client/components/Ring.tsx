@@ -27,8 +27,8 @@ export function Ring({
   unavailable?: string
   size?: number
 }) {
-  const stroke = 8
-  const r = size / 2 - stroke - 8
+  const stroke = 6
+  const r = size / 2 - stroke - 7
   const c = 2 * Math.PI * r
   const [shown, setShown] = useState(0)
   useEffect(() => {
@@ -80,25 +80,27 @@ export function Ring({
         <div className="absolute inset-0 grid place-items-center">
           {pct !== null ? (
             <div>
-              <div className="figure text-[30px] text-ink">
+              <div className="figure text-ink" style={{ fontSize: Math.round(size * 0.235) }}>
                 {pct}
-                <span className="ml-0.5 text-[15px] text-ink-3">%</span>
+                <span className="unit ml-0.5 text-[0.5em]">%</span>
               </div>
-              <div className="micro mt-1.5 tnum">
+              <div className="micro mt-1 tnum">
                 {value!.numerator} / {value!.denominator}
               </div>
             </div>
           ) : (
             <div className="px-6">
-              <div className="figure text-[20px] text-ink-3">N/A</div>
-              <div className="micro mt-1.5 leading-tight">{unavailable}</div>
+              <div className="figure text-ink-3" style={{ fontSize: Math.round(size * 0.17) }}>
+                N/A
+              </div>
+              <div className="micro mt-1 text-[8.5px] leading-tight">{unavailable}</div>
             </div>
           )}
         </div>
       </div>
-      <figcaption className="max-w-[24ch]">
-        <div className="label text-ink">{label}</div>
-        <div className="mt-1 text-[12px] leading-snug text-ink-3">{caption}</div>
+      <figcaption className="max-w-[22ch]">
+        <div className="label text-[10.5px] text-ink">{label}</div>
+        <div className="mt-1 text-[11px] leading-snug text-ink-3">{caption}</div>
       </figcaption>
     </figure>
   )

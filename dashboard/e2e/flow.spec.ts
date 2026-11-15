@@ -15,7 +15,9 @@ test('dashboard → review event → evidence → review workflow → history (s
 
   // Dashboard: the most pressing open event is the unacknowledged dizziness report.
   const hero = page.getByTestId('hero-alert')
-  await expect(hero).toContainText('dizziness reported')
+  await expect(hero).toContainText('Dizziness self-reported')
+  await expect(page.getByTestId('focus-label')).toHaveText('REVIEW SUGGESTED')
+  await expect(hero).not.toContainText('HEALTH REVIEW REQUIRED')
   await expect(hero).toContainText('SIM')
   await expect(hero).toContainText('Presented · not acknowledged')
   await page.getByTestId('open-evidence').click()
@@ -32,7 +34,7 @@ test('dashboard → review event → evidence → review workflow → history (s
   const head = page.getByTestId('region-HEAD').first()
   await expect(head).toHaveAttribute('data-state', 'symptom')
   await head.click()
-  await expect(page.getByTestId('region-detail').first()).toContainText('DIZZINESS — SELF-REPORTED')
+  await expect(page.getByTestId('region-detail').first()).toContainText('SELF-REPORTED DIZZINESS')
   await expect(page.getByTestId('knowns')).toContainText('Blood pressure: the watch cannot measure it')
   await expect(page.getByTestId('history')).toContainText('Baseline')
 
@@ -67,7 +69,7 @@ test('a triggered simulated watch event is labelled as simulated end to end', as
   await page.getByTestId('trigger-sim').click()
   const watch = page.getByTestId('sim-watch')
   await expect(watch).toContainText('Simulated watch')
-  await expect(watch).toContainText('HEALTH REVIEW')
+  await expect(watch).toContainText('REVIEW SUGGESTED')
   await watch.getByRole('button', { name: 'Open evidence' }).click()
   await expect(page).toHaveURL(/#\/events\/sim-trigger-/)
   await expect(page.getByTestId('event-header')).toContainText('SIMULATED')

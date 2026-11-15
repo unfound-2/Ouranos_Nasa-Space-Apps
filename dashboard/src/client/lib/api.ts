@@ -20,7 +20,7 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 4000
 
-export async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, prefix = '/api/v1'): Promise<T> {
+export async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, prefix = '/api/v1', timeoutMs = TIMEOUT_MS): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${prefix}${path}`, {
@@ -29,11 +29,11 @@ export async function request<T>(method: 'GET' | 'POST', path: string, body?: un
       body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
       cache: 'no-store',
       // A frozen API must not leave old LIVE or verified labels on screen.
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     })
   } catch (e) {
     if (e instanceof DOMException && e.name === 'TimeoutError')
-      throw new ApiError(0, 'API_TIMEOUT', `The local mission-computer API did not answer within ${TIMEOUT_MS / 1000} s.`)
+      throw new ApiError(0, 'API_TIMEOUT', `The local mission-computer API did not answer within ${timeoutMs / 1000} s.`)
     throw new ApiError(0, 'API_UNREACHABLE', 'The local mission-computer API is not reachable.')
   }
   const text = await res.text()
@@ -57,7 +57,7 @@ export interface Health {
   contractVersion: string
   time: string
   uptimeSeconds: number
-  storage: { dataDir: string; writable: boolean }
+  storage: { dataDir: string; writable: boolean; lastWriteError?: string | null }
   workspaces: Record<Workspace, { sessions: number; events: number; readings: number; devices: number }>
   network: { bind: string; lan: boolean }
 }
@@ -78,6 +78,46 @@ export interface Integration {
   endpoints: { method: string; path: string; actor: string; purpose: string }[]
 }
 
+export type CheckStatus = 'PASS' | 'FAIL' | 'NOT_TESTED'
+export type CheckRecordKind = 'EVENT' | 'SESSION' | 'MEASUREMENT'
+
+/** One of the nine watch-integration checks (GET /api/v1/integration/checks). */
+export interface IntegrationCheck {
+  id: string
+  label: string
+  status: CheckStatus
+  detail: string
+  evidence: string | null
+  at: string | null
+  recordId?: string | null
+  recordKind?: CheckRecordKind | null
+  /** dashboard-display: decided in the browser, not on the server. */
+  clientCheck?: true
+}
+
+export interface IntegrationChecks {
+  generatedAt: string
+  checks: IntegrationCheck[]
+  lan: { enabled: boolean; bind: string; port: number | null; addresses: { interface: string; address: string; url: string }[] }
+  watch: {
+    paired: boolean
+    deviceId: string | null
+    lastSeenAt: string | null
+    frame: { observedAt: string; metrics: string[]; simulated: boolean } | null
+  }
+}
+
+/** POST /api/v1/integration/selftest: a simulated round trip through this computer's own endpoints. */
+export interface SelftestReport {
+  simulated: true
+  summary: string
+  ranAt: string
+  target: { lan: boolean; watchBase: string; consoleBase: string }
+  steps: { step: string; method: string; path: string; url: string; status: number | null; ok: boolean; detail: string }[]
+  demoEventId: string | null
+  passed: boolean
+}
+
 export interface ImportResponse {
   results: IngestResult[]
   workspaces?: Workspace[]
@@ -91,6 +131,8 @@ export const api = {
     return { ...s, dataset: { ...s.dataset, fingerprints: {} } }
   },
   integration: () => request<Integration>('GET', '/integration'),
+  checks: () => request<IntegrationChecks>('GET', '/integration/checks', undefined, '/api/v1', 8000),
+  selftest: () => request<SelftestReport>('POST', '/integration/selftest', {}, '/api/v1', 20000),
   review: (workspace: Workspace, eventId: string, action: ReviewAction) =>
     request<{ event: StoredEvent }>('POST', `/alerts/${encodeURIComponent(eventId)}/review?workspace=${workspace}`, action),
   importFile: (fileName: string, content: unknown) => request<ImportResponse>('POST', '/import', { fileName, content }),

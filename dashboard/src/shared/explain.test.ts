@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { emptyDataset, runDataChecks, type Datasets } from './dataset'
 import { loadDemo } from './demo'
-import { buildEventContext, explainEvent, knownsAndUnknowns, reasonInfo, timelineFor } from './explain'
+import { buildEventContext, conclusionsFor, eventTitle, explainEvent, focusLabel, knownsAndUnknowns, reasonInfo, reasonLine, timelineFor, whatHappened } from './explain'
 import { buildEvent, buildExternalReading, buildSession } from './testing'
 
 const bundle = JSON.parse(readFileSync(new URL('../../fixtures/simulated/demo-bundle.json', import.meta.url), 'utf8'))
@@ -235,5 +235,61 @@ describe('heart-rate permission from the watch', () => {
     const ev2 = buildEvent({ eventId: 'evt-2', sessionId: 'ses-2', evidence: [] })
     const all = knownsAndUnknowns(buildEventContext(ev2, ds, NOW))
     expect([...all.known, ...all.unknown].map((x) => x.id)).not.toContain('hr-access')
+  })
+})
+
+describe('v2 narrative', () => {
+  const ds = demo()
+  const ctxOf = (id: string) => buildEventContext(ds.events[id], ds, NOW)
+
+  it('labels the focus by what the event actually is, never "required"', () => {
+    expect(focusLabel(ds.events['sim-evt-20261112-a'])).toBe('REVIEW SUGGESTED')
+    expect(focusLabel({ ...ds.events['sim-evt-20261112-a'], severity: 'PRIORITY_REVIEW' })).toBe('PRIORITY REVIEW SUGGESTED')
+    expect(focusLabel(ds.events['dq-sim-b-20261113b'])).toBe('VERIFY SOURCE')
+    expect(focusLabel(ds.events['sim-evt-20261112-b'])).toBe('RECORDING INCOMPLETE')
+    const reviewed = { ...ds.events['sim-evt-20261112-a'], review: { ...ds.events['sim-evt-20261112-a'].review, state: 'REVIEWED' as const } }
+    expect(focusLabel(reviewed)).toBe('REVIEWED')
+  })
+
+  it('titles and summarises each event in one line from its own record', () => {
+    expect(eventTitle(ctxOf('sim-evt-20261112-a'))).toBe('Gravity recovery assessment')
+    expect(reasonLine(ctxOf('sim-evt-20261112-a'))).toBe('Dizziness self-reported')
+    expect(reasonLine(ctxOf('sim-evt-20261113-b'))).toBe('Weakness self-reported')
+    expect(eventTitle(ctxOf('dq-sim-b-20261113b'))).toBe('Measurement source check')
+    expect(reasonLine(ctxOf('dq-sim-b-20261113b'))).toBe('Source review required · Sensor data stale')
+    expect(reasonLine(ctxOf('sim-evt-20261112-b'))).toBe('Insufficient heart-rate samples · Missing baseline')
+  })
+
+  it('summarises a watch telemetry flag from the readings the watch cited', () => {
+    const e = {
+      ...ds.events['sim-evt-20261112-a'],
+      sessionId: null,
+      reasonCodes: ['WATCH_TELEMETRY_FLAG'],
+      evidence: [{ reasonCode: 'WATCH_TELEMETRY_FLAG', kind: 'DEVICE' as const, refId: 'watch-x', note: 'EMU bench feed · Heart rate 142 bpm · priority' }],
+    }
+    const ctx = buildEventContext(e, ds, NOW)
+    expect(eventTitle(ctx)).toBe('Watch telemetry review')
+    expect(reasonLine(ctx)).toBe('Watch flagged Heart rate 142 bpm (priority)')
+  })
+
+  it('tells what happened in time order, ending with what the watch did', () => {
+    const lines = whatHappened(ctxOf('sim-evt-20261112-a'))
+    expect(lines[0]).toMatch(/^14:10:00 UTC · Recovery check started/)
+    expect(lines.some((l) => /Symptom logged: dizziness/.test(l))).toBe(true)
+    const created = lines.findIndex((l) => /Review event created/.test(l))
+    const presented = lines.findIndex((l) => /Alert presented on the simulated watch/.test(l))
+    expect(created).toBeGreaterThan(-1)
+    expect(presented).toBeGreaterThan(created)
+  })
+
+  it('separates what the record supports from what it cannot show', () => {
+    const c = conclusionsFor(ctxOf('sim-evt-20261112-a'))
+    expect(c.supported.join(' ')).toMatch(/Recovery heart rate was 23 bpm above rest/)
+    expect(c.supported.join(' ')).toMatch(/12 bpm above this crew member's baseline/)
+    expect(c.unsupported).toContain('Heart-rate data alone cannot diagnose orthostatic intolerance.')
+    expect(c.unsupported.join(' ')).toMatch(/Blood pressure was not measured/)
+    const thin = conclusionsFor(ctxOf('sim-evt-20261112-b'))
+    expect(thin.unsupported.join(' ')).toMatch(/too few valid readings/)
+    expect(thin.supported.join(' ')).not.toMatch(/bpm above rest/)
   })
 })

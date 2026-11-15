@@ -431,3 +431,105 @@ export function ringMetrics(session: StoredSession | null, event: StoredEvent | 
     review: event && checked !== null ? { fraction: checked / checklistSize, numerator: checked, denominator: checklistSize, state: event.review.state } : null,
   }
 }
+
+// ---------------------------------------------------------------------------
+// v2 narrative: one-line labels and the three-question evidence summary
+
+/** The headline state of an event: what the record supports, never stronger. */
+export function focusLabel(e: StoredEvent): string {
+  if (e.review.state === 'CLOSED') return 'CLOSED'
+  if (e.review.state === 'REVIEWED') return 'REVIEWED'
+  switch (e.category) {
+    case 'REVIEW_SUGGESTED':
+      return e.severity === 'PRIORITY_REVIEW' ? 'PRIORITY REVIEW SUGGESTED' : 'REVIEW SUGGESTED'
+    case 'VERIFY_SOURCE':
+      return 'VERIFY SOURCE'
+    case 'RECORDING_INCOMPLETE':
+      return 'RECORDING INCOMPLETE'
+  }
+}
+
+export function eventTitle(ctx: EventContext): string {
+  const e = ctx.event
+  if (e.reasonCodes.includes('WATCH_TELEMETRY_FLAG')) return 'Watch telemetry review'
+  if (e.category === 'VERIFY_SOURCE') return 'Measurement source check'
+  if (ctx.session?.protocol.id === 'TRAINING_DEMO') return 'Training run'
+  return 'Gravity recovery assessment'
+}
+
+/** "Dizziness self-reported", "Watch flagged Heart rate 142 bpm (priority)", or the reason labels. */
+export function reasonLine(ctx: EventContext): string {
+  const e = ctx.event
+  if (e.reasonCodes.includes('WATCH_TELEMETRY_FLAG')) {
+    const flagged = e.evidence
+      .filter((x) => x.reasonCode === 'WATCH_TELEMETRY_FLAG' && x.note)
+      .map((x) => {
+        const parts = (x.note as string).split(' · ')
+        return parts.length >= 3 ? `${parts[1]} (${parts[2]})` : (x.note as string)
+      })
+    return flagged.length ? `Watch flagged ${listJoin(flagged)}` : 'Watch flagged telemetry'
+  }
+  const symptoms = ctx.evidence.flatMap((x) => (x.found && x.kind === 'SYMPTOM' ? [x.symptom] : []))
+  if (e.reasonCodes.includes('SYMPTOM_REPORTED') && symptoms.length) {
+    const phrase = listJoin([...new Set(symptoms.map((s) => SYMPTOM_NOUN[s.code]))])
+    return `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)} ${reporter(symptoms)}`
+  }
+  return e.reasonCodes.map((c) => reasonInfo(c).label).join(' · ')
+}
+
+/** WHAT HAPPENED: the recorded sequence, one line per recorded step, in time order. */
+export function whatHappened(ctx: EventContext): string[] {
+  return timelineFor(ctx.event, ctx.session).map((i) => `${utcTime(i.at)} · ${i.label}${i.detail ? ` (${i.detail})` : ''}`)
+}
+
+/** WHAT CAN WE ACTUALLY CONCLUDE: what the record supports, and what it cannot show. */
+export function conclusionsFor(ctx: EventContext): { supported: string[]; unsupported: string[] } {
+  const supported: string[] = []
+  const unsupported: string[] = []
+  const { event, session, comparison: c, baseline: b } = ctx
+  if (session && c) {
+    if (c.status === 'CALCULATED') {
+      const d = c.observedDelta
+      supported.push(
+        `Recovery heart rate was ${Math.abs(d)} bpm ${d >= 0 ? 'above' : 'below'} rest (medians ${c.recoveryMedian} and ${c.restMedian} bpm, from ${c.recovery.valid.length} and ${c.rest.valid.length} valid readings).`,
+      )
+      if (b?.status === 'ESTABLISHED' && b.differenceFromBaseline !== null) {
+        const x = b.differenceFromBaseline
+        supported.push(
+          x === 0
+            ? `That matches this crew member's baseline (${baselineBasis(b).replace(/^from /, 'median of ')}).`
+            : `That is ${Math.abs(x)} bpm ${x > 0 ? 'above' : 'below'} this crew member's baseline (${baselineBasis(b).replace(/^from /, 'median of ')}).`,
+        )
+      } else {
+        unsupported.push('No personal baseline yet, so this check cannot be compared with this crew member\'s earlier checks.')
+      }
+    } else {
+      unsupported.push(
+        `No heart-rate comparison is possible: too few valid readings (rest ${c.rest.valid.length}, recovery ${c.recovery.valid.length}; ${RULES.minValidSamplesPerPhase} needed in each).`,
+      )
+    }
+    if (session.symptomCheck.status === 'REPORTED') {
+      const nouns = listJoin([...new Set(session.symptoms.map((s) => SYMPTOM_NOUN[s.code]))])
+      supported.push(`${nouns.charAt(0).toUpperCase()}${nouns.slice(1)} ${session.symptoms.length > 1 ? 'were' : 'was'} ${reporter(session.symptoms)} at ${utcTime(session.symptoms[0].reportedAt)}.`)
+      unsupported.push(`The cause of the ${nouns} is not established by this record.`)
+    } else if (session.symptomCheck.status === 'NONE_REPORTED') {
+      supported.push('No symptoms were reported in the symptom check.')
+    }
+  } else {
+    unsupported.push(
+      event.sessionId === null
+        ? 'This event is not linked to a recovery session, so no heart-rate comparison applies.'
+        : 'The session record has not been received, so no heart-rate comparison is possible.',
+    )
+  }
+  if (event.delivery.state === 'PRESENTED') {
+    const where = event.delivery.channel === 'SIMULATED_WATCH' ? 'simulated watch' : 'watch'
+    supported.push(`The alert was shown on the ${where}${event.acknowledgement ? ' and acknowledged there' : ', and has not been acknowledged'}.`)
+  } else {
+    unsupported.push('There is no confirmation that the alert reached the wearer.')
+  }
+  unsupported.push('Heart-rate data alone cannot diagnose orthostatic intolerance.')
+  if (!ctx.readings.some((r) => r.indicator !== 'HEART_RATE')) unsupported.push('Blood pressure was not measured; the watch cannot measure it.')
+  unsupported.push('Posture during each phase is not recorded.')
+  return { supported, unsupported }
+}

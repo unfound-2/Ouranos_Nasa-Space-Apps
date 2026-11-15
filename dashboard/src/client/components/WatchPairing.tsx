@@ -1,23 +1,39 @@
+import { Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { WatchFrame, WatchLinkSnapshot } from '../../shared/watch-link'
 import type { Workspace } from '../../shared/dataset'
 import { utcStamp } from '../../shared/format'
 import { takeWatchPairingCode } from '../lib/watch-pairing'
 import { request } from '../lib/api'
+import { Secret } from './Secret'
+
+const READING_TONE: Record<WatchFrame['readings'][number]['status'], string> = {
+  nominal: 'text-ink-2',
+  review: 'text-amber',
+  priority: 'text-coral',
+}
 
 function Frame({ frame }: { frame: WatchFrame }) {
   const status = frame.simulated ? 'SIMULATED DEMO' : 'LATEST RECEIVED'
   return (
-    <div className="well px-3.5 py-3">
-      <div className="text-[12px] font-bold text-ink">{frame.source} · {status}</div>
-      <ul className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+    <div className={`well px-4 py-3.5 ${frame.simulated ? 'sim-hatch' : ''}`}>
+      <div className={`text-[11px] font-semibold tracking-[0.08em] ${frame.simulated ? 'text-violet' : 'text-ink'}`}>
+        {frame.source} · {status}
+      </div>
+      <ul className="mt-2.5 grid gap-x-5 gap-y-2.5 sm:grid-cols-2">
         {frame.readings.map((reading) => (
-          <li key={reading.metric} className="text-[12px] text-ink-2">
-            {reading.metric} · {reading.quality === 'missing' ? 'Missing' : `${reading.value} ${reading.unit}`}
-            {' · '}{reading.quality} · {reading.status}
-            <div className="text-[11px] text-ink-3">
-              {utcStamp(new Date((reading.measuredAt ?? frame.observedAt) * 1000).toISOString())}
+          <li key={reading.metric} className="min-w-0">
+            <div className="micro">{reading.metric}</div>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-[15px] font-semibold text-ink tnum">
+                {reading.quality === 'missing' ? 'Missing' : reading.value}
+                {reading.quality !== 'missing' && <span className="unit ml-1 text-[11px]">{reading.unit}</span>}
+              </span>
+              <span className={`text-[11px] ${READING_TONE[reading.status]}`}>
+                {reading.quality} · {reading.status}
+              </span>
             </div>
+            <div className="text-[10.5px] text-ink-3 tnum">{utcStamp(new Date((reading.measuredAt ?? frame.observedAt) * 1000).toISOString())}</div>
           </li>
         ))}
       </ul>
@@ -79,35 +95,50 @@ export function WatchPairing({ workspace }: { workspace: Workspace }) {
     }
   }, [])
 
+  const frames = links.flatMap(({ deviceId, watch, telemetry }) => [
+    ...(watch && watch.simulated === (workspace === 'demo') ? [{ key: `${deviceId}:watch`, frame: watch }] : []),
+    ...(workspace === 'mission' ? telemetry.map((frame) => ({ key: `${deviceId}:${frame.source}`, frame })) : []),
+  ])
+
   return (
-    <div className="space-y-3 border-t border-hair pt-4">
-      <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
-        e.preventDefault()
-        void pair(code)
-      }}>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-2">
-          Watch pairing code
-          <input className="rounded-lg border border-line bg-void px-3 py-2 font-mono text-ink"
-            value={code} onChange={(e) => setCode(e.target.value)} placeholder="ABCDE-12345"
-            autoComplete="one-time-code" autoCapitalize="characters" maxLength={15} required />
+    <div className="flex flex-col gap-3">
+      <form
+        className="flex flex-wrap items-end gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void pair(code)
+        }}
+      >
+        <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="micro">Watch pairing code</span>
+          <input
+            className="field font-mono tracking-[0.12em] uppercase"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="ABCDE-12345"
+            autoComplete="one-time-code"
+            autoCapitalize="characters"
+            maxLength={15}
+            required
+          />
         </label>
-        <button className="btn btn-ghost" disabled={busy || !code.trim()}>Pair watch</button>
+        <button className="btn btn-primary" disabled={busy || !code.trim()} aria-busy={busy}>
+          <Link2 size={14} /> Pair watch
+        </button>
       </form>
       <p className="text-[12px] text-ink-2" role="status">
-        {message || 'Generate a code on the watch for this console, then enter it here or open the pairing link.'}
+        {message || 'Tap Get pairing code on the watch, then type the code here or open the pairing link it shares.'}
       </p>
       {adapterToken && (
-        <details className="text-[12px] text-ink-2">
-          <summary className="cursor-pointer">Instrument adapter token</summary>
-          <code className="break-all">{adapterToken}</code>
-        </details>
+        <div className="well px-4 py-3">
+          <div className="micro mb-2">Instrument adapter token</div>
+          <Secret value={adapterToken} label="Instrument adapter token" testId="adapter-token" />
+          <p className="mt-1 text-[11.5px] text-ink-3">Only needed by the onboard instrument adapter (adapter.mjs). It is not kept: reloading this page clears it.</p>
+        </div>
       )}
       {feedError && <p className="text-[12px] text-coral">Live watch readings are unavailable.</p>}
-      {links.map(({ deviceId, watch, telemetry }) => (
-        <div className="space-y-2" key={deviceId}>
-          {watch && watch.simulated === (workspace === 'demo') && <Frame frame={watch} />}
-          {workspace === 'mission' && telemetry.map((frame) => <Frame key={frame.source} frame={frame} />)}
-        </div>
+      {frames.map(({ key, frame }) => (
+        <Frame key={key} frame={frame} />
       ))}
     </div>
   )

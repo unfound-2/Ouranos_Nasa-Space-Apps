@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { comparePhases, externalReadingFindings, formatDuration } from '../../shared/analysis'
-import type { StoredSession } from '../../shared/contract'
+import { useMemo, useState, type ReactNode } from 'react'
+import { CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
+import { BASELINE_EXCLUSION_LABEL, comparePhases, externalReadingFindings, formatDuration, personalBaseline } from '../../shared/analysis'
+import type { IngestPathT, StoredSession } from '../../shared/contract'
 import { linkedReadings, recordSourceMode, type Dataset } from '../../shared/dataset'
-import { signed, SYMPTOM_LABEL, utcDate, utcStamp } from '../../shared/format'
-import { Empty, Panel, Pill, SimTag } from '../components/ui'
+import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp } from '../../shared/format'
+import { Empty, Pill, SimTag } from '../components/ui'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { eventsOf, REVIEW_META, sessionsOf, subjectLabel, subjectsOf, symptomCheckText } from '../lib/view'
@@ -50,21 +50,29 @@ function evenTicks(lo: number, hi: number): number[] {
   return out
 }
 
-const C = { cyan: '#45c4fa', coral: '#ff4b65', ink3: '#7d879f', line: '#2b3042', hair: '#20253a', panel: '#141721' }
+const C = { cyan: '#41c8f5', coral: '#ff526b', ink2: '#98a7be', ink3: '#8391aa', line: '#293346', hair: '#1b2231', panel: '#101520' }
 
-function DeltaChart({ rows }: { rows: SessionRow[] }) {
+function DeltaChart({ rows, baseline }: { rows: SessionRow[]; baseline: number | null }) {
   const pts = rows
     .filter((r) => r.delta !== null)
-    .map((r) => ({ t: Date.parse(r.s.startedAt), v: r.delta as number, id: r.s.sessionId, at: r.s.startedAt, symptom: r.s.symptoms.length > 0 }))
+    .map((r) => ({
+      t: Date.parse(r.s.startedAt),
+      v: r.delta as number,
+      id: r.s.sessionId,
+      at: r.s.startedAt,
+      symptom: r.s.symptoms.length > 0,
+      symptoms: r.s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', '),
+    }))
   const skipped = rows.length - pts.length
   if (!pts.length) return <Empty title="No session has enough readings for a phase comparison">Sessions with fewer than 3 valid readings in a phase are listed below without a difference.</Empty>
-  const vs = [0, ...pts.map((p) => p.v)]
+  const vs = [0, ...pts.map((p) => p.v), ...(baseline !== null ? [baseline] : [])]
   const lo = Math.floor((Math.min(...vs) - 4) / 5) * 5
   const hi = Math.ceil((Math.max(...vs) + 6) / 5) * 5
   const pad = 12 * 3600_000
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11.5px] text-ink-2">
+      <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11.5px] text-ink-2">
+        <span className="text-ink-3">Recovery − rest, bpm</span>
         <span className="flex items-center gap-1.5">
           <svg width="12" height="12" aria-hidden>
             <circle cx="6" cy="6" r="4.5" fill={C.cyan} />
@@ -73,13 +81,21 @@ function DeltaChart({ rows }: { rows: SessionRow[] }) {
         </span>
         <span className="flex items-center gap-1.5">
           <svg width="12" height="12" aria-hidden>
-            <circle cx="6" cy="6" r="4.5" fill={C.coral} />
+            <circle cx="6" cy="6" r="4" fill="none" stroke={C.coral} strokeWidth="2" />
           </svg>
           Symptom reported in that check
         </span>
-        {skipped > 0 && <span className="text-ink-3">{skipped} session(s) without enough readings are not plotted</span>}
+        {baseline !== null && (
+          <span className="flex items-center gap-1.5">
+            <svg width="16" height="6" aria-hidden>
+              <line x1="0" y1="3" x2="16" y2="3" stroke={C.ink2} strokeDasharray="3 3" strokeWidth="1.5" />
+            </svg>
+            Personal baseline
+          </span>
+        )}
+        {skipped > 0 && <span className="text-ink-3">{plural(skipped, 'session')} without enough readings not plotted</span>}
       </div>
-      <div style={{ height: 220 }} data-testid="delta-chart">
+      <div style={{ height: 330 }} data-testid="delta-chart">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 12, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid stroke={C.hair} vertical={false} />
@@ -91,10 +107,30 @@ function DeltaChart({ rows }: { rows: SessionRow[] }) {
               interval={0}
               tickFormatter={(v: number) => utcDate(new Date(v).toISOString()).replace(/ \d{4}$/, '')}
               stroke={C.line}
-              tick={{ fill: C.ink3, fontSize: 10.5 }}
+              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
               tickLine={false}
             />
-            <YAxis type="number" dataKey="v" domain={[lo, hi]} ticks={evenTicks(lo, hi)} interval={0} stroke={C.line} tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'B612' }} tickLine={false} width={40} />
+            <YAxis
+              type="number"
+              dataKey="v"
+              domain={[lo, hi]}
+              ticks={evenTicks(lo, hi)}
+              interval={0}
+              stroke={C.line}
+              tick={{ fill: C.ink3, fontSize: 10.5, fontFamily: 'Mona Sans Variable' }}
+              tickLine={false}
+              width={40}
+            />
+            <ReferenceLine y={0} stroke={C.line} />
+            {baseline !== null && (
+              <ReferenceLine
+                y={baseline}
+                stroke={C.ink2}
+                strokeDasharray="4 4"
+                strokeWidth={1.25}
+                label={{ value: `baseline ${signed(baseline)} bpm`, position: 'insideTopRight', fill: C.ink2, fontSize: 10.5 }}
+              />
+            )}
             <Tooltip
               cursor={false}
               isAnimationActive={false}
@@ -102,10 +138,11 @@ function DeltaChart({ rows }: { rows: SessionRow[] }) {
                 if (!active || !payload?.length) return null
                 const p = payload[0].payload as (typeof pts)[number]
                 return (
-                  <div className="rounded-lg border border-line bg-raised px-3 py-2 shadow-2xl shadow-black/50">
-                    <div className="text-[13px] font-bold">{signed(p.v)} bpm recovery − rest</div>
-                    <div className="mt-1 tnum text-[11px] text-ink-2">{utcStamp(p.at)}</div>
-                    <div className="font-mono text-[10px] text-ink-3">{p.id}</div>
+                  <div className="rounded-xl border border-line bg-raised px-3.5 py-2.5 shadow-2xl shadow-black/50">
+                    <div className="text-[13px] font-semibold text-ink tnum">{signed(p.v)} bpm recovery − rest</div>
+                    <div className="mt-1 text-[11px] text-ink-2 tnum">{utcStamp(p.at)}</div>
+                    {p.symptom && <div className="mt-1 text-[11px] text-coral">{p.symptoms}</div>}
+                    <div className="mt-1 font-mono text-[10px] text-ink-3">{p.id}</div>
                   </div>
                 )
               }}
@@ -116,15 +153,19 @@ function DeltaChart({ rows }: { rows: SessionRow[] }) {
               onClick={(d: { payload?: { id?: string } }) => d?.payload?.id && navigate(href.session(d.payload.id))}
               shape={(props: { cx?: number; cy?: number; payload?: { symptom: boolean } }) => (
                 <g style={{ cursor: 'pointer' }}>
-                  <circle cx={props.cx} cy={props.cy} r={11} fill="transparent" />
-                  <circle cx={props.cx} cy={props.cy} r={5} fill={props.payload?.symptom ? C.coral : C.cyan} stroke={C.panel} strokeWidth={2} />
+                  <circle cx={props.cx} cy={props.cy} r={12} fill="transparent" />
+                  {props.payload?.symptom ? (
+                    <circle cx={props.cx} cy={props.cy} r={5.5} fill={C.panel} stroke={C.coral} strokeWidth={2.25} />
+                  ) : (
+                    <circle cx={props.cx} cy={props.cy} r={5} fill={C.cyan} stroke={C.panel} strokeWidth={2} />
+                  )}
                 </g>
               )}
             />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-2 text-[11.5px] text-ink-3">Recovery median minus rest median for each check with enough readings. Descriptive; not compared with any clinical threshold.</p>
+      <p className="mt-2 text-[11.5px] text-ink-3">Recovery median minus rest median for each check with enough readings. Select a dot to open that session. Descriptive; not compared with any clinical threshold.</p>
     </div>
   )
 }
@@ -158,14 +199,14 @@ export function SessionsTable({ rows, ds }: { rows: SessionRow[]; ds: Dataset })
               <td className="text-ink-2">
                 {subjectLabel(r.s.subjectId)} {r.s.isSimulated && <SimTag className="ml-1" />}
               </td>
-              <td className="font-mono text-ink-2">{r.durationS === null ? 'In progress' : formatDuration(r.durationS)}</td>
-              <td className="font-mono">
+              <td className="text-ink-2 tnum">{r.durationS === null ? 'In progress' : formatDuration(r.durationS)}</td>
+              <td className="tnum">
                 {r.rest.median ?? '--'} <span className="text-ink-3">· {r.rest.valid.length} valid</span>
               </td>
-              <td className="font-mono">
+              <td className="tnum">
                 {r.recovery.median ?? '--'} <span className="text-ink-3">· {r.recovery.valid.length} valid</span>
               </td>
-              <td className="font-mono font-bold">{r.delta === null ? <span className="font-normal text-ink-3">N/A</span> : `${signed(r.delta)} bpm`}</td>
+              <td className="font-semibold tnum">{r.delta === null ? <span className="font-normal text-ink-3">N/A</span> : `${signed(r.delta)} bpm`}</td>
               <td>
                 {r.s.symptomCheck.status === 'REPORTED' ? (
                   <span className="text-coral">{r.s.symptoms.map((x) => SYMPTOM_LABEL[x.code]).join(', ')}</span>
@@ -206,19 +247,140 @@ export function SessionsTable({ rows, ds }: { rows: SessionRow[]; ds: Dataset })
 
 const SYMPTOM_FILTERS = ['ANY', 'NONE', 'DIZZY', 'WEAK', 'NAUSEATED', 'OTHER'] as const
 
+const SOURCE_LABEL: Record<IngestPathT, string> = {
+  LIVE_SYNC: 'Live sync',
+  SAVED_DEVICE_FILE: 'Saved device file',
+  FILE_IMPORT: 'File import',
+  MANUAL_ENTRY: 'Manual entry',
+  DEMO_FIXTURE: 'Simulated fixture',
+  DEMO_TRIGGER: 'Simulated trigger',
+}
+
+function Section({ index, title, aside, children, className = '', testId }: { index: string; title: string; aside?: ReactNode; children: ReactNode; className?: string; testId?: string }) {
+  return (
+    <section className={`panel flex min-w-0 flex-col p-5 ${className}`} data-testid={testId}>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="label flex items-center gap-2.5">
+          <span className="font-mono text-[10.5px] tracking-normal text-ink-3">{index}</span>
+          {title}
+        </h2>
+        {aside}
+      </header>
+      {children}
+    </section>
+  )
+}
+
+function useBaseline(ds: Dataset, subjectId: string | null) {
+  return useMemo(() => {
+    if (!subjectId) return null
+    const latest = sessionsOf(ds, subjectId)[0]
+    return latest ? { latest, result: personalBaseline(latest, Object.values(ds.sessions)) } : null
+  }, [ds, subjectId])
+}
+
+function BaselinePanel({ baseline, subjectId }: { baseline: ReturnType<typeof useBaseline>; subjectId: string | null }) {
+  if (!subjectId)
+    return <p className="text-[12.5px] leading-relaxed text-ink-2">Choose a crew member. A baseline is personal: it is never pooled across the crew.</p>
+  if (!baseline) return <p className="text-[12.5px] text-ink-3">No sessions recorded for {subjectLabel(subjectId)}.</p>
+  const b = baseline.result
+  const est = b.status === 'ESTABLISHED'
+  return (
+    <div className="flex flex-col gap-4" data-testid="baseline-panel">
+      <div className="flex items-baseline gap-3">
+        <span className="figure text-[38px] text-ink">{b.baselineDelta === null ? 'N/A' : signed(b.baselineDelta)}</span>
+        {b.baselineDelta !== null && <span className="unit text-[13px]">bpm</span>}
+      </div>
+      <p className="text-[12.5px] leading-relaxed text-ink-2">
+        {est
+          ? `Median recovery − rest difference of the ${plural(b.used.length, 'comparable session')} before the latest check (${utcDate(baseline.latest.startedAt)}).`
+          : `Needs ${b.required} earlier comparable sessions; ${b.compatibleCount} so far. Until then no baseline is shown.`}
+      </p>
+      {est && b.currentDelta !== null && b.differenceFromBaseline !== null && (
+        <p className="text-[12.5px] text-ink-2">
+          Latest check: <b className="font-semibold text-ink tnum">{signed(b.currentDelta)} bpm</b>, {signed(b.differenceFromBaseline)} bpm from the baseline. Descriptive only.
+        </p>
+      )}
+      {b.used.length > 0 && (
+        <div>
+          <div className="micro mb-1.5">{est ? 'Sessions in the baseline' : 'Comparable so far'}</div>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2 tnum">
+            {b.used.map((u) => (
+              <li key={u.sessionId}>
+                <a href={href.session(u.sessionId)} className="hover:text-ink">
+                  {utcDate(u.startedAt).replace(/ \d{4}$/, '')} <b className="font-semibold text-ink">{signed(u.observedDelta)}</b>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {b.excluded.length > 0 && (
+        <details className="text-[12px] text-ink-3">
+          <summary className="cursor-pointer hover:text-ink-2">{plural(b.excluded.length, 'session')} not compared</summary>
+          <ul className="mt-1.5 space-y-1">
+            {b.excluded.map((x) => (
+              <li key={x.sessionId}>
+                {utcStamp(x.startedAt)} · {BASELINE_EXCLUSION_LABEL[x.reason]}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
+
+function SymptomHistory({ rows }: { rows: SessionRow[] }) {
+  const items = rows.flatMap((r) => r.s.symptoms.map((x) => ({ r, x }))).sort((a, b) => Date.parse(b.x.reportedAt) - Date.parse(a.x.reportedAt))
+  if (!items.length) return <p className="text-[12.5px] text-ink-3">No symptoms were reported in these sessions.</p>
+  return (
+    <ol className="flex flex-col divide-y divide-hair" data-testid="symptom-history">
+      {items.map(({ r, x }) => (
+        <li key={x.symptomId} className="py-2.5 first:pt-0">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <span className="text-[12.5px] font-semibold text-coral">{SYMPTOM_LABEL[x.code]}</span>
+            <span className="text-[11px] text-ink-3 tnum">{utcStamp(x.reportedAt)}</span>
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-ink-2">
+            {x.reportedBy === 'SELF_REPORTED' ? 'Self-reported' : 'Crew observed'}
+            {x.phase ? ` · ${x.phase.toLowerCase()} phase` : ''} · {subjectLabel(r.s.subjectId)} ·{' '}
+            <a href={href.session(r.s.sessionId)} className="text-cyan hover:underline">
+              session
+            </a>
+            {r.events.map((e) => (
+              <span key={e.eventId}>
+                {' · '}
+                <a href={href.event(e.eventId)} className="text-cyan hover:underline">
+                  event {REVIEW_META[e.review.state].label.toLowerCase()}
+                </a>
+              </span>
+            ))}
+          </div>
+          {x.note && <p className="mt-1 text-[11.5px] text-ink-3">“{x.note}”</p>}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 export function CrewHealth() {
   const { snapshot, subjectId, setSubjectId, workspace } = useData()
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [source, setSource] = useState<'ANY' | IngestPathT>('ANY')
   const [symptom, setSymptom] = useState<(typeof SYMPTOM_FILTERS)[number]>('ANY')
   const [review, setReview] = useState<'ANY' | 'OPEN' | 'REVIEWED' | 'NO_EVENT'>('ANY')
   const ds = snapshot?.dataset
   const all = useMemo(() => (ds ? sessionRows(ds, subjectId) : []), [ds, subjectId])
+  const baseline = useBaseline(ds ?? ({ sessions: {} } as Dataset), subjectId)
   if (!ds) return null
+  const sources = [...new Set(all.map((r) => r.s.provenance.ingestPath).filter((p): p is IngestPathT => p !== null))]
   const rows = all.filter((r) => {
     const day = r.s.startedAt.slice(0, 10)
     if (from && day < from) return false
     if (to && day > to) return false
+    if (source !== 'ANY' && r.s.provenance.ingestPath !== source) return false
     if (symptom === 'NONE' && r.s.symptoms.length) return false
     if (symptom !== 'ANY' && symptom !== 'NONE' && !r.s.symptoms.some((x) => x.code === symptom)) return false
     if (review === 'NO_EVENT' && r.events.length) return false
@@ -227,13 +389,37 @@ export function CrewHealth() {
     return true
   })
   const subjects = subjectsOf(ds)
+  const symptomCount = rows.reduce((n, r) => n + r.s.symptoms.length, 0)
+  const b = baseline?.result ?? null
   return (
-    <div className="flex flex-col gap-5">
-      <div className="rise">
-        <div className="micro">Crew health</div>
-        <h1 className="mt-2 font-display text-[clamp(24px,2.6vw,34px)] tracking-[0.06em]">RECOVERY HISTORY</h1>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] text-ink-2">Every recorded recovery assessment, with the readings behind each number. Select a session for its full report.</p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <header className="rise grid gap-6 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-7">
+          <div className="eyebrow">Crew health · {subjectId ? subjectLabel(subjectId) : 'all crew'}</div>
+          <h1 className="display mt-3 text-[clamp(32px,3.8vw,48px)] text-ink">RECOVERY HISTORY</h1>
+          <p className="mt-4 max-w-[58ch] text-[15px] leading-relaxed text-ink-2">Every recorded recovery assessment, with the readings behind each number. Select a session for its full report.</p>
+        </div>
+        <dl className="grid grid-cols-3 gap-4 lg:col-span-5">
+          <div>
+            <dt className="micro">Sessions</dt>
+            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">
+              {rows.length}
+              {rows.length !== all.length && <span className="font-normal text-ink-3"> of {all.length}</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="micro">Symptom reports</dt>
+            <dd className={`mt-1.5 text-[15px] font-semibold tnum ${symptomCount ? 'text-coral' : 'text-ink'}`}>{symptomCount}</dd>
+          </div>
+          <div>
+            <dt className="micro">Baseline</dt>
+            <dd className={`mt-1.5 text-[15px] font-semibold ${b?.status === 'ESTABLISHED' ? 'text-mint' : 'text-ink-2'}`}>
+              {!subjectId ? 'Per person' : b?.status === 'ESTABLISHED' ? 'Established' : 'Not established'}
+            </dd>
+          </div>
+        </dl>
+      </header>
+
       <div className="panel flex flex-wrap items-end gap-4 px-5 py-4" role="search" aria-label="Filter sessions">
         <label className="flex flex-col gap-1.5">
           <span className="micro">Astronaut</span>
@@ -255,6 +441,17 @@ export function CrewHealth() {
           <input type="date" className="field" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1.5">
+          <span className="micro">Source</span>
+          <select className="field" value={source} onChange={(e) => setSource(e.target.value as typeof source)} data-testid="filter-source">
+            <option value="ANY">Any</option>
+            {sources.map((p) => (
+              <option key={p} value={p}>
+                {SOURCE_LABEL[p]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
           <span className="micro">Symptom</span>
           <select className="field" value={symptom} onChange={(e) => setSymptom(e.target.value as typeof symptom)} data-testid="filter-symptom">
             <option value="ANY">Any</option>
@@ -274,19 +471,36 @@ export function CrewHealth() {
             <option value="NO_EVENT">No event</option>
           </select>
         </label>
-        <div className="flex flex-col gap-1.5">
+        <div className="ml-auto flex flex-col gap-1.5">
           <span className="micro">Data</span>
           <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-9">
             {workspace === 'demo' ? 'Simulated demo only' : 'Real mission records only'}
           </Pill>
         </div>
       </div>
-      <Panel title="Recovery − rest difference by session" meta={subjectId ? <span className="text-[12px] text-ink-2">{subjectLabel(subjectId)}</span> : <span className="text-[12px] text-ink-3">All crew</span>}>
-        <DeltaChart rows={rows} />
-      </Panel>
-      <Panel title="Recorded assessments" meta={<span className="text-[12px] text-ink-3">{rows.length} of {all.length}</span>} bodyClassName="px-2 pb-3">
+
+      <div className="grid items-start gap-5 xl:grid-cols-12">
+        <Section
+          index="01"
+          title="Recovery − rest difference by session"
+          className="xl:col-span-8"
+          aside={<span className="text-[11.5px] text-ink-3">{subjectId ? subjectLabel(subjectId) : 'All crew'}</span>}
+        >
+          <DeltaChart rows={rows} baseline={subjectId && b?.status === 'ESTABLISHED' ? b.baselineDelta : null} />
+        </Section>
+        <div className="flex flex-col gap-5 xl:col-span-4">
+          <Section index="02" title="Personal baseline" aside={subjectId && b ? <Pill tone={b.status === 'ESTABLISHED' ? 'mint' : 'amber'}>{b.status === 'ESTABLISHED' ? 'Established' : 'Not established'}</Pill> : undefined}>
+            <BaselinePanel baseline={baseline} subjectId={subjectId} />
+          </Section>
+          <Section index="03" title="Symptom history" aside={<span className="text-[11.5px] text-ink-3">{plural(symptomCount, 'report')}</span>}>
+            <SymptomHistory rows={rows} />
+          </Section>
+        </div>
+      </div>
+
+      <Section index="04" title="Recorded assessments" aside={<span className="text-[11.5px] text-ink-3">{rows.length} of {all.length}</span>}>
         <SessionsTable rows={rows} ds={ds} />
-      </Panel>
+      </Section>
     </div>
   )
 }

@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 test('the simulated-demo banner stays on every page', async ({ page }) => {
   await openIn(page, 'demo')
   for (const [link, check] of [
-    ['Overview', 'MISSION HEALTH'],
+    ['Mission Overview', 'MISSION HEALTH'],
     ['Crew Health', 'RECOVERY HISTORY'],
     ['Event History', 'REVIEW EVENTS'],
     ['System Status', 'MISSION COMPUTER'],

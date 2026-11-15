@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Footer, SourceBanner, TopBar } from './components/Shell'
+import { CommandBar, Footer, StatusRail } from './components/Shell'
 import { SimWatchOverlay } from './components/SimWatch'
 import { Empty } from './components/ui'
 import { DataProvider, useData } from './lib/data'
@@ -66,13 +66,14 @@ function Shell() {
   }, [route.name, workspace])
   return (
     <div className="gg-backdrop relative min-h-screen">
-      <div className="gg-grid pointer-events-none absolute inset-x-0 top-0 h-[560px]" aria-hidden />
       <header className="sticky top-0 z-30">
-        <TopBar route={route} />
-        <SourceBanner />
+        <CommandBar route={route} />
+        <StatusRail />
       </header>
-      <main className="relative mx-auto w-full max-w-[1480px] px-4 pt-6 pb-12 sm:px-6">
-        <Page route={route} />
+      <main className="relative mx-auto w-full max-w-[1520px] px-4 pt-6 pb-12 sm:px-6">
+        <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
+          <Page route={route} />
+        </div>
       </main>
       <Footer />
       <SimWatchOverlay />

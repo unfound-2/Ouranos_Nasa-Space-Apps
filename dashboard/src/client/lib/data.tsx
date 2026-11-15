@@ -6,7 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ReviewAction } from '../../shared/contract'
 import type { Workspace } from '../../shared/dataset'
-import { api, ApiError, type Health, type Snapshot } from './api'
+import type { WatchLinkSnapshot } from '../../shared/watch-link'
+import { api, ApiError, request, type Health, type Snapshot } from './api'
 
 const POLL_MS = 2500
 
@@ -44,6 +45,11 @@ interface DataState {
   refresh: () => Promise<void>
   subjectId: string | null
   setSubjectId: (id: string | null) => void
+  /** Live code-paired watch links (null until loaded or when the endpoint is unavailable). */
+  watchLinks: WatchLinkSnapshot[] | null
+  /** The demo scenario the presenter chose, if any (demo workspace only). */
+  scenarioId: string | null
+  setScenarioId: (id: string | null) => void
   trigger: TriggerNotice | null
   dismissTrigger: () => void
   actions: {
@@ -68,6 +74,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [lastOkAt, setLastOkAt] = useState<number | null>(null)
   const [subjectId, setSubjectState] = useState<string | null>(() => readPref(`gg.subject.${readPref('gg.workspace') ?? 'mission'}`))
   const [trigger, setTrigger] = useState<TriggerNotice | null>(null)
+  const [watchLinks, setWatchLinks] = useState<WatchLinkSnapshot[] | null>(null)
+  const [scenarioId, setScenarioState] = useState<string | null>(() => readPref('gg.scenario'))
   const wsRef = useRef(workspace)
   wsRef.current = workspace
   const inflight = useRef(false)
@@ -79,13 +87,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const started = performance.now()
     const startedWall = Date.now()
     try {
-      const [h, s] = await Promise.all([api.health(), api.snapshot(ws)])
+      const [h, s, links] = await Promise.all([
+        api.health(),
+        api.snapshot(ws),
+        request<WatchLinkSnapshot[]>('GET', '/watch-links', undefined, '/api').catch(() => null),
+      ])
       if (wsRef.current !== ws) return
       const rtt = performance.now() - started
       setLatency(Math.round(rtt))
       setSkew(Date.parse(h.time) - (startedWall + rtt / 2))
       setHealth(h)
       setSnapshot(s)
+      setWatchLinks(links)
       setError(null)
       setLastOkAt(Date.now())
     } catch (e) {
@@ -93,6 +106,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setError(e instanceof ApiError ? e : new ApiError(0, 'UNKNOWN', String(e)))
       setHealth(null)
       setSnapshot(null)
+      setWatchLinks(null)
     } finally {
       inflight.current = false
     }
@@ -123,6 +137,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setSubjectId = useCallback((id: string | null) => {
     writePref(`gg.subject.${wsRef.current}`, id)
     setSubjectState(id)
+  }, [])
+
+  const setScenarioId = useCallback((id: string | null) => {
+    writePref('gg.scenario', id)
+    setScenarioState(id)
   }, [])
 
   const actions = useMemo<DataState['actions']>(
@@ -171,6 +190,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refresh,
     subjectId,
     setSubjectId,
+    watchLinks,
+    scenarioId: workspace === 'demo' ? scenarioId : null,
+    setScenarioId,
     trigger,
     dismissTrigger: () => setTrigger(null),
     actions,

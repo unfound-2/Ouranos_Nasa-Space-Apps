@@ -1,21 +1,30 @@
+import { Search } from 'lucide-react'
 import { useState } from 'react'
 import type { EventCategoryT, EventStatusT } from '../../shared/contract'
 import { utcStamp } from '../../shared/format'
 import { ackLabel, evidenceLabel } from '../components/Events'
-import { Panel, Pill, SimTag, TONE } from '../components/ui'
+import { Pill, SimTag, TONE } from '../components/ui'
 import { useData } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { CATEGORY_META, ORIGIN_LABEL, REVIEW_META, SEVERITY_META, sortEvents, STATUS_META, subjectLabel, subjectsOf } from '../lib/view'
 
 export function EventHistory() {
-  const { snapshot } = useData()
+  const { snapshot, workspace } = useData()
   const [status, setStatus] = useState<'ANY' | 'OPEN' | EventStatusT>('ANY')
   const [category, setCategory] = useState<'ANY' | EventCategoryT>('ANY')
   const [subject, setSubject] = useState('')
+  const [query, setQuery] = useState('')
   if (!snapshot) return null
   const ds = snapshot.dataset
   const all = sortEvents(Object.values(ds.events))
+  const q = query.trim().toLowerCase()
   const rows = all.filter((e) => {
+    if (q) {
+      const hay = [e.eventId, e.sessionId ?? '', subjectLabel(e.subjectId), CATEGORY_META[e.category].label, STATUS_META[e.status].label, ORIGIN_LABEL[e.origin.kind], ...e.reasonCodes, e.review.reviewer ?? '']
+        .join(' ')
+        .toLowerCase()
+      if (!hay.includes(q)) return false
+    }
     if (subject && e.subjectId !== subject) return false
     if (category !== 'ANY' && e.category !== category) return false
     if (status === 'OPEN') return e.status !== 'REVIEWED' && e.status !== 'CLOSED'
@@ -23,15 +32,45 @@ export function EventHistory() {
     return true
   })
   return (
-    <div className="flex flex-col gap-5">
-      <div className="rise">
-        <div className="micro">Event history</div>
-        <h1 className="mt-2 font-display text-[clamp(24px,2.6vw,34px)] tracking-[0.06em]">REVIEW EVENTS</h1>
-        <p className="mt-2 max-w-[70ch] text-[13.5px] text-ink-2">
-          Every event the watch or this computer created, with where it came from, whether it reached the wrist, and whether a person has reviewed it.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <header className="rise grid gap-6 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-7">
+          <div className="eyebrow">Event history · {workspace === 'demo' ? 'simulated demo' : 'mission records'}</div>
+          <h1 className="display mt-3 text-[clamp(32px,3.8vw,48px)] text-ink">REVIEW EVENTS</h1>
+          <p className="mt-4 max-w-[60ch] text-[15px] leading-relaxed text-ink-2">
+            Every event the watch or this computer created: where it came from, whether it reached the wrist, and whether a person has reviewed it.
+          </p>
+        </div>
+        <dl className="grid grid-cols-3 gap-4 lg:col-span-5">
+          <div>
+            <dt className="micro">Events</dt>
+            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.length}</dd>
+          </div>
+          <div>
+            <dt className="micro">Open</dt>
+            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.filter((e) => e.status !== 'REVIEWED' && e.status !== 'CLOSED').length}</dd>
+          </div>
+          <div>
+            <dt className="micro">Reviewed or closed</dt>
+            <dd className="mt-1.5 text-[15px] font-semibold text-ink tnum">{all.filter((e) => e.status === 'REVIEWED' || e.status === 'CLOSED').length}</dd>
+          </div>
+        </dl>
+      </header>
       <div className="panel flex flex-wrap items-end gap-4 px-5 py-4" role="search" aria-label="Filter events">
+        <label className="flex min-w-[min(100%,260px)] flex-1 flex-col gap-1.5">
+          <span className="micro">Search</span>
+          <span className="relative">
+            <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-3" aria-hidden />
+            <input
+              type="search"
+              className="field w-full pl-8"
+              placeholder="Event ID, reason code, crew member, reviewer"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              data-testid="event-search"
+            />
+          </span>
+        </label>
         <label className="flex flex-col gap-1.5">
           <span className="micro">Status</span>
           <select className="field" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} data-testid="filter-status">
@@ -66,8 +105,20 @@ export function EventHistory() {
             ))}
           </select>
         </label>
+        <div className="flex flex-col gap-1.5">
+          <span className="micro">Data</span>
+          <Pill tone={workspace === 'demo' ? 'violet' : 'cyan'} className="h-9">
+            {workspace === 'demo' ? 'Simulated demo only' : 'Real mission records only'}
+          </Pill>
+        </div>
       </div>
-      <Panel title="Events" meta={<span className="text-[12px] text-ink-3">{rows.length} of {all.length}</span>} bodyClassName="px-2 pb-3">
+      <section className="panel p-5">
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="label">Audit trail</h2>
+          <span className="text-[11.5px] text-ink-3 tnum">
+            {rows.length} of {all.length}
+          </span>
+        </header>
         <div className="overflow-x-auto">
           <table className="data-table min-w-[1100px]" data-testid="events-table">
             <thead>
@@ -96,7 +147,7 @@ export function EventHistory() {
                       <div className="mt-0.5 font-mono text-[10.5px] text-ink-3">{e.eventId}</div>
                     </td>
                     <td>
-                      <span className={`font-bold ${TONE[CATEGORY_META[e.category].tone].text}`}>{CATEGORY_META[e.category].label}</span>
+                      <span className={`font-semibold whitespace-nowrap ${TONE[CATEGORY_META[e.category].tone].text}`}>{CATEGORY_META[e.category].label}</span>
                       <div className={`text-[11px] ${TONE[SEVERITY_META[e.severity].tone].text}`}>{SEVERITY_META[e.severity].label}</div>
                     </td>
                     <td className="text-ink-2">
@@ -127,14 +178,14 @@ export function EventHistory() {
               {!rows.length && (
                 <tr>
                   <td colSpan={9} className="text-ink-3">
-                    No events match these filters.
+                    {q ? `No event matches “${query.trim()}”.` : 'No events match these filters.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </Panel>
+      </section>
     </div>
   )
 }
