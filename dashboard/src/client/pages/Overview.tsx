@@ -1,4 +1,4 @@
-import { ArrowRight, FileUp, Search } from 'lucide-react'
+import { Activity, ArrowRight, FileUp, Search } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { comparePhases, externalReadingFindings, latestValidHeartRate, RULES, sessionCompleteness } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
@@ -10,7 +10,7 @@ import { EvidenceList } from '../components/Astronaut'
 import { BodyMap } from '../components/BodyMap'
 import { ackLabel } from '../components/Events'
 import { Bars, Kpi, Progress, Spark, type BarDatum } from '../components/Gauge'
-import { BADGE, CornerLink, Empty, Panel, Pill, SimTag, TONE } from '../components/ui'
+import { CornerLink, Empty, Panel, Pill, SimTag } from '../components/ui'
 import { useData, useNow } from '../lib/data'
 import { href, navigate } from '../lib/router'
 import { scenarioById } from '../lib/scenarios'
@@ -76,7 +76,7 @@ export function RegionDetail({ info, unplaced }: { info: RegionInfo | null; unpl
           <div className="text-[13px] text-ink-2">Select a region for the record behind it. Marks show where evidence was recorded, not a diagnosis.</div>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {LEGEND.map((l) => (
-              <Pill key={l.state} tone={l.tone}>
+              <Pill key={l.state} tone={l.tone} icon={l.state === 'data' ? Activity : undefined}>
                 {l.label}
               </Pill>
             ))}
@@ -210,9 +210,9 @@ function ReviewFocus({ ds, focus, otherOpen, nowIso }: { ds: Dataset; focus: Foc
   return (
     <div className="panel p-6" data-testid="hero-alert">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className={`${BADGE} ${TONE[tone].badge}`} data-testid="focus-label">
+        <Pill tone={tone} className="text-[13px] font-semibold tracking-[0.02em]" testId="focus-label">
           {focusLabel(e)}
-        </span>
+        </Pill>
         {e.isSimulated && <SimTag />}
         <span className="ml-auto font-mono text-[12px] text-ink-3">{e.eventId}</span>
       </div>

@@ -6,7 +6,8 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Region, RegionInfo } from '../lib/view'
 import { KIND, REGION_NO, REGION_ORDER, STATE_TONE } from './Astronaut'
-import { BADGE, TONE } from './ui'
+import { Activity } from 'lucide-react'
+import { Pill } from './ui'
 import type { BodyMapProps } from './BodyMap'
 
 /*
@@ -421,9 +422,11 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
             {marked && size === 'hero' && (
               <span data-chip className="pointer-events-none absolute top-1/2 hidden -translate-y-1/2 items-center group-data-[side=left]:right-full group-data-[side=left]:flex-row-reverse group-data-[side=right]:left-full sm:flex">
                 <span className="h-px w-6 bg-line-strong" />
-                <span className="flex items-center gap-2 rounded-[6px] border border-line bg-panel py-1 pr-1 pl-2.5 text-[13px] font-medium whitespace-nowrap text-ink">
+                <span className="flex items-center gap-2.5 rounded-[6px] border border-line bg-panel px-2.5 py-1 text-[13px] font-medium whitespace-nowrap text-ink">
                   {info.name}
-                  <span className={`${BADGE} ${TONE[STATE_TONE[info.state]].badge} h-[20px] text-[10px]`}>{k!.tag}</span>
+                  <Pill tone={STATE_TONE[info.state]} icon={info.state === 'data' ? Activity : undefined} className="text-ink-2">
+                    {k!.tag.charAt(0) + k!.tag.slice(1).toLowerCase()}
+                  </Pill>
                 </span>
               </span>
             )}

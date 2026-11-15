@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IngestPathT } from '../../shared/contract'
 import type { Dataset, DeviceRecord, IngestResult } from '../../shared/dataset'
 import { ago, plural, utcStamp, utcTime } from '../../shared/format'
-import { BADGE, Code, Pill, SectionNo, TONE } from '../components/ui'
+import { Code, Pill, SectionNo } from '../components/ui'
 import { Secret } from '../components/Secret'
 import { WatchPairing } from '../components/WatchPairing'
 import { api, ApiError, type CheckStatus, type Integration, type IntegrationCheck, type IntegrationChecks, type SelftestReport } from '../lib/api'
@@ -145,7 +145,7 @@ function CheckRow({ c, n, last }: { c: IntegrationCheck; n: number; last: boolea
             <span className="mr-2 font-mono text-[11px] font-normal text-ink-3">{n}</span>
             {CHECK_TITLE[c.id] ?? c.label}
           </h3>
-          <span className={`${BADGE} ${TONE[c.status === 'PASS' ? 'mint' : c.status === 'FAIL' ? 'coral' : 'muted'].badge}`} data-testid={`check-${c.id}-status`}>
+          <span className={`text-[13px] font-semibold ${c.status === 'NOT_TESTED' ? 'text-ink-3' : 'text-ink'}`} data-testid={`check-${c.id}-status`}>
             {mark.text}
           </span>
         </div>

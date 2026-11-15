@@ -21,7 +21,7 @@ import { plural, signed, SYMPTOM_LABEL, utcDate, utcStamp, utcTime } from '../..
 import { BaselineChart } from '../components/BaselineChart'
 import { ackLabel } from '../components/Events'
 import { HrChart } from '../components/HrChart'
-import { BADGE, Empty, Pill, RealTag, SectionNo, SimTag, TONE } from '../components/ui'
+import { Empty, Pill, RealTag, SectionNo, SimTag, TONE } from '../components/ui'
 import { ApiError } from '../lib/api'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
@@ -628,7 +628,7 @@ export function Investigation({ id }: { id: string }) {
               <ArrowLeft size={12} /> Event history
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={`${BADGE} ${TONE[tone].badge}`}>{focusLabel(event)}</span>
+              <Pill tone={tone} className="font-semibold tracking-[0.02em]">{focusLabel(event)}</Pill>
               {event.isSimulated ? <SimTag /> : <RealTag />}
             </div>
             <h1 className="display mt-2.5 text-[26px] text-ink">{eventTitle(ctx)}</h1>

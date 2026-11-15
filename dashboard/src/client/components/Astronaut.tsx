@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
 import type { Region, RegionInfo, Tone } from '../lib/view'
+import { Activity } from 'lucide-react'
 import { Pill } from './ui'
 
 /*
@@ -242,7 +243,9 @@ export function EvidenceList({
                         <span className="mr-1.5 font-mono text-[12px] text-ink-3">{REGION_NO[r]}</span>
                         {info.name}
                       </span>
-                      <Pill tone={STATE_TONE[info.state]}>{k.tag}</Pill>
+                      <Pill tone={STATE_TONE[info.state]} icon={info.state === 'data' ? Activity : undefined}>
+                        {k.tag.charAt(0) + k.tag.slice(1).toLowerCase()}
+                      </Pill>
                     </span>
                     <span className="mt-1 block text-[13px] text-ink">{info.callout}</span>
                     {sub && <span className="mt-0.5 block text-[13px] leading-snug text-ink-2">{sub}</span>}

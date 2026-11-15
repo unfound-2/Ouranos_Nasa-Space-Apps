@@ -18,7 +18,7 @@ test('dashboard → review event → evidence → review workflow → history (s
   await expect(hero).toContainText('Dizziness self-reported')
   await expect(page.getByTestId('focus-label')).toHaveText('REVIEW SUGGESTED')
   await expect(hero).not.toContainText('HEALTH REVIEW REQUIRED')
-  await expect(hero).toContainText('SIM')
+  await expect(hero.getByText('Simulated', { exact: true })).toBeVisible()
   await expect(hero).toContainText('Presented · not acknowledged')
   await page.getByTestId('open-evidence').click()
 

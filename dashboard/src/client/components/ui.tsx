@@ -1,12 +1,11 @@
-import { ArrowUpRight } from 'lucide-react'
+import { Activity, ArrowUpRight, Check, Flag, FlaskConical, Minus, TriangleAlert, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Tone } from '../lib/view'
 
 /**
- * One entry per meaning. Text stays in the two text greys; a status is shown as a solid lozenge
- * (`badge`), modelled on Atlassian's bold lozenge: a square-cornered block in the meaning colour
- * with bold text, every pair at least 4.9:1. `stroke` is the raw colour for charts and the 3D model,
- * `bg` fills bars, `dot` is kept for chart legends.
+ * One entry per meaning. Text stays in the two text greys; statuses are an icon and a word (Pill).
+ * `stroke` is the raw colour for charts and the 3D model, `bg` fills bars, `dot` is for chart
+ * legends. `badge` and `solid` are kept for compatibility and unused by the interface.
  */
 export const TONE: Record<Tone, { text: string; border: string; bg: string; solid: string; dot: string; stroke: string; badge: string }> = {
   mint: { text: 'text-ink', border: 'border-line', bg: 'bg-mint', solid: 'bg-[#1a7f4b] text-white', dot: 'bg-mint', stroke: '#30a46c', badge: 'bg-[#1a7f4b] text-white' },
@@ -18,30 +17,61 @@ export const TONE: Record<Tone, { text: string; border: string; bg: string; soli
   muted: { text: 'text-ink-3', border: 'border-line', bg: 'bg-raised', solid: 'bg-[#262626] text-[#a1a1a1]', dot: 'bg-line-strong', stroke: '#484848', badge: 'bg-[#262626] text-[#a1a1a1]' },
 }
 
-export const BADGE = 'inline-flex h-[22px] shrink-0 items-center rounded-[4px] px-2 text-[11px] leading-none font-bold tracking-[0.04em] whitespace-nowrap uppercase'
+/** The icon each meaning gets when a caller does not pass one. */
+const TONE_ICON: Record<Tone, LucideIcon> = {
+  mint: Check,
+  cyan: Check,
+  violet: FlaskConical,
+  coral: Flag,
+  amber: TriangleAlert,
+  neutral: Minus,
+  muted: Minus,
+}
 
-/** A status lozenge: a solid, square-cornered block in the meaning colour with bold text. */
-export function Pill({ tone = 'neutral', children, title, className = '' }: { tone?: Tone; children: ReactNode; title?: string; dot?: boolean; className?: string }) {
+/**
+ * A status: a small grey line icon, then the word, in one text colour. No fill, no border and no
+ * colour, like GitHub's checks list. The word carries the meaning; the icon makes it scannable.
+ */
+export function Pill({
+  tone = 'neutral',
+  children,
+  title,
+  icon,
+  className = '',
+  testId,
+}: {
+  tone?: Tone
+  children: ReactNode
+  title?: string
+  icon?: LucideIcon
+  dot?: boolean
+  className?: string
+  testId?: string
+}) {
+  const Icon = icon ?? TONE_ICON[tone]
   return (
-    <span title={title} className={`${BADGE} ${TONE[tone].badge} ${className}`}>
+    <span title={title} className={`inline-flex items-center gap-1.5 text-[13px] leading-5 ${tone === 'muted' ? 'text-ink-2' : 'text-ink'} ${className}`} data-testid={testId}>
+      <Icon size={14} strokeWidth={2} className="shrink-0 text-ink-2" aria-hidden />
       {children}
     </span>
   )
 }
 
-/** Shown on every simulated record. Violet is reserved for simulation. */
+/** Shown on every simulated record: a flask and "Simulated". */
 export function SimTag({ className = '' }: { className?: string }) {
   return (
-    <span title="Simulated record. Not astronaut data." className={`${BADGE} ${TONE.violet.badge} h-[20px] px-1.5 text-[10px] ${className}`}>
-      SIM
+    <span title="Simulated record. Not astronaut data." className={`inline-flex items-center gap-1.5 text-[13px] leading-5 whitespace-nowrap text-ink-2 ${className}`}>
+      <FlaskConical size={14} strokeWidth={2} className="shrink-0" aria-hidden />
+      Simulated
     </span>
   )
 }
 
 export function RealTag({ className = '' }: { className?: string }) {
   return (
-    <span title="Real recorded data" className={`${BADGE} ${TONE.neutral.badge} h-[20px] px-1.5 text-[10px] ${className}`}>
-      REAL
+    <span title="Real recorded data" className={`inline-flex items-center gap-1.5 text-[13px] leading-5 whitespace-nowrap text-ink-2 ${className}`}>
+      <Activity size={14} strokeWidth={2} className="shrink-0" aria-hidden />
+      Real
     </span>
   )
 }

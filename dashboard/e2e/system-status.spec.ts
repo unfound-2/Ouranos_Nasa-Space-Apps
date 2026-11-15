@@ -144,7 +144,7 @@ test('the scenario picker focuses the Overview on one simulated case', async ({ 
   await openIn(page, 'demo')
   const picker = page.getByTestId('scenario-picker')
   await picker.selectOption('C')
-  await expect(page.getByTestId('hero-alert')).toContainText('SIM')
+  await expect(page.getByTestId('hero-alert').getByText('Simulated', { exact: true })).toBeVisible()
   await page.getByTestId('open-evidence').click()
   await expect(page).toHaveURL(/#\/events\/sim-evt-20261112-b$/)
   await expect(banner(page)).toContainText('Simulated demo')

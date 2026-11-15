@@ -6,7 +6,7 @@ import { useData, useExternalRequests, useNavigatorOnline, useNow } from '../lib
 import { href, type Route } from '../lib/router'
 import { DEMO_SCENARIOS, scenarioById } from '../lib/scenarios'
 import { bannerSourceMode, defaultSubject, LINK_META, SOURCE_META, subjectsOf, type Tone } from '../lib/view'
-import { BADGE, TONE } from './ui'
+import { Pill } from './ui'
 
 /** A monochrome tile with a heartbeat trace (Vercel-style: light mark, no colour). */
 export function LogoMark({ size = 28 }: { size?: number }) {
@@ -99,9 +99,15 @@ function RailReadout({ icon, label, value, tone, title, testId }: { icon: ReactN
     <span className="inline-flex items-center gap-2 text-[13px] whitespace-nowrap" title={title}>
       {icon}
       <span className="text-ink-2">{label}</span>
-      <span key={value} className={`state-flash ${tone !== 'neutral' && tone !== 'muted' ? `${BADGE} ${TONE[tone].badge}` : 'rounded-[3px] text-ink tnum'}`} data-testid={testId}>
-        {value}
-      </span>
+      {tone !== 'neutral' && tone !== 'muted' ? (
+        <Pill key={value} tone={tone} className="state-flash rounded-[3px]" testId={testId}>
+          {value}
+        </Pill>
+      ) : (
+        <span key={value} className="state-flash rounded-[3px] text-ink tnum" data-testid={testId}>
+          {value}
+        </span>
+      )}
     </span>
   )
 }
@@ -149,7 +155,7 @@ export function StatusRail() {
     return (
       <div role="status" data-testid="source-banner" className="border-b border-coral/40 bg-[rgb(229_72_77/0.1)]">
         <div className={`${CONTAINER} flex flex-wrap items-center gap-3 py-2.5`}>
-          <span className={`${BADGE} ${TONE.coral.badge}`}>Local API unavailable</span>
+          <Pill tone="coral" className="font-medium">Local API unavailable</Pill>
           <span className="text-[13px] text-ink-2">No data is shown and nothing is substituted. Start the mission computer with npm start, then retry.</span>
           <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>
             Retry
@@ -180,9 +186,9 @@ export function StatusRail() {
       <div className={`${CONTAINER} flex flex-wrap items-center gap-x-6 gap-y-2 py-2.5`}>
         <span className="flex items-center gap-2.5">
           {!demo && <span className="text-[13px] text-ink-2">Data source</span>}
-          <span className={`${BADGE} ${demo ? TONE.violet.badge : meta ? TONE[meta.tone].badge : TONE.muted.badge}`} data-testid="source-mode" title={meta?.hint}>
+          <Pill tone={demo ? 'violet' : meta ? meta.tone : 'muted'} className="font-medium" testId="source-mode" title={meta?.hint}>
             {demo ? 'Simulated demo' : (mode ?? 'Connecting')}
-          </span>
+          </Pill>
           {demo && <span className="hidden text-[13px] text-ink-2 sm:inline">No astronaut data</span>}
         </span>
         {demo && <ScenarioPicker />}
