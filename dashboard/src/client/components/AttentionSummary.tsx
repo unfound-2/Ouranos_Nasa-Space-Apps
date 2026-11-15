@@ -17,9 +17,11 @@ export function useAttentionSummary({ event, session, dataset, serverTime, devic
   const now = Date.parse(serverTime) / 1000
   const frames = (watchLinks ?? [])
     .filter((link) => deviceId === undefined || link.deviceId === deviceId)
-    .flatMap((link) => [...(link.watch ? [link.watch] : []), ...link.telemetry])
-    .filter((frame) => frame.simulated === (workspace === 'demo')
-      && now - frame.observedAt <= (frame.freshnessSeconds ?? 60)
+    .flatMap((link) => {
+      const testFeed = workspace === 'demo' || link.watch?.simulated === true
+      return [...(link.watch ? [link.watch] : []), ...link.telemetry].filter((frame) => frame.simulated === testFeed)
+    })
+    .filter((frame) => now - frame.observedAt <= (frame.freshnessSeconds ?? 60)
       && frame.observedAt <= now + 5)
   const signals = new Map<string, { label: string; status: string; time: number; value: number; unit: string; source: string }>()
   for (const frame of frames) {
@@ -28,7 +30,7 @@ export function useAttentionSummary({ event, session, dataset, serverTime, devic
       if (reading.quality !== 'valid' || now - time > (frame.freshnessSeconds ?? 60) || time > now + 5) continue
       const key = reading.metric.trim().toLowerCase()
       if ((signals.get(key)?.time ?? -Infinity) >= time) continue
-      signals.set(key, { label: reading.metric, status: reading.status, time, value: reading.value, unit: reading.unit, source: frame.source })
+      signals.set(key, { label: reading.metric, status: reading.status, time, value: reading.value, unit: reading.unit, source: frame.simulated && workspace === 'mission' ? 'Watch test feed' : frame.source })
     }
   }
   const observed = [...signals.values()]

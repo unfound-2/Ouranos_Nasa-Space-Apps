@@ -127,8 +127,9 @@ const onboardMetrics = [
 const isPrimaryWatchMetric = (label: string) => /^(heart rate|pulse|respiration|respiratory rate|breathing rate)$/i.test(label)
 
 export function OnboardInstrumentTrends({ samples, deviceId }: { samples: SimulatorSamples; deviceId?: string }) {
-  const { workspace, watchHistory } = useData()
-  const frames = deviceId ? (watchHistory[deviceId] ?? []).filter((frame) => frame.simulated === (workspace === 'demo')) : []
+  const { workspace, watchHistory, watchLinks } = useData()
+  const testFeed = watchLinks?.find((link) => link.deviceId === deviceId)?.watch?.simulated === true
+  const frames = deviceId ? (watchHistory[deviceId] ?? []).filter((frame) => frame.simulated === (workspace === 'demo' || testFeed)) : []
   const metricChart = ({ label, unit, pattern, key, ...style }: (typeof onboardMetrics)[number]) => {
     const matching = frames.filter((frame) => frame.readings.some((reading) => pattern.test(reading.metric)))
     const latestSource = matching.at(-1)?.source
@@ -136,7 +137,7 @@ export function OnboardInstrumentTrends({ samples, deviceId }: { samples: Simula
     const useDemo = !matchingSeries && workspace === 'demo'
     return <MetricChart key={key} label={label} unit={matchingSeries?.unit ?? unit}
       points={matchingSeries?.points ?? (useDemo ? samples.map((sample) => ({ x: sample.time, y: sample[key] })) : [])}
-      source={latestSource ?? (useDemo ? 'Simulated reading' : undefined)} {...style} />
+      source={matchingSeries && testFeed ? 'Test feed' : latestSource ?? (useDemo ? 'Simulated reading' : undefined)} {...style} />
   }
   const watchFrames = frames.filter((frame) => frame.source === 'Watch sensors')
   const otherCharts = seriesFromFrames(watchFrames).filter(({ label }) =>
@@ -235,7 +236,11 @@ export function WatchCharts({ recordedHeartRate = [], compact = false, simulated
   const watches = watchLinks
     ? Object.entries(watchHistory)
         .filter(([id]) => !deviceId || deviceId === id)
-        .map(([deviceId, frames]) => [deviceId, frames.filter((frame) => frame.simulated === (workspace === 'demo') && frame.readings.some(({ metric }) => isPrimaryWatchMetric(metric)))] as const)
+        .map(([id, frames]) => {
+          const testFeed = watchLinks.find((link) => link.deviceId === id)?.watch?.simulated === true
+          return [id, frames.filter((frame) => frame.simulated === (workspace === 'demo' || testFeed)
+            && frame.readings.some(({ metric }) => isPrimaryWatchMetric(metric)))] as const
+        })
         .filter(([, frames]) => frames.length > 0)
     : []
   const hasWatchSeries = watches.some(([, frames]) => seriesFromFrames(frames).some(({ label }) => isPrimaryWatchMetric(label)))
@@ -252,16 +257,15 @@ export function WatchCharts({ recordedHeartRate = [], compact = false, simulated
           <MetricChart label="Respiratory rate" unit="breaths/min" points={simulated.map((sample) => ({ x: sample.time, y: sample.respiration }))} />
         </>
       )}
-      {workspace !== 'demo' && !hasWatchSeries && !showRecorded && <div className="panel p-5"><p className="text-ink-2">{pairedLink?.watch?.simulated
-        ? 'The watch is sending simulated readings. Select Watch on the watch app to send health readings.'
-        : hasHealthReadings
+      {workspace !== 'demo' && !hasWatchSeries && !showRecorded && <div className="panel p-5"><p className="text-ink-2">{hasHealthReadings
           ? 'Watch readings are shown under Onboard instrument trends. Heart rate and breathing appear here when available.'
           : 'Waiting for health readings. On the watch, open Settings and tap Enable health sync.'}</p><a className="mt-3 inline-block underline" href="/#/system">Check watch connection</a></div>}
       {workspace === 'mission' && pairedLink && <p role="status" className="text-sm text-ink-2">
         {snapshot?.links[pairedLink.deviceId] === 'VERIFIED'
-          ? hasHealthReadings && !pairedLink.watch?.simulated ? 'Watch connected · readings received' : 'Watch connected · waiting for health readings'
+          ? hasHealthReadings ? 'Watch connected · readings received' : 'Watch connected · waiting for health readings'
           : 'Watch paired'}
       </p>}
+      {workspace === 'mission' && pairedLink?.watch?.simulated && <p className="text-xs text-ink-2">Source: Watch test feed</p>}
       {watches.map(([deviceId, frames]) => (
         <section key={deviceId} className="grid gap-2">
           <div className={compact ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"}>

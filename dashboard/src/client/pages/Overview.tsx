@@ -282,7 +282,7 @@ function latestHeartRate(ds: Dataset, subjectId: string | null, links: WatchLink
     : null
   for (const l of links ?? []) {
     const f = l.watch
-    if (!f || f.simulated !== (workspace === 'demo')) continue
+    if (!f || (workspace === 'demo' && !f.simulated)) continue
     const r = f.readings.find((x) => x.metric.toLowerCase() === 'heart rate' && x.unit.toLowerCase() === 'bpm' && x.quality === 'valid')
     if (!r) continue
     const at = new Date((r.measuredAt ?? f.observedAt) * 1000).toISOString()
@@ -291,8 +291,8 @@ function latestHeartRate(ds: Dataset, subjectId: string | null, links: WatchLink
     best = {
       value: r.value,
       at,
-      source: `${f.source} (code-paired watch)`,
-      mode: f.simulated ? 'SIMULATED DEMO' : verified ? 'LIVE DEVICE' : 'SAVED DEVICE DATA',
+      source: f.simulated && workspace === 'mission' ? 'Watch test feed' : `${f.source} (code-paired watch)`,
+      mode: f.simulated ? (workspace === 'demo' ? 'SIMULATED DEMO' : 'WATCH TEST FEED') : verified ? 'LIVE DEVICE' : 'SAVED DEVICE DATA',
       modeTone: f.simulated ? 'violet' : verified ? 'mint' : 'cyan',
     }
   }
