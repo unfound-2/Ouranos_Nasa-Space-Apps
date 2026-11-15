@@ -292,3 +292,31 @@ button.tab-stat:hover { border-color: rgb(140 206 255 / 0.4); }
   cursor: pointer;
 }
 .review-question:hover, .review-question[aria-pressed="true"] { background: #28466d; }
+
+/* A searchable reference reader, with solid surfaces and no glass effects. */
+.guide-search { display: grid; gap: 14px; }
+.crew-guide .guide-search input {
+  width: 100%; min-height: 48px; padding: 12px 16px;
+  background: #101a2b; border: 0; border-radius: 12px; color: #f5f7ff;
+}
+.guide-filters { display: flex; flex-wrap: wrap; gap: 7px; }
+.guide-filters button { padding: 7px 12px; border: 0; border-radius: 8px; background: #101a2b; color: #b7c5d9; cursor: pointer; font-size: 13px; }
+.guide-filters button[aria-pressed="true"] { color: #fff; background: #244364; }
+.guide-browser { display: grid; grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.6fr); gap: 18px; align-items: start; }
+.guide-index { display: grid; gap: 4px; max-height: 70vh; overflow-y: auto; padding: 8px; background: #0b1422; border-radius: 14px; }
+.guide-index a { padding: 12px; text-decoration: none; color: #e4edfa; border-radius: 8px; font-size: 14px; }
+.guide-index a:hover { background: #15253b; }
+.guide-index a[aria-current] { background: #1d3554; }
+.guide-index span, .guide-index small { display: block; }
+.guide-index small { margin-top: 4px; font-size: 11px; color: #9aabc2; }
+.dashboard-main .crew-guide .guide-content {
+  background: #0c1729; border: 0; border-radius: 14px; box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  padding: clamp(20px, 3vw, 32px); display: grid; gap: 20px; min-width: 0;
+}
+.guide-content h2 { line-height: 1.25; }
+.guide-content p, .guide-content li { line-height: 1.65; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .guide-browser { grid-template-columns: minmax(0, 1fr); }
+  .guide-index { max-height: 250px; }
+}

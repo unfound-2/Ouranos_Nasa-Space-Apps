@@ -18,6 +18,7 @@ export function NasaGuideLink({ source }: { source: Checklist['sources'][number]
 export function CrewGuide({ topic }: { topic?: string }) {
   const [entries, setEntries] = useState(crewGuides)
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState('')
   useEffect(() => {
     let active = true
     void request<Checklist[]>('GET', '/crew-guide').then((guides) => {
@@ -25,43 +26,50 @@ export function CrewGuide({ topic }: { topic?: string }) {
     }).catch(() => { /* checklists are available on the device */ })
     return () => { active = false }
   }, [])
-  const selected = entries.find(({ id }) => id === topic)
   const needle = query.trim().toLowerCase()
-  const visible = entries.filter((entry) => `${entry.title} ${entry.category} ${entry.summary}`.toLowerCase().includes(needle))
+  const categories = [...new Set(entries.map((entry) => entry.category))]
+  const visible = entries.filter((entry) => (!category || entry.category === category) &&
+    `${entry.title} ${entry.category} ${entry.summary} ${entry.steps.join(' ')}`.toLowerCase().includes(needle))
+  const selected = visible.find(({ id }) => id === topic) ?? visible[0]
 
   return (
-    <div className="tab-page mx-auto w-full max-w-5xl">
-      <div className="mission-horizon" aria-hidden="true" />
+    <div className="tab-page crew-guide mx-auto w-full max-w-5xl">
       <header className="mission-intro">
         <h1 className="display faded-label">Crew guide</h1>
         <p>What to check, record and share.</p>
       </header>
-      {selected ? (
-        <article className="tab-card space-y-5">
-          <a href={href.guide} className="text-sm underline">All crew guides</a>
-          <h2 className="text-2xl font-semibold">{selected.title}</h2>
-          <p className="text-ink-2">{selected.summary}</p>
-          <ol className="list-decimal space-y-3 pl-6">
-            {selected.steps.map((step) => <li key={step}>{step}</li>)}
-          </ol>
-          {selected.image && <figure><img src={selected.image.src} alt={selected.image.alt} loading="lazy" /><figcaption>{selected.image.caption}</figcaption></figure>}
-          {selected.sources.map((source) => <NasaGuideLink key={source.url} source={source} />)}
-        </article>
-      ) : (
-        <>
-          <input className="field mb-4 w-full max-w-sm px-4 py-2" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the crew guide" aria-label="Search the crew guide" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {visible.map((entry) => (
-              <a className="tab-card block hover:bg-raised" key={entry.id} href={href.guideTopic(entry.id)}>
-                <small className="text-ink-2">{entry.category}</small>
-                <h2 className="mt-1 text-lg font-semibold">{entry.title}</h2>
-                <p className="mt-1 text-sm text-ink-2">{entry.summary}</p>
-              </a>
-            ))}
-            {visible.length === 0 && <p className="text-ink-2">No guides match that search.</p>}
-          </div>
-        </>
-      )}
+      <div className="guide-search">
+        <label htmlFor="guide-search" className="sr-only">Search the crew guide</label>
+        <input id="guide-search" className="field" type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search symptoms, readings or actions" />
+        <div className="guide-filters" aria-label="Guide categories">
+          {['', ...categories].map((item) => <button key={item} type="button" aria-pressed={category === item}
+            onClick={() => setCategory(item)}>{item || 'All guides'}</button>)}
+        </div>
+      </div>
+      <div className="guide-browser">
+        <nav className="guide-index" aria-label="Crew guide topics">
+          {visible.map((entry) => (
+            <a key={entry.id} href={href.guideTopic(entry.id)} aria-current={selected?.id === entry.id ? 'page' : undefined}>
+              <span>{entry.title}</span>
+              <small>{entry.category}</small>
+            </a>
+          ))}
+          {visible.length === 0 && <p className="p-4 text-sm text-ink-2">No guides match. Try another search or category.</p>}
+        </nav>
+        {selected ? (
+          <article className="tab-card guide-content" aria-labelledby="selected-guide-title">
+            <small className="text-ink-2">{selected.category}</small>
+            <h2 id="selected-guide-title" className="text-2xl font-semibold">{selected.title}</h2>
+            <p className="text-ink-2">{selected.summary}</p>
+            <ol className="list-decimal space-y-4 pl-6">
+              {selected.steps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+            {selected.image && <figure><img src={selected.image.src} alt={selected.image.alt} loading="lazy" /><figcaption>{selected.image.caption}</figcaption></figure>}
+            {selected.sources.map((source) => <NasaGuideLink key={source.url} source={source} />)}
+          </article>
+        ) : <section className="tab-card guide-content"><h2 className="text-xl font-semibold">No matching guide</h2><p>Try searching for a symptom or measurement.</p></section>}
+      </div>
     </div>
   )
 }

@@ -233,12 +233,12 @@ export function WatchCharts({ recordedHeartRate = [], compact = false, simulated
   const { workspace, watchHistory, watchLinks, snapshot } = useData()
   const profile = useCrewProfile()
   const deviceId = profile?.deviceId ?? (workspace === 'mission' ? watchSignIn()?.deviceId : null)
-  const watches = watchLinks
+  const watches = workspace !== 'demo' && watchLinks
     ? Object.entries(watchHistory)
         .filter(([id]) => !deviceId || deviceId === id)
         .map(([id, frames]) => {
           const testFeed = watchLinks.find((link) => link.deviceId === id)?.watch?.simulated === true
-          return [id, frames.filter((frame) => frame.simulated === (workspace === 'demo' || testFeed)
+          return [id, frames.filter((frame) => frame.simulated === testFeed
             && frame.readings.some(({ metric }) => isPrimaryWatchMetric(metric)))] as const
         })
         .filter(([, frames]) => frames.length > 0)
