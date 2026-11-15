@@ -18,3 +18,9 @@ export const GuideEntrySchema = z.object({
 })
 
 export type GuideEntry = z.infer<typeof GuideEntrySchema>
+
+export const ChecklistSchema = GuideEntrySchema.extend({
+  summary: z.string().min(1),
+  steps: z.array(z.string().min(1)).min(2),
+})
+export type Checklist = z.infer<typeof ChecklistSchema>

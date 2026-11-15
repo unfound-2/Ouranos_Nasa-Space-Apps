@@ -268,3 +268,27 @@ button.tab-stat:hover { border-color: rgb(140 206 255 / 0.4); }
 @media (prefers-reduced-motion: reduce) {
   .event-cards tbody tr, button.tab-stat, .guide-category { transition: none; }
 }
+
+.nasa-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .65rem .8rem;
+  margin-top: .55rem;
+  border-radius: 9px;
+  background: #182b48;
+  color: #e4f0ff;
+  text-decoration: none;
+}
+.nasa-source:hover { background: #233b5d; }
+.nasa-source strong, .nasa-source small { display: block; }
+.nasa-source small { color: #b7c9df; overflow-wrap: anywhere; }
+.review-question {
+  padding: .5rem .8rem;
+  border-radius: 8px;
+  background: #192742;
+  text-align: left;
+  cursor: pointer;
+}
+.review-question:hover, .review-question[aria-pressed="true"] { background: #28466d; }

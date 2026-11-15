@@ -62,7 +62,7 @@ test('dashboard → review event → evidence → review workflow → history (s
   // History: the session and the closed event, and the state survives a reload.
   await navTo(page, 'Crew Health')
   await expect(page.getByTestId('session-row-sim-a-20261112')).toContainText('+23 bpm')
-  await navTo(page, 'Event History')
+  await page.goto('/#/events')
   const row = page.getByTestId('events-table').locator('tr', { hasText: 'sim-evt-20261112-a' })
   await expect(row).toContainText('Closed')
   await page.reload()

@@ -1,6 +1,7 @@
 const container = document.querySelector('#mission-navigation')
 
 container.innerHTML = `
+  <a class="mission-brand" href="/#/" aria-label="Ouranos overview">Ouranos</a>
   <details class="mission-nav">
     <summary aria-label="Toggle navigation">
       <img src="/astronaut/mission-logo.png" alt="" width="28" height="29">
@@ -8,10 +9,10 @@ container.innerHTML = `
     <nav aria-label="Main">
       <a class="mission-pair" href="/#/pair"><span>Pair watch</span></a>
       <a href="/#/">Overview</a>
-      <a href="/#/crew">Crew Health</a>
-      <a href="/#/events">Event History</a>
-      <a href="/#/system">System Status</a>
       <a href="/#/guide">Crew guide</a>
+      <a href="/#/crew">Crew Health</a>
+      <a href="/#/attention">Health review</a>
+      <a href="/#/system">System Status</a>
       <a href="/astronaut/">Home</a>
     </nav>
   </details>
@@ -19,7 +20,7 @@ container.innerHTML = `
   <a class="mission-nav-shortcut" href="/#/pair"><span>Pair watch</span></a>
 `
 
-const menu = container.querySelector('details')
+const menu = container.querySelector('.mission-nav')
 
 function updateCurrentLink() {
   const current = location.pathname + location.hash

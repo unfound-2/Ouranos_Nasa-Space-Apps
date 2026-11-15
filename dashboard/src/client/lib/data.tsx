@@ -91,12 +91,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [scenarioId, setScenarioState] = useState<string | null>(() => readPref('gg.scenario'))
   const wsRef = useRef(workspace)
   wsRef.current = workspace
-  const inflight = useRef(false)
+  const refreshVersion = useRef(0)
+  const activeRefresh = useRef<Workspace | null>(null)
 
-  const refresh = useCallback(async () => {
-    if (inflight.current) return
-    inflight.current = true
+  const refresh = useCallback(async (force = true) => {
     const ws = wsRef.current
+    if (!force && activeRefresh.current === ws) return
+    activeRefresh.current = ws
+    const version = ++refreshVersion.current
     const started = performance.now()
     const startedWall = Date.now()
     try {
@@ -105,7 +107,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         api.snapshot(ws),
         request<WatchLinkSnapshot[]>('GET', '/watch-links', undefined, '/api').catch(() => null),
       ])
-      if (wsRef.current !== ws) return
+      if (wsRef.current !== ws || version !== refreshVersion.current) return
       const rtt = performance.now() - started
       setLatency(Math.round(rtt))
       setSkew(Date.parse(h.time) - (startedWall + rtt / 2))
@@ -130,22 +132,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLastOkAt(Date.now())
     } catch (e) {
-      if (wsRef.current !== ws) return
+      if (wsRef.current !== ws || version !== refreshVersion.current) return
       setError(e instanceof ApiError ? e : new ApiError(0, 'UNKNOWN', String(e)))
       setHealth(null)
       setSnapshot(null)
       setWatchLinks(null)
     } finally {
-      inflight.current = false
+      if (version === refreshVersion.current) activeRefresh.current = null
     }
   }, [])
 
   useEffect(() => {
-    void refresh()
+    void refresh(false)
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh()
+      if (document.visibilityState === 'visible') void refresh(false)
     }, POLL_MS)
-    const onVis = () => document.visibilityState === 'visible' && void refresh()
+    const onVis = () => document.visibilityState === 'visible' && void refresh(false)
     document.addEventListener('visibilitychange', onVis)
     return () => {
       window.clearInterval(id)

@@ -10,7 +10,7 @@ test('the simulated-demo banner stays on every page', async ({ page }) => {
   for (const [link, check] of [
     ['Overview', 'Mission health'],
     ['Crew Health', 'Recovery history'],
-    ['Event History', 'Review events'],
+    ['Health review', 'Health review'],
     ['System Status', 'Mission computer'],
   ] as const) {
     await navTo(page, link)
@@ -60,7 +60,7 @@ test('scenario F: acknowledged on the watch is shown apart from medical review',
   await openIn(page, 'demo', '#/events/sim-evt-20261113-b')
   await expect(page.getByTestId('event-header')).toContainText('Acknowledged')
   await expect(page.getByTestId('knowns')).toContainText('An acknowledgement is not a medical review')
-  await navTo(page, 'Event History')
+  await page.goto('/#/events')
   const row = page.getByTestId('events-table').locator('tr', { hasText: 'sim-evt-20261113-b' })
   await expect(row).toContainText('Acknowledged')
   await expect(row).toContainText('Not reviewed')

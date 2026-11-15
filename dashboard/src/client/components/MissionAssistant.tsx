@@ -1,5 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import earth from '../assets/earth-horizon.webp'
+import { askCrewAssistant } from '../lib/crew-assistant'
+import type { AssistantReply } from '../../shared/crew-assistant'
+import { NasaGuideLink } from '../pages/CrewGuide'
 import type { useAttentionSummary } from './AttentionSummary'
 
 const AssistantLogo = lazy(() => import('./AssistantLogo').then(({ AssistantLogo }) => ({ default: AssistantLogo })))
@@ -39,7 +42,8 @@ function answerQuestion(question: string, summary: Summary) {
 
 export function MissionAssistant({ summary, name }: { summary: Summary; name?: string }) {
   const [question, setQuestion] = useState('')
-  const [turns, setTurns] = useState<{ question: string; answer: string }[]>([])
+  const [turns, setTurns] = useState<{ question: string; reply?: AssistantReply }[]>([])
+  const [pending, setPending] = useState(false)
   const transcript = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -47,13 +51,16 @@ export function MissionAssistant({ summary, name }: { summary: Summary; name?: s
     if (log) log.scrollTop = log.scrollHeight
   }, [turns])
 
-  function send(event: FormEvent<HTMLFormElement>) {
+  async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const prompt = question.trim()
-    if (!prompt) return
-    const answer = answerQuestion(prompt, summary)
-    setTurns((previous) => [...previous, { question: prompt, answer }])
+    if (!prompt || pending) return
+    setPending(true)
+    setTurns((previous) => [...previous, { question: prompt }])
     setQuestion('')
+    const reply = await askCrewAssistant(prompt, 'chat', summary, answerQuestion(prompt, summary))
+    setTurns((previous) => previous.map((turn, index) => index === previous.length - 1 ? { ...turn, reply } : turn))
+    setPending(false)
   }
 
   return (
@@ -74,18 +81,21 @@ export function MissionAssistant({ summary, name }: { summary: Summary; name?: s
           <div key={index} className="mission-chat-turn">
             <p className="mission-chat-question">{turn.question}</p>
             <div className="mission-chat-reply">
-              {index === 0 && <p className="mb-2">Hello, I work completely offline.</p>}
-              <p>{turn.answer}</p>
+              <p>{turn.reply?.answer ?? 'Reviewing readings…'}</p>
+              {turn.reply && <NasaGuideLink source={turn.reply.guide.sources[0]} />}
             </div>
           </div>
         ))}
         </div>
       </div>
       )}
-      <form onSubmit={send} className="mission-chat-composer flex gap-2">
-        <input className="field min-w-0 flex-1" aria-label="Ask about your readings" placeholder="Ask about your readings" value={question} maxLength={250} onChange={(event) => setQuestion(event.target.value)} />
-        <button className="btn btn-primary" disabled={!question.trim()}>Ask</button>
-      </form>
+      <div className="mission-chat-composer">
+        <form onSubmit={send} className="flex gap-2">
+          <input className="field min-w-0 flex-1" aria-label="Ask about your readings" aria-describedby="assistant-sharing" placeholder="Ask about your readings" value={question} maxLength={250} onChange={(event) => setQuestion(event.target.value)} />
+          <button className="btn btn-primary" disabled={pending || !question.trim()}>Ask</button>
+        </form>
+        <p id="assistant-sharing" className="mt-1 text-[11px] text-ink-2">Ask shares the question and readings with the online assistant when available.</p>
+      </div>
     </section>
   )
 }

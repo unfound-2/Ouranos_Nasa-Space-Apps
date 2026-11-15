@@ -75,7 +75,7 @@ export async function expand(page: Page, summary: string) {
 export const connectionDetails = (page: Page) => expand(page, 'Crew, simulator and connection details')
 
 /** Go to a page with the main navigation menu (public/mission-nav.js), opening it first. */
-export async function navTo(page: Page, name: 'Overview' | 'Crew Health' | 'Event History' | 'System Status') {
+export async function navTo(page: Page, name: 'Overview' | 'Crew Health' | 'Health review' | 'Crew guide' | 'System Status') {
   const menu = page.locator('details.mission-nav')
   if (!(await menu.evaluate((d) => (d as HTMLDetailsElement).open))) await menu.locator('summary').click()
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name, exact: true }).click()

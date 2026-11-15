@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createCrewAssistant } from './crew-assistant.js'
 import express, { type Request } from 'express'
 import demoFixture from '../../fixtures/simulated/demo-bundle.json' with { type: 'json' }
 import { EVENT_SCHEMA, ReviewActionSchema, type StoredEvent } from '../shared/contract.js'
@@ -22,7 +23,7 @@ type Pair = {
   watch: WatchFrame | null
 }
 type WatchEvent = { device_id: string; event_id: string; event: StoredEvent; version: number }
-type CloudOptions = { url: string; key?: string; fetch?: typeof fetch }
+type CloudOptions = { url: string; key?: string; fetch?: typeof fetch; groq?: string }
 
 function browserToken(req: Request) {
   const token = req.headers.cookie?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1)
@@ -66,7 +67,7 @@ function signalEvent(signal: WatchSignal, deviceId: string, now: string) {
   return dataset[simulated ? 'demo' : 'mission'].events[signal.id]
 }
 
-export function createCloudApp({ url, key, fetch: request = fetch }: CloudOptions) {
+export function createCloudApp({ url, key, fetch: request = fetch, groq }: CloudOptions) {
   const app = express()
   app.disable('x-powered-by')
 
@@ -119,6 +120,13 @@ export function createCloudApp({ url, key, fetch: request = fetch }: CloudOption
     if (site === 'cross-site' || site === 'same-site') return next(new ActionError('ORIGIN_REJECTED', 403, 'Use the hosted dashboard on its own origin.'))
     next()
   }, express.json({ limit: '64kb' }))
+
+  const crewAssistant = createCrewAssistant({ url, key, groq, request })
+  app.get('/api/v1/crew-guide', crewAssistant.list)
+  app.post('/api/v1/crew-assistant', async (req, _res, next) => {
+    if (groq ?? process.env.GROQ_API_KEY) await rateLimit(req, 'crew-assistant', 16)
+    next()
+  }, crewAssistant.explain)
 
   app.get('/api/v1/health', (_req, res) => {
     const counts = { sessions: 0, events: 0, readings: 0, devices: 0 }

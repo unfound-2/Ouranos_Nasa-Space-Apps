@@ -9,7 +9,7 @@ test('a watch link pairs, streams simulated readings, and creates one review eve
   const headers = { Authorization: `Bearer ${watchToken}` }
   const frame = {
     version: 1, source: 'Pairing test simulator', observedAt: Date.now() / 1000,
-    simulated: true, readings: [{ metric: 'Heart rate', value: 128, unit: 'bpm', quality: 'valid', status: 'review' }],
+    simulated: true, readings: [{ metric: 'Heart rate', value: 128, unit: 'bpm', quality: 'valid', status: 'priority' }],
   }
   expect((await page.request.post('/api/watch', { headers, data: frame })).status()).toBe(401)
   await page.goto(consoleURL + '#pair=' + code)
@@ -42,7 +42,13 @@ test('a watch link pairs, streams simulated readings, and creates one review eve
   expect(Object.keys(demo.dataset.events).filter((key) => key === id)).toHaveLength(1)
   expect(demo.dataset.events[id].delivery.hapticRequested).toBe(false)
   expect(mission.dataset.events[id]).toBeUndefined()
-  await page.goto('/#/events/' + id)
+  await expect(page.locator('summary').filter({ hasText: /simulated warnings?/ })).toBeVisible()
+  await page.locator('summary').filter({ hasText: /simulated warnings?/ }).click()
+  await page.locator(`a[href="#/attention/${id}"]`).click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Health review')
+  await expect(page.getByRole('heading', { name: 'Readings flagged by the watch' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Heart rate', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Open original event record' }).click()
   await expect(page.getByText(signal.action, { exact: true })).toBeVisible()
-  await expect(page.getByTestId('reason-codes').getByText('Pairing test simulator · Heart rate 128 bpm · review', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('reason-codes').getByText('Pairing test simulator · Heart rate 128 bpm · priority', { exact: true })).toBeVisible()
 })

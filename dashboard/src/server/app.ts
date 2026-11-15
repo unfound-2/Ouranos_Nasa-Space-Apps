@@ -1,3 +1,4 @@
+import { createCrewAssistant } from './crew-assistant.js'
 /**
  * The OURANOS mission-computer API: a thin HTTP layer over src/shared.
  *
@@ -909,6 +910,9 @@ export function createApp(opts: CreateAppOptions): MissionComputer {
     res.setHeader('Cache-Control', 'no-store')
     next()
   })
+  const crewAssistant = createCrewAssistant()
+  router.get('/crew-guide', actorGuard('LOCAL_USER'), crewAssistant.list)
+  router.post('/crew-assistant', actorGuard('LOCAL_USER'), requireJson, express.json({ limit: '16kb' }), crewAssistant.explain)
   app.use('/api/v1', router)
   const watchLink = createWatchLink({
     now,

@@ -912,6 +912,14 @@
 }
 
 .mission-event-card { background: #0c1729; border: 0; border-radius: 18px; }
-.mission-vitals .attention-card { position: relative; height: 10rem; }
-.attention-card h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.attention-popover { position: absolute; z-index: 12; inset: 100% .5rem auto; margin-top: .5rem; padding: .85rem; border-radius: 12px; background: #15233a; box-shadow: 0 10px 30px #0009; }
+/* Keep the column the same height; the details borrow space from chat only while open. */
+.mission-vitals-left { grid-template-rows: auto minmax(0, 1fr); height: 34rem; }
+.mission-vitals .attention-card { position: relative; }
+.attention-card h3 { overflow-wrap: anywhere; }
+.attention-popover { max-height: 7.5rem; overflow-y: auto; margin-top: .5rem; color: var(--color-ink-2); }
+.mission-vitals-left .mission-chat-panel,
+.mission-vitals-left .mission-chat-panel:has(.mission-chat-intro) { min-height: 0; overflow: hidden; }
+.mission-chat-intro { min-height: 0; overflow-y: auto; }
+@media (min-width: 900px) {
+  .mission-vitals-left { height: auto; contain: size; }
+}

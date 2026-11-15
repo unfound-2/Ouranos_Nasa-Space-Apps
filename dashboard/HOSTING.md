@@ -2,7 +2,7 @@
 
 ## Crew guide
 
-Supabase project `ohbufsembuzekdnwlpsd` contains the read-only public `gg_crew_guide` catalog. The migration and bundled fallback use the same 175 entries. They cover the 144 entries from NASA-STD-3001 Volume 1 Appendix E Table E.2-2, the 22 risk records linked in NASA's Human Research Roadmap evidence index, five reference collections, and four project-authored workflows. The medical conditions and evidence records link back to their sources. The workflows organize record review, routine monitoring, and private handoff. These public sources are planning and research references. The app does not provide unpublished flight procedures, treatment instructions, or doses.
+The Crew Guide uses practical checklists with direct NASA references. Apply `supabase/migrations/202611150003_refresh_crew_guide.sql` in the Supabase SQL Editor to replace the old public evidence index with the server-read `gg_crew_checklists` table. The prior catalog is kept as a private archive; pairing and crew records are unchanged. Until it is applied the dashboard uses the same checklists bundled with the app. The checklists are review and handoff aids, not flight medical procedures.
 
 - [2026 Space Apps challenge](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/)
 - [NASA-STD-3001 Volume 1 Appendix E](https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/)
@@ -15,11 +15,11 @@ The project uses [Apache 2.0](../LICENSE) for its original work. Cite every sour
 ## Vercel
 
 1. Import the repository and set the **Root Directory** to `dashboard`. The included Vercel configuration builds the Vite frontend and routes API calls to the hosted watch handler.
-2. In **Settings → Environment Variables** set `SUPABASE_URL` to the project URL and `SUPABASE_SECRET_KEY` to a Supabase secret key. Keep the latter server-side. The guide alone uses the public read key included in the client.
+2. In **Settings → Environment Variables** set `SUPABASE_URL` to the project URL and `SUPABASE_SECRET_KEY` to a Supabase secret key. Set `GROQ_API_KEY` to enable the optional online assistant. Keep both keys server-side. Without Groq, the charts, checklists and review answers use local data.
 3. Deploy and open the HTTPS URL in a browser. In the watch, open **Set website address** and enter the deployed website address. Select **Get pairing code**, then enter that code on **Pair watch** on the website. After pairing, tap **Enable health sync** on the watch and allow Health access. Leave the watch in **Watch** mode. It displays its sync status in Settings. The watch must be able to reach the deployed URL directly. A Vercel deployment protection login page will prevent watch requests from reaching its API.
 4. Confirm **Watch connected** and a fresh reading in the dashboard. Open a separate private browser window and verify it cannot see the paired feed.
 
-The Supabase migrations have been applied to the linked project. For a different database, apply both migrations in order and configure its keys. The hosted adapter stores a latest watch frame and watch review events for the lifetime of the pairing. Codes last five minutes, pairings last twelve hours, and expired rows are cleaned up on subsequent pairing requests. Device disconnect deletes the pairing and its hosted events. Hosted mode supports code pairing, watch frames, watch-generated events, event review, and the bundled simulator. Local file imports, adapter telemetry, and local integration self-tests use the local console.
+For a fresh database, apply the migrations in order and configure its keys. The hosted adapter stores a latest watch frame and watch review events for the lifetime of the pairing. Codes last five minutes, pairings last twelve hours, and expired rows are cleaned up on subsequent pairing requests. Device disconnect deletes the pairing and its hosted events. Hosted mode supports code pairing, watch frames, watch-generated events, event review, and the bundled simulator. Local file imports, adapter telemetry, and local integration self-tests use the local console.
 
 
 ### Default website in the watch app

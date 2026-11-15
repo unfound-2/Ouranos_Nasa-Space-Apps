@@ -55,7 +55,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 
 server.listen(port, bind, () => {
   const lines = [
-    'OURANOS mission computer API (offline: no cloud, no outgoing requests)',
+    'OURANOS mission computer API (core monitoring works offline)',
     `  Local:        http://127.0.0.1:${port}/api/v1/health`,
   ]
   if (lan) {

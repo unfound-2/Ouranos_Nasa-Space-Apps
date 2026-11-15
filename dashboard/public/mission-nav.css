@@ -145,3 +145,34 @@
   .mission-nav summary { transition: none; }
   .mission-nav[open] nav { animation: none; }
 }
+
+@font-face {
+  font-family: "Pinyon Script";
+  src: url("/ouranos/pinyon-script-latin-400.woff2") format("woff2");
+  font-display: swap;
+}
+.mission-brand {
+  position: absolute;
+  top: 13px;
+  left: 16px;
+  z-index: 2;
+  color: #f5f7ff;
+  font: 30px/1 "Pinyon Script", cursive;
+  text-decoration: none;
+}
+.mission-nav, .mission-nav[open] {
+  width: min(calc(100% - 220px), 860px);
+  margin-inline: auto;
+}
+@media (max-width: 1100px) {
+  .has-crew .mission-nav[open] { margin-inline: auto; width: min(calc(100% - 220px), 860px); }
+}
+@media (max-width: 760px) {
+  .mission-nav[open], .has-crew .mission-nav[open] {
+    width: 100%;
+    padding: 42px 0 0;
+  }
+  .mission-nav[open] summary { left: 50%; transform: translateX(-50%); }
+  .mission-nav[open] nav { justify-content: center; }
+  .mission-nav[open] nav a:last-child { margin-left: 0; }
+}

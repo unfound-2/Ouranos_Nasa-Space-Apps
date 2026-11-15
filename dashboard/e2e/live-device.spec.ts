@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test'
 import { E2E_TOKEN } from '../playwright.config'
-import { banner, navTo, openIn, test } from './helpers'
+import { banner, openIn, test } from './helpers'
 
 /*
  * Path A without a watch: these requests carry the device token exactly as the watch app would.
@@ -95,7 +95,7 @@ test('a device-token heartbeat and live-synced records show as LIVE DEVICE, and 
   expect((await page.request.post('/api/v1/alerts/e2e-event-1/ack', { data: { deviceId: 'e2e-test-watch', acknowledgedAt: at(0) } })).status()).toBe(403)
   expect((await page.request.post('/api/v1/alerts/e2e-event-1/ack', { headers: auth, data: { deviceId: 'e2e-test-watch', acknowledgedAt: at(0) } })).status()).toBe(200)
   await expect(page.getByTestId('event-header')).toContainText('Acknowledged', { timeout: 8000 })
-  await navTo(page, 'Event History')
+  await page.goto('/#/events')
   const row = page.getByTestId('events-table').locator('tr', { hasText: 'e2e-event-1' })
   await expect(row).toContainText('Not reviewed')
 })

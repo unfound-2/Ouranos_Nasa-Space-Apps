@@ -1,36 +1,43 @@
+import type { AssistantRequest } from '../../shared/crew-assistant'
+import { comparePhases } from '../../shared/analysis'
 import type { StoredEvent, StoredSession } from '../../shared/contract'
 import type { Dataset } from '../../shared/dataset'
 import { buildEventContext, eventTitle, reasonLine } from '../../shared/explain'
+import { crewSystems, useCrewProfile } from '../lib/crew-profile'
 import { useData } from '../lib/data'
 import { href } from '../lib/router'
 import type { useSimulatorSamples } from './WatchCharts'
 
-export function useAttentionSummary({ event, session, dataset, serverTime, deviceId, simulated }: {
+export function useAttentionSummary({ event, session, dataset, serverTime, deviceId, simulated, historical = false }: {
   event: StoredEvent | null
   session: StoredSession | null
   dataset: Dataset
   serverTime: string
   deviceId?: string | null
+  historical?: boolean
   simulated: ReturnType<typeof useSimulatorSamples>
 }) {
-  const { watchLinks, workspace } = useData()
+  const { watchLinks, workspace, watchHistory } = useData()
+  const profile = useCrewProfile()
+  const scopedDevices = new Set(crewSystems(profile).map((system) => system.deviceId))
+  if (deviceId) scopedDevices.add(deviceId)
   const now = Date.parse(serverTime) / 1000
-  const frames = (watchLinks ?? [])
-    .filter((link) => deviceId === undefined || link.deviceId === deviceId)
+  const frames = (historical ? [] : watchLinks ?? [])
+    .filter((link) => workspace !== 'demo' && (scopedDevices.size > 0 ? scopedDevices.has(link.deviceId) : !profile && deviceId === undefined))
     .flatMap((link) => {
       const testFeed = workspace === 'demo' || link.watch?.simulated === true
-      return [...(link.watch ? [link.watch] : []), ...link.telemetry].filter((frame) => frame.simulated === testFeed)
+      return [...(link.watch ? [link.watch] : []), ...link.telemetry].filter((frame) => frame.simulated === testFeed).map((frame) => ({ frame, deviceId: link.deviceId }))
     })
-    .filter((frame) => now - frame.observedAt <= (frame.freshnessSeconds ?? 60)
+    .filter(({ frame }) => now - frame.observedAt <= (frame.freshnessSeconds ?? 60)
       && frame.observedAt <= now + 5)
-  const signals = new Map<string, { label: string; status: string; time: number; value: number; unit: string; source: string }>()
-  for (const frame of frames) {
+  const signals = new Map<string, { simulated: boolean; deviceId: string; frameSource: string; label: string; status: string; time: number; value: number; unit: string; source: string }>()
+  for (const { frame, deviceId } of frames) {
     for (const reading of frame.readings) {
       const time = reading.measuredAt ?? frame.observedAt
       if (reading.quality !== 'valid' || now - time > (frame.freshnessSeconds ?? 60) || time > now + 5) continue
       const key = reading.metric.trim().toLowerCase()
       if ((signals.get(key)?.time ?? -Infinity) >= time) continue
-      signals.set(key, { label: reading.metric, status: reading.status, time, value: reading.value, unit: reading.unit, source: frame.simulated && workspace === 'mission' ? 'Watch test feed' : frame.source })
+      signals.set(key, { deviceId, frameSource: frame.source, simulated: frame.simulated, label: reading.metric, status: reading.status, time, value: reading.value, unit: reading.unit, source: frame.simulated && workspace === 'mission' ? 'Watch test feed' : frame.source })
     }
   }
   const observed = [...signals.values()]
@@ -46,7 +53,7 @@ export function useAttentionSummary({ event, session, dataset, serverTime, devic
     { label: 'Skin temperature', value: latest.temperature - 33.2, tolerance: .1, unit: '°C' },
   ]
   const ctx = event ? buildEventContext(event, dataset, serverTime) : null
-  const demoChanges = workspace === 'demo'
+  const demoChanges = workspace === 'demo' && !historical
     ? sampleChanges?.filter(({ label }) => !observed.some((item) => item.label.toLowerCase() === label.toLowerCase()))
     : null
   const shifted = demoChanges?.filter(({ value, tolerance }) => Math.abs(value) > tolerance + 1e-6) ?? []
@@ -92,8 +99,10 @@ export function useAttentionSummary({ event, session, dataset, serverTime, devic
         : 'Check the source and compare this reading with the next one to see if the change persists.'
     }
   } else if (watchEvent && !demoChanges) {
-    interpretation = 'Earlier readings were flagged'
-    explanation = 'There is no current flagged reading to confirm whether the change is still present.'
+    interpretation = historical ? 'Readings flagged by the watch' : 'Earlier readings were flagged'
+    explanation = historical
+      ? 'These are the readings recorded with the warning. Look for a comparable repeat before drawing conclusions about a trend.'
+      : 'There is no current flagged reading to confirm whether the change is still present.'
   } else if (event && !watchEvent) {
     explanation = details
   } else if (demoChanges) {
@@ -125,8 +134,42 @@ export function useAttentionSummary({ event, session, dataset, serverTime, devic
     }) : []),
   ])]
 
+  const deltas: AssistantRequest['readings'] = observed.map((item) => {
+    const previous = (watchHistory[item.deviceId] ?? []).flatMap((frame) =>
+      frame.source === item.frameSource && frame.simulated === item.simulated
+        ? frame.readings.filter((reading) => reading.metric === item.label && reading.unit === item.unit && reading.quality === 'valid')
+          .map((reading) => ({ time: reading.measuredAt ?? frame.observedAt, value: reading.value })) : [],
+    ).filter((reading) => reading.time < item.time && item.time - reading.time <= 900).sort((a, b) => b.time - a.time)[0]
+    return { label: item.label, value: item.value, unit: item.unit, status: item.status,
+      ...(previous ? { delta: item.value - previous.value, comparison: 'Previous valid reading' } : {}) }
+  })
+  const comparison = session ? comparePhases(session) : null
+  if ((historical || !observed.length) && comparison?.status === 'CALCULATED') {
+    deltas.push({ label: 'Heart rate', value: comparison.recoveryMedian, delta: comparison.observedDelta, unit: 'bpm', comparison: 'Recovery median vs rest median' })
+  }
+  for (const { label, value, unit } of demoChanges ?? []) {
+    deltas.push({ label, delta: value, unit, comparison: 'Simulated rest reference' })
+  }
+  if (historical) for (const note of recordedFlags) {
+    const fields = note.split(/\s+·\s+| {2,}/)
+    const match = /^(.*) (-?\d+(?:\.\d+)?(?:e[+-]?\d+)?) (\S.*)$/i.exec(fields[1] ?? '')
+    if (!match || !['review', 'priority'].includes(fields[2]) || !Number.isFinite(Number(match[2]))) continue
+    deltas.push({ label: match[1].slice(0, 80), value: Number(match[2]), unit: match[3].slice(0, 24), status: fields[2] })
+  }
+  const evidenceText = [...recordedFlags, details].join(' ')
+  const topic = dizziness ? 'dizziness'
+    : hasLiveFlag(/oxygen|spo2/i) || oxygenDown || /oxygen saturation|spo2/i.test(evidenceText) ? 'oxygen-breathing'
+    : hasLiveFlag(/pulse|heart|breath|respirat/i) || pulseUp || breathingUp || /heart rate|breathing rate|respiration/i.test(evidenceText) ? 'pulse-recovery'
+    : hasLiveFlag(/pressure/i) ? 'pressure'
+    : hasLiveFlag(/temperature/i) || warming ? 'temperature'
+    : 'reading-check'
+
   return {
-    guideTopic: dizziness ? 'dizziness' : warning ? 'reading-check' : 'communications',
+    guideTopic: topic,
+    eventId: event?.eventId,
+    deltas: deltas.slice(0, 12),
+    feed: (workspace === 'demo' || event?.isSimulated ? 'demo' : observed.some((reading) => reading.simulated) ? 'test'
+      : deltas.length || event ? 'recorded' : 'unavailable') as AssistantRequest['feed'],
     warning, title, details, nextStep, interpretation, explanation, triggerReadings,
     readings: observed,
     simulatedReadings: demoChanges?.map(({ label, value, unit, tolerance }) => ({ label, value, unit, tolerance })) ?? [],
@@ -146,7 +189,7 @@ export function AttentionSummary({ summary }: { summary: ReturnType<typeof useAt
           <p className="attention-popover text-sm">{summary.explanation}</p>
         </details>}
       </div>
-      <a className="mt-2 inline-block text-sm underline" href={href.guideTopic(summary.guideTopic)}>What to do next</a>
+      <a className="mt-2 inline-block text-sm underline" href={href.attention}>What to do next</a>
     </section>
   )
 }

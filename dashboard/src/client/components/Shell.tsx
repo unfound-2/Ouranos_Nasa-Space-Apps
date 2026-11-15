@@ -166,9 +166,9 @@ function ConnectionDetails() {
           <RailReadout
             icon={null}
             label="Network"
-            value={external.count > 0 ? `${external.count} external` : online ? 'Internet not used' : 'Offline · local'}
+            value={external.count > 0 ? `${external.count} external` : online ? 'Browser uses local API' : 'Offline · local'}
             tone={external.count > 0 ? 'amber' : 'neutral'}
-            title={`Requests this page made to other machines: ${external.count}. The browser reports the network as ${online ? 'attached' : 'disconnected'}; that flag does not test internet access, and nothing here needs it.`}
+            title={`Requests this page made to other machines: ${external.count}. This count covers browser requests. The browser reports the network as ${online ? 'attached' : 'disconnected'}; that flag does not test internet access, and core monitoring works without it.`}
           />
           {demo ? (
             <button
@@ -210,7 +210,7 @@ export function Footer() {
         <span className="max-w-[90ch]">
           OURANOS organises recorded evidence for human review. It does not diagnose, predict fainting, measure blood pressure on the wrist, or clear anyone for duty.
         </span>
-        <span className="font-mono text-[12px]">Contract v1 · UTC · offline</span>
+        <span className="font-mono text-[12px]">Contract v1 · UTC</span>
       </div>
       <p className="mt-3 text-[12px] text-ink-3">
         “Astronaut by Jungle Jim” by Jungle Jim is licensed under <a className="underline" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.

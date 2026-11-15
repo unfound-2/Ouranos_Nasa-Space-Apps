@@ -1,6 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { DashboardOptions, CONTAINER, Footer } from './components/Shell'
-import { OuranosMark } from './components/OuranosMark'
 import { WarningInbox } from './components/WarningInbox'
 import { CrewGuide } from './pages/CrewGuide'
 import { Empty } from './components/ui'
@@ -10,6 +9,7 @@ import { hasSimulatorSignIn, watchSignIn } from './lib/watch-pairing'
 import { PairWatch } from './pages/PairWatch'
 import { CrewHealth } from './pages/CrewHealth'
 import { EventHistory } from './pages/EventHistory'
+import { AttentionDetails } from './pages/AttentionDetails'
 import { Investigation } from './pages/Investigation'
 import { Overview } from './pages/Overview'
 import { SessionReport } from './pages/SessionReport'
@@ -45,6 +45,8 @@ function Page({ route }: { route: Route }) {
       return <SessionReport id={route.id} />
     case 'events':
       return <EventHistory />
+    case 'attention':
+      return <AttentionDetails eventId={route.id} />
     default:
       return (
         <div className="mx-auto max-w-2xl py-12">
@@ -60,6 +62,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   event: 'Event evidence',
   crew: 'Crew Health',
   session: 'Session report',
+  attention: 'Health review',
   events: 'Event History',
   system: 'System Status',
   guide: 'Crew Guide',
@@ -83,17 +86,12 @@ function Shell() {
     document.title = `${TITLES[route.name] ?? 'OURANOS'}${workspace === 'demo' ? ' · SIMULATED' : ''} · OURANOS`
   }, [route.name, workspace])
   if (route.name === 'pair') return <PairWatch key={pairMode} />
-  if (needsPairing) return null
+  if (needsPairing) return <PairWatch />
 
   return (
     <div className="gg-backdrop relative min-h-screen">
-      <header className={`relative ${CONTAINER} ouranos-bar`}>
-        <a href={href.overview} aria-label="Ouranos, mission health">
-          <OuranosMark />
-        </a>
-      </header>
       <main className={`relative ${CONTAINER} dashboard-main pt-9 pb-16`}>
-        <div key={route.name === 'event' || route.name === 'session' ? `${route.name}:${route.id}` : route.name} className="page-enter">
+        <div key={route.name === 'event' || route.name === 'session' || route.name === 'attention' ? `${route.name}:${route.id}` : route.name} className="page-enter">
           <Page route={route} />
         </div>
         <DashboardOptions />

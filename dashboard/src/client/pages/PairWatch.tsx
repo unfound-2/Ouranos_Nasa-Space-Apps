@@ -35,7 +35,7 @@ export function PairWatch() {
 
   async function pair(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if ((!system && !name.trim()) || !code.trim() || pending) return
+    if ((system && !active) || (!system && !name.trim()) || !code.trim() || pending) return
     setPending('watch')
     setError('')
     try {
@@ -43,16 +43,16 @@ export function PairWatch() {
       if (system) {
         if (!active) return
         saveCrew(withSystem(active, { deviceId: paired.deviceId }))
-        await refresh()
         navigate(href.crew)
+        void refresh()
         return
       }
       rememberWatch(name.trim(), paired.deviceId, paired.adapterToken ?? '')
       setWorkspace('mission')
       if (sync || (active && !add)) {
         saveCrew(withWatch({ ...active, name: name.trim() }, paired.deviceId))
-        await refresh()
         navigate(href.overview)
+        void refresh()
       } else {
         setSetup({ deviceId: paired.deviceId, demo: false })
       }
@@ -86,7 +86,7 @@ export function PairWatch() {
 
   function finishSetup(profile: Partial<Pick<CrewProfile, 'history' | 'limitations' | 'notes'>> = {}) {
     if (!setup) return
-    saveCrew({ id: crypto.randomUUID(), name: name.trim() || 'Astronaut', deviceId: setup.deviceId, ...profile })
+    saveCrew({ id: crypto.randomUUID?.() ?? `crew-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: name.trim() || 'Astronaut', deviceId: setup.deviceId, ...profile })
     const next = setup.demo ? 'demo' : 'mission'
     if (workspace !== next) setWorkspace(next)
     void refresh()
