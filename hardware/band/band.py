@@ -13,7 +13,7 @@ PARTS (out/print/)
   gg_backplate_*.stl    slide-in back plate in five fits: looser_m06, looser_m03,
                         nominal, tighter_p03, tighter_p06 (bearing pad -0.6 to +0.6 mm).
 
-PRINT (PLA, Elegoo Neptune 4, 0.4 mm nozzle)
+PRINT (PLA, Elegoo Neptune 4 Pro, 0.4 mm nozzle)
   0.2 mm layers, 6 walls, 40 % gyroid infill (plates come out solid), no supports,
   no brim, nozzle 210 C, bed 60 C. Parts are already oriented. The strap bars and
   the side openings are short bridges; keep bridge fan on.
@@ -45,7 +45,7 @@ Everything marked EST is an estimate that the fit test checks.
 AI DISCLOSURE (NASA Space Apps SI rules)
   Sriyan chose the part and its requirements: a band for the 40 mm SE that hides
   the Apple Watch look, a glove-friendly hook-and-loop strap through a D-ring, PLA,
-  printed on his Neptune 4. Claude (Anthropic) in Claude Code wrote this code on
+  printed on his Neptune 4 Pro. Claude (Anthropic) in Claude Code wrote this code on
   2026-11-14 during the event and made the mechanical choices: the slide-in back
   plate and its in-plane latch arms, the 45 degree lugs, the octagonal bezel, the
   opening sizes and the fit variants. No outside 3D model was used. The engraved
