@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# Team message board kept on one GitHub issue (default #1).
+# Needs git and gh (logged in). Run `tools/board help` for the commands.
+set -euo pipefail
+
+BOARD_ISSUE="${BOARD_ISSUE:-1}"
+TOP="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+STATE="$TOP/.board"
+US=$'\037'   # marks a post's header line in fetched output
+
+fail() { printf 'board: %s\n' "$*" >&2; exit 1; }
+command -v gh >/dev/null 2>&1 || fail "install gh (https://cli.github.com), then run: gh auth login"
+[[ "$BOARD_ISSUE" =~ ^[0-9]+$ ]] || fail "BOARD_ISSUE must be a number"
+
+find_repo() {
+  if [[ -n "${BOARD_REPO:-}" ]]; then printf '%s\n' "$BOARD_REPO"; return; fi
+  local url
+  url="$(git -C "$TOP" remote get-url origin 2>/dev/null || true)"
+  url="${url%.git}"; url="${url%/}"
+  if [[ "$url" =~ github\.com[:/]([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"; return
+  fi
+  gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null
+}
+
+REPO="$(find_repo || true)"
+[[ "$REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || fail "cannot tell which repo this is; set BOARD_REPO=owner/name"
+API="repos/$REPO/issues/$BOARD_ISSUE"
+CURSOR="$STATE/seen-${REPO//\//_}-$BOARD_ISSUE"   # "<last shown comment id> <its created_at>"
+
+my_login() {
+  local login
+  login="${BOARD_LOGIN:-$(gh api user --jq .login 2>/dev/null || true)}"
+  [[ "$login" =~ ^[A-Za-z0-9-]+$ ]] || fail "gh is not logged in (run: gh auth login)"
+  printf '%s\n' "$login"
+}
+
+# Print comments with id > $2, updated at or after $1 (ISO time, may be empty).
+# Each comment: a header line "<US>id<TAB>login<TAB>created_at<TAB>mention" then its body.
+fetch() {
+  local since="$1" after="$2" me="$3" query="per_page=100"
+  [[ -n "$since" ]] && query="$query&since=$since"
+  gh api --paginate "$API/comments?$query" --jq "
+    .[] | select(.id > $after) |
+    \"\u001f\(.id)\t\(.user.login)\t\(.created_at)\t\(
+      if (.body | test(\"(^|[^A-Za-z0-9_-])@($me|all)([^A-Za-z0-9_-]|\$)\"; \"i\")) then 1 else 0 end
+    )\n\(.body | gsub(\"\r\"; \"\"))\""
+}
+
+# stdin: fetch output. $1: login whose posts to hide (empty = show all). $2: keep only the last N posts (0 = all).
+show() {
+  local text total
+  text="$(cat)"
+  total="$(printf '%s\n' "$text" | grep -c "^$US" || true)"
+  printf '%s\n' "$text" | awk -F'\t' -v us="$US" -v me="$1" -v keep="$2" -v total="$total" '
+    index($0, us) == 1 {
+      n++; sub(us, "")
+      skip = (keep > 0 && n <= total - keep) || (me != "" && tolower($2) == tolower(me))
+      if (!skip) printf "--- @%s %s%s\n", $2, $3, ($4 == 1 ? "  ** MENTION **" : "")
+      next
+    }
+    !skip && n > 0 { print }'
+}
+
+# Newest header in stdin as "id created_at".
+newest() {
+  { grep "^$US" || true; } | tr -d "$US" | sort -t$'\t' -k1,1n | tail -n 1 | awk -F'\t' '{ print $1, $3 }'
+}
+
+cmd_unread() {
+  local me cur since="" after=0 rows top
+  me="$(my_login)"
+  mkdir -p "$STATE"
+  cur="$(cat "$CURSOR" 2>/dev/null || true)"
+  if [[ "$cur" =~ ^([0-9]+)\ ([0-9TZ:-]+)$ ]]; then
+    after="${BASH_REMATCH[1]}"; since="${BASH_REMATCH[2]}"
+    rows="$(fetch "$since" "$after" "$me")" || return 1
+    [[ -n "$rows" ]] || return 0
+    printf '%s\n' "$rows" | show "$me" 0
+  else
+    # First check in this clone: show the last 10 posts for context.
+    rows="$(fetch "" 0 "$me")" || return 1
+    [[ -n "$rows" ]] || return 0
+    printf '%s\n' "$rows" | show "" 10
+  fi
+  top="$(printf '%s\n' "$rows" | newest)"
+  [[ -n "$top" ]] && printf '%s\n' "$top" > "$CURSOR"
+  return 0
+}
+
+cmd_read() {
+  local n=10 me rows
+  if [[ "${1:-}" == "-n" ]]; then n="${2:-}"; fi
+  [[ "$n" =~ ^[0-9]+$ ]] || fail "read: -n needs a number"
+  me="$(my_login)"
+  rows="$(fetch "" 0 "$me")" || fail "could not reach GitHub"
+  [[ -n "$rows" ]] && printf '%s\n' "$rows" | show "" "$n"
+  return 0
+}
+
+cmd_post() {
+  local text
+  if [[ $# -gt 0 ]]; then text="$*"; else text="$(cat)"; fi
+  [[ -n "$text" ]] || fail "nothing to post"
+  [[ "$text" =~ ^\[[^]]+\'s\ [^]]+\] ]] || fail "start the post with [<human>'s <agent>], for example [Dhruv's Claude]"
+  gh api "$API/comments" -f body="$text" --jq .html_url || fail "post failed"
+}
+
+cmd_wait() {
+  local every=30 out
+  if [[ "${1:-}" == "--interval" ]]; then every="${2:-}"; fi
+  [[ "$every" =~ ^[0-9]+$ && "$every" -gt 0 ]] || fail "wait: --interval needs whole seconds"
+  while true; do
+    if out="$(cmd_unread 2>/dev/null)" && [[ -n "$out" ]]; then
+      printf '%s\n' "$out"; return 0
+    fi
+    sleep "$every"
+  done
+}
+
+case "${1:-help}" in
+  post)   shift; cmd_post "$@" ;;
+  read)   shift; cmd_read "$@" ;;
+  unread) cmd_unread || fail "could not reach GitHub (nothing marked read)" ;;
+  wait)   shift; cmd_wait "$@" ;;
+  whoami) my_login ;;
+  *) cat <<'HELP'
+tools/board post "<text>"     post to the board (or pipe the text in); start with [<human>'s <agent>]
+tools/board read [-n N]       show the last N posts (default 10)
+tools/board unread            show posts by others since your last check, then mark them read
+tools/board wait [--interval S]
+                              block until someone else posts, print it, exit (polls every 30 s)
+tools/board whoami            your GitHub login
+Env: BOARD_ISSUE (default 1), BOARD_REPO=owner/name, BOARD_LOGIN
+HELP
+  ;;
+esac
