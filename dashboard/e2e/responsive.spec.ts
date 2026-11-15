@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test'
-import { openIn, resetDemo } from './helpers'
+import { expect } from '@playwright/test'
+import { openIn, resetDemo, test } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await resetDemo(page)

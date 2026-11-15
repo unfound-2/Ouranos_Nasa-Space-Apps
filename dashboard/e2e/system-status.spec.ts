@@ -1,6 +1,6 @@
-import { expect, test, type APIResponse } from '@playwright/test'
+import { expect, type APIResponse } from '@playwright/test'
 import { E2E_TOKEN } from '../playwright.config'
-import { banner, openIn, resetDemo } from './helpers'
+import { banner, connectionDetails, demoLabel, expand, navTo, openIn, openSimulatedDemo, resetDemo, test } from './helpers'
 
 /*
  * System Status v2: the nine integration checks, the simulated self-test, masked secrets and the
@@ -56,11 +56,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('nine integration checks, and neither simulated data nor the self-test makes one pass', async ({ page }) => {
+  // Signing in pairs a watch by code, which is a real pairing, so the baseline is taken after it.
+  await openIn(page, 'mission', '#/system')
   const before = await checksOf(await page.request.get('/api/v1/integration/checks'))
   expect(before.map((c) => c.id)).toEqual(CHECK_IDS)
   expect((await page.request.post('/api/v1/demo/trigger', { data: {} })).ok()).toBeTruthy()
 
-  await openIn(page, 'mission', '#/system')
   const board = page.getByTestId('integration-checks')
   await expect(board.locator('li[data-status]')).toHaveCount(9)
   await expect(page.getByTestId('check-backend')).toHaveAttribute('data-status', 'PASS')
@@ -94,8 +95,9 @@ test('a real record from a device passes ingest, storage and display; the demo v
   await expect(display).toHaveAttribute('data-status', 'PASS')
   await expect(display.getByRole('link', { name: 'Open record' })).toHaveAttribute('href', `#/sessions/${id}`)
 
-  await page.getByRole('button', { name: 'Open simulated demo' }).first().click()
+  await openSimulatedDemo(page)
   await expect(banner(page)).toContainText('Simulated demo')
+  await navTo(page, 'System Status')
   await expect(display).toHaveAttribute('data-status', 'NOT_TESTED')
   await expect(display).toContainText('simulated demo')
 })
@@ -104,6 +106,7 @@ test('a saved watch recording imports as SAVED DEVICE DATA into mission records,
   const id = `e2e-import-${Date.now()}`
   const file = { name: `${id}.json`, mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(realSession(id))) }
   await openIn(page, 'mission', '#/system')
+  await expand(page, 'Integration tools')
   const input = page.getByTestId('import-input')
   await input.setInputFiles(file)
   const result = page.getByTestId('import-result')
@@ -127,6 +130,7 @@ test('a saved watch recording imports as SAVED DEVICE DATA into mission records,
 
 test('the device token stays masked until an explicit, timed reveal', async ({ page }) => {
   await openIn(page, 'mission', '#/system')
+  await expand(page, 'Integration tools')
   const token = page.getByTestId('token')
   await expect(token).toBeVisible()
   await expect(token).not.toContainText(E2E_TOKEN)
@@ -141,15 +145,21 @@ test('the device token stays masked until an explicit, timed reveal', async ({ p
 })
 
 test('the scenario picker focuses the Overview on one simulated case', async ({ page }) => {
-  await openIn(page, 'demo')
+  // Start in mission records (a watch sign-in) so that leaving the demo has somewhere to go.
+  await openIn(page, 'mission')
+  await openSimulatedDemo(page)
+  await connectionDetails(page)
   const picker = page.getByTestId('scenario-picker')
   await picker.selectOption('C')
-  await expect(page.getByTestId('hero-alert').getByText('Simulated', { exact: true })).toBeVisible()
+  // The hero's own "Simulated" tag was removed (see the test.fixme in flow.spec.ts); its Source names the simulated watch.
+  await expect(page.getByTestId('hero-alert')).toContainText('Simulated watch')
+  await expect(demoLabel(page)).toBeVisible()
   await page.getByTestId('open-evidence').click()
   await expect(page).toHaveURL(/#\/events\/sim-evt-20261112-b$/)
   await expect(banner(page)).toContainText('Simulated demo')
 
-  await page.getByRole('link', { name: 'Mission Overview', exact: true }).click()
+  await navTo(page, 'Overview')
+  await connectionDetails(page)
   await picker.selectOption('A')
   await expect(page.getByTestId('hero-alert')).toContainText('No review event')
   await expect(page.getByTestId('open-evidence')).toHaveCount(0)

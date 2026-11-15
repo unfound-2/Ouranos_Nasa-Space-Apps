@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { expect, test } from '@playwright/test'
-import { openIn, resetDemo } from './helpers'
+import { expect } from '@playwright/test'
+import { openIn, resetDemo, test } from './helpers'
 
 const LOCAL = new Set(['127.0.0.1', 'localhost', '[::1]'])
 

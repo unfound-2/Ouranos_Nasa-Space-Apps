@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { E2E_TOKEN } from '../playwright.config'
-import { openIn } from './helpers'
+import { banner, navTo, openIn, test } from './helpers'
 
 /*
  * Path A without a watch: these requests carry the device token exactly as the watch app would.
@@ -84,9 +84,10 @@ test('a device-token heartbeat and live-synced records show as LIVE DEVICE, and 
   expect((await page.request.post('/api/v1/alerts', { headers: auth, data: event })).status()).toBe(200)
 
   await openIn(page, 'mission', '#/events/e2e-event-1')
-  await expect(page.getByTestId('source-banner')).toContainText('LIVE DEVICE')
+  await expect(banner(page)).toContainText('LIVE DEVICE')
   await expect(page.getByTestId('watch-state')).toHaveText('Link verified')
-  await expect(page.getByTestId('event-header')).toContainText('REAL · LIVE DEVICE')
+  // The separator dot was dropped from this label; the words are unchanged.
+  await expect(page.getByTestId('event-header')).toContainText(/REAL\s+LIVE DEVICE/)
   await expect(page.getByTestId('phase-stats')).toContainText('+12 bpm')
   await expect(page.getByText('Simulate watch acknowledgement')).toHaveCount(0)
 
@@ -94,7 +95,7 @@ test('a device-token heartbeat and live-synced records show as LIVE DEVICE, and 
   expect((await page.request.post('/api/v1/alerts/e2e-event-1/ack', { data: { deviceId: 'e2e-test-watch', acknowledgedAt: at(0) } })).status()).toBe(403)
   expect((await page.request.post('/api/v1/alerts/e2e-event-1/ack', { headers: auth, data: { deviceId: 'e2e-test-watch', acknowledgedAt: at(0) } })).status()).toBe(200)
   await expect(page.getByTestId('event-header')).toContainText('Acknowledged', { timeout: 8000 })
-  await page.getByRole('link', { name: 'Event History', exact: true }).click()
+  await navTo(page, 'Event History')
   const row = page.getByTestId('events-table').locator('tr', { hasText: 'e2e-event-1' })
   await expect(row).toContainText('Not reviewed')
 })
