@@ -49,12 +49,12 @@ export function createCrewAssistant({
         : mode === 'body' && readings.length === 0 ? 'There are no comparable readings for this view. Open the checklist to see what to capture and how to report it.'
           : guide.summary,
     }
-    if (!groq) { res.json(fallback); return }
+    if (!groq?.trim()) { res.json({ ...fallback, fallbackReason: 'missing-server-key' }); return }
 
     try {
       const response = await request('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${groq}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${groq.trim()}`, 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(5500),
         body: JSON.stringify({
           model: 'openai/gpt-oss-20b', reasoning_effort: 'low', reasoning_format: 'hidden',
@@ -70,14 +70,14 @@ export function createCrewAssistant({
           ],
         }),
       })
-      if (!response.ok) { res.json(fallback); return }
+      if (!response.ok) { res.json({ ...fallback, fallbackReason: 'provider-rejected', providerStatus: response.status }); return }
       const body = completionBody.parse(await response.json())
       const reply = modelReply.parse(JSON.parse(body.choices[0].message.content))
       const cited = candidates.find(({ id }) => id === reply.guideId)
-      if (!cited) { res.json(fallback); return }
+      if (!cited) { res.json({ ...fallback, fallbackReason: 'unrecognized-reference' }); return }
       res.json({ answer: reply.answer, guide: cited, mode: 'online' } satisfies AssistantReply)
     } catch {
-      res.json(fallback)
+      res.json({ ...fallback, fallbackReason: 'provider-unavailable-or-invalid-response' })
     }
   }
   return { list, explain }
