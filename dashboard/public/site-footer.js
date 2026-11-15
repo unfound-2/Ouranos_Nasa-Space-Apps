@@ -2,7 +2,6 @@ const slot = document.querySelector('[data-site-footer]')
 if (slot) {
   slot.innerHTML = `
     <footer class="ouranos-footer">
-      <img class="ouranos-footer-logo" src="/astronaut/mission-logo.png" width="443" height="464" alt="Ouranos logo" loading="lazy">
       <div class="ouranos-footer-row">
         <p class="ouranos-footer-note">OURANOS organises recorded evidence for human review. It does not diagnose or clear anyone for duty.</p>
         <nav class="ouranos-footer-links" aria-label="Footer">
@@ -14,5 +13,6 @@ if (slot) {
         </nav>
       </div>
       <p class="ouranos-footer-credit">“Astronaut by Jungle Jim” by Jungle Jim is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Suit colors and shoulder patch were modified.</p>
+      <div class="ouranos-footer-wordmark" aria-label="Ouranos">Ouranos</div>
     </footer>`
 }
