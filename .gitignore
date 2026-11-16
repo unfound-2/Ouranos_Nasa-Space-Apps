@@ -1,0 +1,15 @@
+# Keep local credentials out of every project in this repository.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.vercel/
+
+# Local tools and per-user Xcode state.
+.DS_Store
+node_modules/
+xcuserdata/
+*.xcuserstate
