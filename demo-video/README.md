@@ -1,5 +1,7 @@
 # Ouranos demo video (Space Apps 2026)
 
+> **Branch `demo-video-motion`:** the same cut as Dhruv's `demo-video`, with motion added: `ouranos-demo-motion.mp4`. Each website page lands with a quick settle, punches in on the beat where something happens (the flag on Mission health, the assistant's answer on Health review), then eases back out to the whole page. The wrist hero shot pushes into the watch screen, and fast zooms carry motion blur. Focus points keep the zoomed pages clear of the margin captions. Pick whichever cut the team prefers.
+
 The 28.0 second demo video, re-edited on 15 November (Claude, at Dhruv's request) from Sriyan's approved cut. Space Apps' limit is 30 seconds, and going over makes the project ineligible.
 The rendered file is `ouranos-demo.mp4` in this folder.
 

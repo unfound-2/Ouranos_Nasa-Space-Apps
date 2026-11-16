@@ -4,3 +4,4 @@ raw/
 .DS_Store
 *.blend1
 *.log
+node_modules

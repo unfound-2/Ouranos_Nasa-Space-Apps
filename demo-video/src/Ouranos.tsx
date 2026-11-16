@@ -21,6 +21,11 @@ const into = Easing.bezier(0.7, 0, 0.84, 0); // a push that accelerates into the
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const has = (p: string) => p in (media as Record<string, unknown>);
 const between = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+/** Motion blur in px from how fast the zoom changes between two frames (fast punch-ins smear, drifts stay sharp). */
+const speedBlur = (z: number, zPrev: number, k = 350, cap = 12) => {
+  const b = Math.min(cap, Math.abs(z - zPrev) * k);
+  return b > 0.4 ? `blur(${b.toFixed(2)}px)` : undefined;
+};
 
 /** Watch and website shots: the type column on the left, the picture from VIEW_X to the right edge. */
 const TEXT_X = 120;
@@ -106,19 +111,24 @@ const ClipShot = ({ s }: { s: Extract<Shot, { kind: "clip" }> }) => {
   const frame = useCurrentFrame();
   const len = s.to - s.from;
   const t = frame / FPS;
-  let zoom = interpolate(frame, [0, len], [1.0, 1.045], clamp);
-  let ox = 0.5;
-  let oy = 0.5;
-  if (s.push) {
-    const [at, z, fx, fy] = s.push;
-    const p = interpolate(t, [at, len / FPS], [0, 1], { ...clamp, easing: into });
-    zoom += (z - zoom) * p;
-    ox = 0.5 + (fx - 0.5) * Math.min(1, p * 3);
-    oy = 0.5 + (fy - 0.5) * Math.min(1, p * 3);
-  }
+  const at = (tt: number) => {
+    let zoom = interpolate(tt * FPS, [0, len], [1.0, 1.045], clamp);
+    let ox = 0.5;
+    let oy = 0.5;
+    if (s.push) {
+      const [pAt, z, fx, fy] = s.push;
+      const p = interpolate(tt, [pAt, len / FPS], [0, 1], { ...clamp, easing: into });
+      zoom += (z - zoom) * p;
+      ox = 0.5 + (fx - 0.5) * Math.min(1, p * 3);
+      oy = 0.5 + (fy - 0.5) * Math.min(1, p * 3);
+    }
+    return [zoom, ox, oy] as const;
+  };
+  const [zoom, ox, oy] = at(t);
+  const blur = speedBlur(zoom, at(t - 1 / FPS)[0], 160, 14);
   return (
     <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
-      <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: `${ox * 100}% ${oy * 100}%`, filter: "contrast(1.05) saturate(1.05)" }}>
+      <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: `${ox * 100}% ${oy * 100}%`, filter: `contrast(1.05) saturate(1.05)${blur ? " " + blur : ""}` }}>
         <Footage src={s.src} startAt={s.startAt} rate={s.rate} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 85% 85% at 50% 48%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.38) 100%)" }} />
@@ -187,17 +197,21 @@ const WebShot = ({ s }: { s: Extract<Shot, { kind: "web" }> }) => {
   );
 };
 
-/** A whole website page, full frame and sharp (recorded at 2x), with a slow camera drift. */
+/**
+ * A whole website page, full frame and sharp (recorded at 2x). The camera lands with a quick settle, then
+ * punches in on the beat where something happens and eases back out to the whole page.
+ */
 const PageShot = ({ s }: { s: Extract<Shot, { kind: "page" }> }) => {
   const frame = useCurrentFrame();
   const [z, fx, fy] = camAt(s.cam, frame / FPS);
+  const [zPrev] = camAt(s.cam, (frame - 1) / FPS);
   const pw = W * z;
   const ph = H * z;
   const x = between(W / 2 - fx * pw, W - pw, 0);
   const y = between(H / 2 - fy * ph, H - ph, 0);
   return (
     <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0", filter: speedBlur(z, zPrev) }}>
         <Footage src={s.src} startAt={s.startAt} />
       </div>
     </AbsoluteFill>

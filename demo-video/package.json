@@ -7,7 +7,7 @@
     "studio": "node scripts/media.mjs && remotion studio src/index.ts",
     "typecheck": "tsc --noEmit",
     "still": "node scripts/media.mjs && remotion still src/index.ts Ouranos out/still.png",
-    "render": "node scripts/media.mjs && remotion render src/index.ts Ouranos out/ouranos-raw.mp4 --codec=h264 --crf=16 --audio-codec=aac --audio-bitrate=320k --timeout=90000 && bash scripts/master.sh out/ouranos-raw.mp4 out/ouranos-demo.mp4",
+    "render": "node scripts/media.mjs && remotion render src/index.ts Ouranos out/ouranos-raw.mp4 --codec=h264 --crf=16 --audio-codec=aac --audio-bitrate=320k --timeout=90000 && bash scripts/master.sh out/ouranos-raw.mp4 out/ouranos-demo-motion.mp4",
     "media": "node scripts/media.mjs"
   },
   "dependencies": {
