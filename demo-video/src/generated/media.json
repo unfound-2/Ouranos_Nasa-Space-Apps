@@ -5,6 +5,9 @@
   "capture/watch_app_long.mp4": {
     "duration": 15.5
   },
+  "capture/watch_body.mp4": {
+    "duration": 19.9
+  },
   "capture/watch_pairing_code.mp4": {
     "duration": 6
   },
@@ -19,6 +22,9 @@
   },
   "capture/web_home_watch.mp4": {
     "duration": 6.5
+  },
+  "capture/web_other_crew_guide.mp4": {
+    "duration": 6
   },
   "capture/web_other_daily_plan.mp4": {
     "duration": 7

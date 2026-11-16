@@ -1,60 +1,49 @@
 /**
- * Ouranos demo video. Every visual choice copies the website's own UI tokens
- * (dashboard/src/client/*.css): black void, #0a0a0a panels, #2e2e2e hairlines, #ededed ink,
- * #a1a1a1 secondary ink, Geist + Geist Mono, 18px card radius, ease-out-quart motion,
- * and the Pinyon Script wordmark. No new graphic language: the footage is the UI itself.
+ * Ouranos demo film. The look copies the website's own tokens (dashboard/src/client/*.css):
+ * black void, #ededed and #a1a1a1 ink, Geist, ease-out-quart motion and the Pinyon Script wordmark.
+ *
+ * Edit grammar: hard cuts on the beat, full-frame footage, no cards, frames, pills or dots.
+ * Type sits either bottom-left over footage or in a black column beside the product, and each
+ * line is revealed from behind a mask. The product picture is the real UI, moved by a camera.
  */
-import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import React from "react";
+import { AbsoluteFill, Audio, Easing, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
-import { CAPTIONS, Cam, FPS, MUSIC, SHOTS, Shot, URL_TEXT } from "./timeline";
+import { Cam, CAPTIONS, Caption, CREDIT, FPS, MUSIC, SHOTS, SIMULATED, Shot, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
 
-const C = { void: "#000000", panel: "#0a0a0a", line: "#2e2e2e", ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f" };
+const C = { void: "#000000", ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f" };
+const W = 1920;
+const H = 1080;
 const quart = Easing.bezier(0.25, 1, 0.5, 1); // --ease-out-quart
-const XF = 8; // crossfade frames between shots
-const has = (p: string) => p in (media as Record<string, unknown>);
+const inOut = Easing.bezier(0.65, 0, 0.35, 1); // camera moves between keys
+const into = Easing.bezier(0.7, 0, 0.84, 0); // a push that accelerates into the cut
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
-const smooth = Easing.bezier(0.65, 0, 0.35, 1); // camera moves: ease in and out
+const has = (p: string) => p in (media as Record<string, unknown>);
+const between = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Camera inside a website card at time t (s): zoom and focus point, eased between keys. */
-const camAt = (keys: Cam[] | undefined, t: number): [number, number, number] => {
-  if (!keys?.length) return [1, 0.5, 0.5];
+/** Watch and website shots: the type column on the left, the picture from VIEW_X to the right edge. */
+const TEXT_X = 120;
+const VIEW_X = 700;
+const FEATHER = 150;
+
+/** Camera at time t (s): zoom and focus point, eased between keys. */
+const camAt = (keys: Cam[], t: number): [number, number, number] => {
   if (t <= keys[0][0]) return [keys[0][1], keys[0][2], keys[0][3]];
   for (let i = 1; i < keys.length; i++) {
-    const [t0, s0, x0, y0] = keys[i - 1];
-    const [t1, s1, x1, y1] = keys[i];
+    const [t0, z0, x0, y0] = keys[i - 1];
+    const [t1, z1, x1, y1] = keys[i];
     if (t <= t1) {
-      const u = smooth((t - t0) / (t1 - t0));
-      return [s0 + (s1 - s0) * u, x0 + (x1 - x0) * u, y0 + (y1 - y0) * u];
+      const u = inOut((t - t0) / (t1 - t0));
+      return [z0 + (z1 - z0) * u, x0 + (x1 - x0) * u, y0 + (y1 - y0) * u];
     }
   }
   const k = keys[keys.length - 1];
   return [k[1], k[2], k[3]];
 };
 
-const rise = (frame: number, delay = 0, dur = 16) => interpolate(frame - delay, [0, dur], [0, 1], { ...clamp, easing: quart });
-
-const Heading = ({ title, sub, top = 62 }: { title?: string; sub?: string; top?: number }) => {
-  const frame = useCurrentFrame();
-  const a = rise(frame, 3), b = rise(frame, 8);
-  return (
-    <div style={{ position: "absolute", top, left: 0, right: 0, textAlign: "center" }}>
-      {title && (
-        <div style={{ fontFamily: SANS, fontWeight: 650, fontSize: 62, letterSpacing: "-0.035em", color: C.ink, opacity: a, transform: `translateY(${(1 - a) * 14}px)` }}>
-          {title}
-        </div>
-      )}
-      {sub && (
-        <div style={{ fontFamily: SANS, fontWeight: 400, fontSize: 28, color: C.ink2, marginTop: 10, opacity: b, transform: `translateY(${(1 - b) * 10}px)` }}>
-          {sub}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const Missing = ({ src }: { src: string }) => (
-  <AbsoluteFill style={{ background: C.panel, alignItems: "center", justifyContent: "center", fontFamily: MONO, fontSize: 22, color: C.ink3 }}>
+  <AbsoluteFill style={{ background: "#0a0a0a", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontSize: 22, color: C.ink3 }}>
     waiting for {src}
   </AbsoluteFill>
 );
@@ -66,142 +55,213 @@ const Footage = ({ src, startAt, rate = 1 }: { src: string; startAt: number; rat
     <Missing src={src} />
   );
 
-const WebShot = ({ s }: { s: Extract<Shot, { kind: "web" }> }) => {
+/** One line of type that rises into view from behind its own edge. */
+const Reveal = ({ delay, children, style }: { delay: number; children: React.ReactNode; style: React.CSSProperties }) => {
   const frame = useCurrentFrame();
-  const W = 1440, H = 810;
-  const [z, fx, fy] = camAt(s.cam, frame / FPS);
-  const tx = Math.min(0, Math.max(W - W * z, W / 2 - fx * W * z));
-  const ty = Math.min(0, Math.max(H - H * z, H / 2 - fy * H * z));
-  const lift = rise(frame, 0, 24);
+  const p = interpolate(frame - delay, [0, 16], [0, 1], { ...clamp, easing: quart });
   return (
-    <AbsoluteFill style={{ background: C.void }}>
-      <Heading title={s.title} sub={s.sub} />
-      <div style={{ position: "absolute", left: (1920 - W) / 2, top: 214, width: W, height: H, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line}`, background: C.panel,
-        transform: `perspective(1800px) translateY(${(1 - lift) * 44}px) rotateX(${(1 - lift) * 7}deg) scale(${0.97 + 0.03 * lift})` }}>
-        <div style={{ width: W, height: H, transform: `translate(${tx}px, ${ty}px) scale(${z})`, transformOrigin: "0 0" }}>
-          <Footage src={s.src} startAt={s.startAt} />
-        </div>
+    <div style={{ overflow: "hidden", paddingBottom: "0.14em", marginBottom: "-0.14em" }}>
+      <div style={{ ...style, transform: `translateY(${(1 - p) * 112}%)` }}>{children}</div>
+    </div>
+  );
+};
+
+const CaptionView = ({ c }: { c: Caption }) => {
+  const frame = useCurrentFrame();
+  const len = c.to - c.from;
+  const out = interpolate(frame, [len - 7, len], [1, 0], { ...clamp, easing: quart });
+  const lower = c.place === "lower";
+  const size = lower ? 80 : 78;
+  const block: React.CSSProperties = lower
+    ? { position: "absolute", left: TEXT_X, bottom: 136, width: 1100 }
+    : { position: "absolute", left: TEXT_X, top: H / 2, width: 600, transform: "translateY(-50%)" };
+  return (
+    <AbsoluteFill style={{ opacity: out }}>
+      {lower && (
+        <AbsoluteFill style={{ background: "radial-gradient(ellipse 62% 58% at 0% 100%, rgba(0,0,0,0.66) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 80%)" }} />
+      )}
+      <div style={block}>
+        {c.title.map((line, i) => (
+          <Reveal key={line} delay={i * 3} style={{ fontFamily: SANS, fontSize: size, fontWeight: 600, letterSpacing: "-0.042em", lineHeight: 1.0, color: C.ink, whiteSpace: "nowrap" }}>
+            {line}
+          </Reveal>
+        ))}
+        {c.sub && (
+          <div style={{ marginTop: lower ? 22 : 26 }}>
+            <Reveal delay={c.title.length * 3 + 3} style={{ fontFamily: SANS, fontSize: lower ? 30 : 29, fontWeight: 400, letterSpacing: "-0.012em", lineHeight: 1.32, color: C.ink2, maxWidth: lower ? 900 : 560 }}>
+              {c.sub}
+            </Reveal>
+          </div>
+        )}
       </div>
     </AbsoluteFill>
   );
 };
 
-const WatchShot = ({ s }: { s: Extract<Shot, { kind: "watch" }> }) => {
-  const frame = useCurrentFrame();
-  const lift = rise(frame, 0, 22);
-  const drift = interpolate(frame, [0, s.to - s.from], [0, 1], clamp);
-  const h = 640, w = Math.round((h * 324) / 394);
-  return (
-    <AbsoluteFill style={{ background: C.void }}>
-      <Heading title={s.title} sub={s.sub} />
-      <div style={{ position: "absolute", left: (1920 - w) / 2 - 20, top: 250, padding: 20, borderRadius: 140, background: C.panel, border: `1px solid ${C.line}`,
-        transform: `perspective(1600px) translateY(${(1 - lift) * 40}px) rotateY(${-10 + 7 * drift}deg) rotateX(${(1 - lift) * 6}deg) scale(${0.94 + 0.06 * lift + 0.03 * drift})` }}>
-        <div style={{ width: w, height: h, borderRadius: 120, overflow: "hidden", background: "#000" }}>
-          <Footage src={s.src} startAt={s.startAt} />
-        </div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
+/** Phone footage, full frame: a slow push, and optionally a fast push into one point to carry a cut. */
 const ClipShot = ({ s }: { s: Extract<Shot, { kind: "clip" }> }) => {
   const frame = useCurrentFrame();
-  const z = interpolate(frame, [0, s.to - s.from + XF], [1.0, 1.05], clamp);
+  const len = s.to - s.from;
+  const t = frame / FPS;
+  let zoom = interpolate(frame, [0, len], [1.0, 1.045], clamp);
+  let ox = 0.5;
+  let oy = 0.5;
+  if (s.push) {
+    const [at, z, fx, fy] = s.push;
+    const p = interpolate(t, [at, len / FPS], [0, 1], { ...clamp, easing: into });
+    zoom += (z - zoom) * p;
+    ox = 0.5 + (fx - 0.5) * Math.min(1, p * 3);
+    oy = 0.5 + (fy - 0.5) * Math.min(1, p * 3);
+  }
   return (
-    <AbsoluteFill style={{ background: C.void }}>
-      <AbsoluteFill style={{ transform: `scale(${z})` }}>
+    <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
+      <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: `${ox * 100}% ${oy * 100}%`, filter: "contrast(1.05) saturate(1.05)" }}>
         <Footage src={s.src} startAt={s.startAt} rate={s.rate} />
       </AbsoluteFill>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse 85% 85% at 50% 48%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.38) 100%)" }} />
     </AbsoluteFill>
   );
 };
 
-const CaptionOverlay = ({ title, sub, len }: { title: string; sub: string; len: number }) => {
+/**
+ * The watch app's own screen. It enters large, tilted like the real watch at the end of the previous
+ * shot, then rights itself and slides right to make room for the type.
+ */
+const WatchShot = ({ s }: { s: Extract<Shot, { kind: "watch" }> }) => {
   const frame = useCurrentFrame();
-  const o = interpolate(frame, [0, 6, len - 6, len], [0, 1, 1, 0], clamp);
+  const len = s.to - s.from;
+  const p = interpolate(frame, [0, 20], [0, 1], { ...clamp, easing: quart });
+  const drift = interpolate(frame, [0, len], [0, 1], clamp);
+  const bw = 832;
+  const bh = 704;
+  const cx = 960 + (1290 - 960) * p;
+  const cy = 500 + (552 - 500) * p;
+  const scale = 1.24 * (1.42 - 0.42 * p) * (1 + 0.025 * drift);
   return (
-    <AbsoluteFill style={{ opacity: o }}>
-      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 22%, rgba(0,0,0,0) 38%)" }} />
-      <Heading title={title} sub={sub} />
+    <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: cx - bw / 2, top: cy - bh / 2, width: bw, height: bh, transform: `rotate(${-13 * (1 - p)}deg) scale(${scale})` }}>
+        <Footage src={s.src} startAt={s.startAt} />
+      </div>
     </AbsoluteFill>
   );
 };
 
-const RenderShot = ({ s }: { s: Extract<Shot, { kind: "render" }> }) => {
+/** A website recording seen through a camera. With a takeover, the page widens to the full frame on the beat. */
+const WebShot = ({ s }: { s: Extract<Shot, { kind: "web" }> }) => {
   const frame = useCurrentFrame();
-  const i = Math.min(s.frames, frame + 1);
+  const t = frame / FPS;
+  const len = (s.to - s.from) / FPS;
+  let [z, fx, fy] = camAt(s.cam, t);
+  let wide = 0;
+  if (s.takeover) {
+    const { at, zoom, fx: tx, fy: ty } = s.takeover;
+    wide = interpolate(t, [at, at + 0.42], [0, 1], { ...clamp, easing: quart });
+    const creep = 1 + 0.045 * interpolate(t, [at, len], [0, 1], clamp);
+    z += (zoom * creep - z) * wide;
+    fx += (tx - fx) * wide;
+    fy += (ty - fy) * wide;
+  }
+  const vx = VIEW_X * (1 - wide);
+  const vw = W - vx;
+  const pw = W * z;
+  const ph = H * z;
+  const x = between(vw / 2 - fx * pw, vw - pw, 0);
+  const y = between(H / 2 - fy * ph, H - ph, 0);
+  const feather = FEATHER * (1 - wide);
+  const mask = feather > 1 ? `linear-gradient(90deg, rgba(0,0,0,0) 0px, rgba(0,0,0,1) ${feather}px)` : undefined;
+  const settle = interpolate(frame, [0, 18], [1.035, 1], { ...clamp, easing: quart });
   return (
     <AbsoluteFill style={{ background: C.void }}>
-      <Img src={staticFile(`${s.dir}f_${String(i).padStart(4, "0")}.png`)} style={{ width: "100%", height: "100%" }} />
-      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 30%)" }} />
-      <Heading title={s.title} sub={s.sub} />
+      <div style={{ position: "absolute", left: vx, top: 0, width: vw, height: H, overflow: "hidden", WebkitMaskImage: mask, maskImage: mask }}>
+        <div style={{ position: "absolute", inset: 0, transform: `scale(${settle})`, transformOrigin: "50% 50%" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0" }}>
+            <Footage src={s.src} startAt={s.startAt} />
+          </div>
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };
 
-const Wordmark = ({ size, opacity, y }: { size: number; opacity: number; y: number }) => (
-  <div style={{ fontFamily: SCRIPT, fontSize: size, color: C.ink, opacity, transform: `translateY(${y}px)`, lineHeight: 1.2 }}>Ouranos</div>
-);
-
-const Title = ({ len }: { len: number }) => {
+/** The wordmark writes itself on behind a soft wipe while the music rises into the first hit. */
+const Title = () => {
   const frame = useCurrentFrame();
-  const a = rise(frame, 4, 24);
-  const out = interpolate(frame, [len - 10, len], [1, 0], clamp);
+  const t = frame / FPS;
+  const w = interpolate(t, [0.2, 1.4], [0, 1], { ...clamp, easing: Easing.bezier(0.45, 0, 0.2, 1) });
+  const edge = w * 125 - 12;
+  const mask = `linear-gradient(90deg, rgba(0,0,0,1) ${edge}%, rgba(0,0,0,0) ${edge + 12}%)`;
+  const settle = 1.035 - 0.035 * interpolate(t, [0, 2], [0, 1], { ...clamp, easing: quart });
   return (
     <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center" }}>
-      <Wordmark size={220} opacity={a * out} y={(1 - a) * 16} />
+      <div style={{ transform: `scale(${settle})`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ fontFamily: SCRIPT, fontSize: 236, lineHeight: 1.18, color: C.ink, padding: "0 60px", WebkitMaskImage: mask, maskImage: mask }}>Ouranos</div>
+        <Reveal delay={31} style={{ fontFamily: SANS, fontSize: 30, fontWeight: 400, letterSpacing: "-0.01em", color: C.ink2 }}>
+          {TAGLINE}
+        </Reveal>
+      </div>
     </AbsoluteFill>
   );
 };
 
-const End = ({ sub }: { sub?: string }) => {
+/** On the final hit: the wordmark is already there; the lines follow, then everything leaves to black. */
+const End = () => {
   const frame = useCurrentFrame();
-  const a = rise(frame, 2, 20), b = rise(frame, 9), c = rise(frame, 14);
+  const len = TOTAL - SHOTS[SHOTS.length - 1].from;
+  const settle = 1.05 - 0.05 * interpolate(frame, [0, 28], [0, 1], { ...clamp, easing: quart });
+  const away = interpolate(frame, [len - 16, len - 2], [1, 0], clamp);
   return (
-    <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-      <Wordmark size={190} opacity={a} y={(1 - a) * 14} />
-      <div style={{ fontFamily: SANS, fontSize: 30, color: C.ink2, marginTop: 6, opacity: b }}>{sub}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, color: C.ink3, marginTop: 22, opacity: c }}>{URL_TEXT}</div>
+    <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center", opacity: away }}>
+      <div style={{ transform: `scale(${settle})`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ fontFamily: SCRIPT, fontSize: 210, lineHeight: 1.18, color: C.ink, opacity: interpolate(frame, [0, 3], [0, 1], clamp) }}>Ouranos</div>
+        <Reveal delay={5} style={{ fontFamily: SANS, fontSize: 30, fontWeight: 400, letterSpacing: "-0.01em", color: C.ink2 }}>
+          {TAGLINE}
+        </Reveal>
+        <div style={{ height: 30 }} />
+        <Reveal delay={9} style={{ fontFamily: MONO, fontSize: 25, color: C.ink, letterSpacing: "0.01em" }}>
+          {URL_TEXT}
+        </Reveal>
+        <div style={{ height: 14 }} />
+        <Reveal delay={13} style={{ fontFamily: SANS, fontSize: 22, color: C.ink3 }}>
+          {CREDIT}
+        </Reveal>
+      </div>
     </AbsoluteFill>
   );
 };
 
 const ShotView = ({ s }: { s: Shot }) => {
   switch (s.kind) {
-    case "title": return <Title len={s.to - s.from} />;
-    case "end": return <End sub={s.sub} />;
+    case "title": return <Title />;
+    case "end": return <End />;
     case "web": return <WebShot s={s} />;
     case "watch": return <WatchShot s={s} />;
     case "clip": return <ClipShot s={s} />;
-    case "render": return <RenderShot s={s} />;
   }
 };
 
-const Fade = ({ children, title }: { children: React.ReactNode; title: boolean }) => {
-  const frame = useCurrentFrame();
-  const o = title ? 1 : interpolate(frame, [0, XF], [0, 1], { ...clamp, easing: quart });
-  return <AbsoluteFill style={{ opacity: o }}>{children}</AbsoluteFill>;
+/** Disclosure text, bottom corners, in the watermark's own style. */
+const corner: React.CSSProperties = {
+  position: "absolute", bottom: 24, fontFamily: MONO, fontSize: 17, letterSpacing: "0.08em", color: C.ink, opacity: 0.82,
+  textShadow: "0 0 2px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,0.95), 0 1px 10px rgba(0,0,0,0.9), 0 0 22px rgba(0,0,0,0.7)",
 };
 
 export const Ouranos = () => (
   <AbsoluteFill style={{ background: C.void }}>
-    {SHOTS.map((s, i) => {
-      const last = i === SHOTS.length - 1;
-      return (
-        <Sequence key={i} from={s.from} durationInFrames={s.to - s.from + (last || SHOTS[i + 1]?.cut ? 0 : XF)}>
-          <Fade title={s.kind === "title" || !!s.cut}>
-            <ShotView s={s} />
-          </Fade>
-        </Sequence>
-      );
-    })}
-    {CAPTIONS.map((c, i) => (
-      <Sequence key={`c${i}`} from={c.from} durationInFrames={c.to - c.from}>
-        <CaptionOverlay title={c.title} sub={c.sub} len={c.to - c.from} />
+    {SHOTS.map((s, i) => (
+      <Sequence key={i} from={s.from} durationInFrames={s.to - s.from}>
+        <ShotView s={s} />
       </Sequence>
     ))}
+    {CAPTIONS.map((c, i) => (
+      <Sequence key={`c${i}`} from={c.from} durationInFrames={c.to - c.from}>
+        <CaptionView c={c} />
+      </Sequence>
+    ))}
+    <Sequence from={SIMULATED.from} durationInFrames={SIMULATED.to - SIMULATED.from}>
+      <div style={{ ...corner, left: 30 }}>SIMULATED READINGS</div>
+    </Sequence>
     {/* Space Apps: video made with SI must carry a visible watermark, on every frame. */}
-    <div style={{ position: "absolute", right: 30, bottom: 24, fontFamily: MONO, fontSize: 17, letterSpacing: "0.08em", color: C.ink, opacity: 0.82, textShadow: "0 1px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)" }}>SI-ASSISTED</div>
+    <div style={{ ...corner, right: 30 }}>SI-ASSISTED</div>
     {has(MUSIC) && <Audio src={staticFile(MUSIC)} />}
   </AbsoluteFill>
 );
