@@ -10,7 +10,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
-import { Cam, CAPTIONS, Caption, CREDIT, FPS, MUSIC, SHOTS, SIMULATED, Shot, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
+import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, SHOTS, SIMULATED, Shot, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
 
 const C = { void: "#000000", ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f" };
 const W = 1920;
@@ -75,10 +75,13 @@ const CaptionView = ({ c }: { c: Caption }) => {
   const frame = useCurrentFrame();
   const len = c.to - c.from;
   const out = interpolate(frame, [len - 7, len], [1, 0], { ...clamp, easing: quart });
-  const lower = c.place === "lower";
+  const corner = c.place === "corner";
+  const lower = c.place === "lower" || corner;
   const margin = c.place === "margin";
-  const size = lower ? 80 : margin ? 44 : 78;
-  const block: React.CSSProperties = lower
+  const size = corner ? 56 : lower ? 80 : margin ? 44 : 78;
+  const block: React.CSSProperties = corner
+    ? { position: "absolute", left: 72, bottom: 92, width: 1100 }
+    : lower
     ? { position: "absolute", left: TEXT_X, bottom: 136, width: 1100 }
     : margin
       ? { position: "absolute", left: 64, top: 312, width: 352 }
@@ -95,8 +98,8 @@ const CaptionView = ({ c }: { c: Caption }) => {
           </Reveal>
         ))}
         {c.sub && (
-          <div style={{ marginTop: lower ? 22 : margin ? 16 : 26 }}>
-            <Reveal delay={c.title.length * 3 + 3} style={{ fontFamily: SANS, fontSize: lower ? 30 : margin ? 21 : 29, fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1.36, color: C.ink2, maxWidth: lower ? 900 : margin ? 330 : 560 }}>
+          <div style={{ marginTop: corner ? 12 : lower ? 22 : margin ? 16 : 26 }}>
+            <Reveal delay={c.title.length * 3 + 3} style={{ fontFamily: SANS, fontSize: corner ? 25 : lower ? 30 : margin ? 21 : 29, fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1.36, color: C.ink2, maxWidth: lower ? 900 : margin ? 330 : 560 }}>
               {c.sub}
             </Reveal>
           </div>
@@ -218,6 +221,85 @@ const PageShot = ({ s }: { s: Extract<Shot, { kind: "page" }> }) => {
   );
 };
 
+
+/** Cursor position at time t, eased between keys (page px). */
+const cursorAt = (keys: CursorKey[], t: number): [number, number] => {
+  if (t <= keys[0][0]) return [keys[0][1], keys[0][2]];
+  for (let i = 1; i < keys.length; i++) {
+    const [t0, x0, y0] = keys[i - 1];
+    const [t1, x1, y1] = keys[i];
+    if (t <= t1) {
+      const u = inOut((t - t0) / (t1 - t0));
+      return [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u];
+    }
+  }
+  const k = keys[keys.length - 1];
+  return [k[1], k[2]];
+};
+
+/** A pointer in the site's ink, the same size on screen at any zoom; it presses and ripples on a click. */
+const Cursor = ({ keys, t, z }: { keys: CursorKey[]; t: number; z: number }) => {
+  const [x, y] = cursorAt(keys, t);
+  const show = interpolate(t, [keys[0][0] - 0.25, keys[0][0]], [0, 1], clamp);
+  const clicks = keys.filter((k) => k[3] === "click").map((k) => k[0]);
+  const press = clicks.reduce((m, c) => Math.max(m, interpolate(t, [c - 0.08, c, c + 0.12], [0, 1, 0], clamp)), 0);
+  return (
+    <div style={{ position: "absolute", left: x, top: y, transform: `scale(${1 / z})`, transformOrigin: "0 0", opacity: show, pointerEvents: "none" }}>
+      {clicks.map((c, i) => {
+        const r = interpolate(t, [c, c + 0.5], [0, 1], { ...clamp, easing: quart });
+        const on = t >= c && t <= c + 0.5;
+        return on ? (
+          <div key={i} style={{ position: "absolute", left: -34 * r, top: -34 * r, width: 68 * r, height: 68 * r, borderRadius: "50%", border: `2px solid rgba(237,237,237,${0.9 * (1 - r)})`, background: `rgba(237,237,237,${0.18 * (1 - r)})` }} />
+        ) : null;
+      })}
+      <svg width="34" height="40" viewBox="0 0 34 40" style={{ position: "absolute", left: -3, top: -2, transform: `scale(${1 - 0.14 * press})`, transformOrigin: "3px 2px", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.55))" }}>
+        <path d="M3 2 L3 31 L10.5 24.5 L15.5 36 L20.5 33.8 L15.6 22.6 L25.5 22.6 Z" fill="#ededed" stroke="#0a0a0a" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+};
+
+/** An outline that draws itself around an element, then fades. Stroke width stays the same on screen. */
+const MarkBox = ({ m, t, z }: { m: Mark; t: number; z: number }) => {
+  const [bx, by, bw, bh] = m.box;
+  const pad = 10;
+  const w = bw + pad * 2, h = bh + pad * 2, r = 16;
+  const per = 2 * (w + h - 4 * r) + 2 * Math.PI * r;
+  const draw = interpolate(t, [m.from, m.from + 0.55], [0, 1], { ...clamp, easing: quart });
+  const fade = interpolate(t, [m.to - 0.25, m.to], [1, 0], clamp);
+  if (t < m.from || t > m.to) return null;
+  return (
+    <svg style={{ position: "absolute", left: bx - pad, top: by - pad, overflow: "visible", pointerEvents: "none" }} width={w} height={h}>
+      <rect x={0} y={0} width={w} height={h} rx={r} fill="none" stroke={m.color ?? "#ffc53d"} strokeWidth={3 / z} strokeDasharray={per} strokeDashoffset={per * (1 - draw)} opacity={fade}
+        style={{ filter: `drop-shadow(0 0 ${6 / z}px ${(m.color ?? "#ffc53d")}66)` }} />
+    </svg>
+  );
+};
+
+/** Someone using the site, up close: the camera follows the action, with a cursor and outlines on top. */
+const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
+  const frame = useCurrentFrame();
+  const t = frame / FPS;
+  const [z, fx, fy] = camAt(s.cam, t);
+  const [zp, fxp, fyp] = camAt(s.cam, t - 1 / FPS);
+  const pw = W * z;
+  const ph = H * z;
+  const x = between(W / 2 - fx * pw, W - pw, 0);
+  const y = between(H / 2 - fy * ph, H - ph, 0);
+  const speed = Math.abs(z - zp) * 300 + Math.hypot((fx - fxp) * W, (fy - fyp) * H) * z * 0.06;
+  const blur = Math.min(10, speed);
+  return (
+    <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0", filter: blur > 0.4 ? `blur(${blur.toFixed(2)}px)` : undefined }}>
+        <Footage src={s.src} startAt={s.startAt} />
+        {(s.marks ?? []).map((m, i) => <MarkBox key={i} m={m} t={t} z={z} />)}
+        {s.cursor && <Cursor keys={s.cursor} t={t} z={z} />}
+      </div>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.35) 100%)", pointerEvents: "none" }} />
+    </AbsoluteFill>
+  );
+};
+
 /** The wordmark writes itself on behind a soft wipe while the music rises into the first hit. */
 const Title = () => {
   const frame = useCurrentFrame();
@@ -270,6 +352,7 @@ const ShotView = ({ s }: { s: Shot }) => {
     case "end": return <End />;
     case "web": return <WebShot s={s} />;
     case "page": return <PageShot s={s} />;
+    case "usage": return <UsageShot s={s} />;
     case "watch": return <WatchShot s={s} />;
     case "clip": return <ClipShot s={s} />;
   }

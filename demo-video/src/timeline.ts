@@ -19,6 +19,14 @@ const DASH_START = 9.333;
 /** Camera key inside a website shot: [seconds into the shot, zoom, focus x, focus y] (focus is 0..1 of the page). */
 export type Cam = [number, number, number, number];
 
+/**
+ * Someone using the site, seen up close. All positions are CSS px of the 1920x1080 page (the capture's
+ * viewport), so they line up with the footage at any zoom. Times are seconds into the shot.
+ */
+export type CursorKey = [number, number, number, ("click" | "rest")?];
+/** An outline that draws itself around a page element: seconds in, seconds out, [x, y, w, h] in page px. */
+export type Mark = { from: number; to: number; box: [number, number, number, number]; color?: string };
+
 /** A push into a point of the frame over the last part of a shot: [seconds into the shot, zoom, focus x, focus y]. */
 export type Push = [number, number, number, number];
 
@@ -29,6 +37,7 @@ export type Shot =
   | (Base & { kind: "clip"; src: string; startAt: number; rate?: number; push?: Push })
   | (Base & { kind: "watch"; src: string; startAt: number })
   | (Base & { kind: "page"; src: string; startAt: number; cam: Cam[] })
+  | (Base & { kind: "usage"; src: string; startAt: number; cam: Cam[]; cursor?: CursorKey[]; marks?: Mark[] })
   | (Base & {
       kind: "web";
       src: string;
@@ -51,16 +60,26 @@ export const SHOTS: Shot[] = [
   { kind: "watch", from: f(7.333), to: f(9.333), src: "capture/watch_body_hires.png", startAt: 0 },
   // Mission health, the whole page, live (recorded at 3840x2160 from useouranos.vercel.app, paired to the
   // dashboard's mock watch). Calm for four seconds, then the flag lands on the 13.333 beat.
-  // Motion: lands with a settle on the groove, drifts, punches in on the flag beat (astronaut turns gold,
-  // "Pulse and breathing both flagged"), then eases back out to the whole page before the cut.
-  { kind: "page", from: f(9.333), to: f(17.333), src: "capture/web_hd_dashboard.mp4", startAt: DASH_START,
-    cam: [[0, 1.1, 0.5, 0.5], [0.4, 1.0, 0.5, 0.5], [3.75, 1.04, 0.5, 0.48], [4.2, 1.2, 0.44, 0.42], [6.4, 1.24, 0.44, 0.42], [7.5, 1.0, 0.5, 0.5]] },
-  // Health review, the whole page: a question goes in, the answer lands on the 19.333 beat.
-  // Motion: settle, then punch toward the assistant as its answer lands on the 19.333 beat, hold, and ease
-  // back out so the whole page sits under "Evidence, not a diagnosis". Focus x stays <= 0.465 so the page
-  // never slides under the margin captions.
-  { kind: "page", from: f(17.333), to: f(26.0), src: "capture/web_hd_review.mp4", startAt: 0.167,
-    cam: [[0, 1.08, 0.5, 0.5], [0.4, 1.0, 0.5, 0.5], [1.75, 1.02, 0.5, 0.5], [2.25, 1.22, 0.465, 0.45], [5.2, 1.25, 0.462, 0.47], [6.4, 1.0, 0.5, 0.5]] },
+  // The website in use, up close (beats 9.333, 14.0, 18.0, 22.0, 26.0). Positions are page px of 1920x1080.
+  // Mission health: dive into the live heart-rate chart, then whip to the flag as it fires (astronaut turns gold).
+  { kind: "usage", from: f(9.333), to: f(14.0), src: "capture/web_hd_dashboard.mp4", startAt: 10.433,
+    cam: [[0, 1.0, 0.5, 0.5], [0.3, 1.0, 0.5, 0.5], [1.15, 1.85, 0.685, 0.434], [2.55, 1.92, 0.685, 0.45], [3.0, 1.7, 0.365, 0.42], [4.67, 1.76, 0.365, 0.43]],
+    marks: [{ from: 1.25, to: 2.55, box: [1146, 354, 340, 230], color: "#ededed" }, { from: 3.0, to: 4.6, box: [432, 294, 288, 120] }] },
+  // Daily plan: "Very tired", the suggestion appears, "Accept change".
+  { kind: "usage", from: f(14.0), to: f(18.0), src: "capture/web_other_daily_plan.mp4", startAt: 0.7,
+    cam: [[0, 1.0, 0.5, 0.5], [0.15, 1.0, 0.5, 0.5], [0.5, 1.8, 0.63, 0.52], [1.25, 1.6, 0.66, 0.79], [3.95, 1.66, 0.65, 0.8]],
+    cursor: [[0.0, 980, 760], [0.42, 1190, 563], [0.5, 1190, 563, "click"], [0.62, 1190, 600], [2.55, 1282, 968], [3.1, 1282, 968, "click"], [3.95, 1236, 1010]],
+    marks: [{ from: 1.0, to: 2.9, box: [1104, 702, 362, 330], color: "#ededed" }] },
+  // Crew guide: click search, "radiation", the matching checklist opens.
+  { kind: "usage", from: f(18.0), to: f(22.0), src: "capture/web_other_crew_guide.mp4", startAt: 0.35,
+    cam: [[0, 1.0, 0.5, 0.5], [0.12, 1.0, 0.5, 0.5], [0.42, 1.8, 0.42, 0.3], [1.4, 1.8, 0.4, 0.33], [1.9, 1.6, 0.47, 0.45], [3.95, 1.66, 0.5, 0.47]],
+    cursor: [[0.0, 700, 450], [0.18, 560, 312], [0.22, 560, 312, "click"], [1.3, 566, 336], [1.65, 600, 400], [1.75, 600, 400, "click"], [3.9, 690, 520]],
+    marks: [{ from: 2.0, to: 3.9, box: [790, 356, 680, 375], color: "#ededed" }] },
+  // Health review: ask, and the assistant's answer lands with its linked NASA guide.
+  { kind: "usage", from: f(22.0), to: f(26.0), src: "capture/web_hd_review.mp4", startAt: 0.9,
+    cam: [[0, 1.0, 0.5, 0.5], [0.12, 1.0, 0.5, 0.5], [0.5, 1.72, 0.64, 0.66], [3.95, 1.8, 0.64, 0.65]],
+    cursor: [[0.0, 1100, 980], [0.55, 1418, 889], [0.63, 1418, 889, "click"], [2.2, 1300, 960]],
+    marks: [{ from: 1.45, to: 3.9, box: [1026, 610, 414, 210], color: "#ededed" }] },
   { kind: "end", from: f(26.0), to: TOTAL },
 ];
 
@@ -68,17 +87,18 @@ export const SHOTS: Shot[] = [
  * On-screen type. "lower" sits bottom-left over full-frame footage; "left" sits in the black column
  * beside the watch and website shots. Each string in `title` is one line, revealed in turn.
  */
-export type Caption = { from: number; to: number; place: "lower" | "left" | "margin"; title: string[]; sub?: string };
+export type Caption = { from: number; to: number; place: "lower" | "left" | "margin" | "corner"; title: string[]; sub?: string };
 
 export const CAPTIONS: Caption[] = [
   { from: f(2.13), to: f(5.2), place: "lower", title: ["A 3D-printed band"], sub: "Built around the Apple Watch SE." },
   { from: f(5.43), to: f(7.2), place: "lower", title: ["Readings on the wrist"], sub: "Heart rate, breathing and more." },
   { from: f(7.43), to: f(9.25), place: "left", title: ["The body,", "at a glance"], sub: "Amber means a reading needs review." },
-  // Website shots: the type sits in the page's own empty left margin, so it covers nothing.
-  { from: f(9.5), to: f(13.2), place: "margin", title: ["Live on the", "dashboard"], sub: "Watch readings arrive as they happen." },
-  { from: f(13.5), to: f(17.25), place: "margin", title: ["It flags what", "changes"], sub: "Pulse and breathing, marked for review." },
-  { from: f(17.5), to: f(19.25), place: "margin", title: ["Ask what", "changed"], sub: "The assistant answers in plain words." },
-  { from: f(19.5), to: f(25.9), place: "margin", title: ["Evidence,", "not a diagnosis"], sub: "With a linked NASA guide, for the crew medical officer to decide." },
+  // Website in use, up close: type sits bottom-left over the picture.
+  { from: f(9.5), to: f(12.2), place: "corner", title: ["Live on the dashboard"], sub: "Watch readings arrive as they happen." },
+  { from: f(12.4), to: f(13.9), place: "corner", title: ["It flags what changes"], sub: "Pulse and breathing, marked for review." },
+  { from: f(14.15), to: f(17.85), place: "corner", title: ["Plans around how you feel"], sub: "Very tired? Flexible work moves to tomorrow." },
+  { from: f(18.15), to: f(21.85), place: "corner", title: ["The right checklist, fast"], sub: "Search the crew guide and open the steps." },
+  { from: f(22.15), to: f(25.9), place: "corner", title: ["Evidence, not a diagnosis"], sub: "Ask what changed. The crew medical officer decides." },
 ];
 
 /** Every reading on screen from here on comes from the app's simulated feed, so the film says so. */
