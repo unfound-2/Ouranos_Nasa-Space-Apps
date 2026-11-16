@@ -1,0 +1,22 @@
+OURANOS DEMO - VOICEOVER SCRIPT (28 seconds, about 64 words)
+
+Read it in ONE take, top to bottom. Leave about a 1-second pause between numbered lines,
+so each line can be cut out and placed exactly on its shot. Calm and confident, a little
+faster than normal speech. Record 2 takes if you can.
+
+ #   ON SCREEN (time)                         SAY
+ 1   Wordmark (0:00-0:02)                     Meet Ouranos.
+ 2   Your wrist + "20 min" stat (0:02-0:05)   On Mars, Earth is twenty minutes away.
+ 3   The app on your wrist (0:05-0:07)        It reads your vitals on the wrist,
+ 4   3D watch render (0:07-0:09)              in a printed case built for gloves.
+ 5   Dashboard, live then flagged (0:09-0:14) The dashboard shows every reading live, and flags what changes.
+ 6   Daily plan (0:14-0:18)                   It plans the day around how you feel,
+ 7   Crew guide (0:18-0:22)                   and finds the right checklist in seconds.
+ 8   Health review (0:22-0:26)                Ask what changed, and get the answer with its NASA source.
+ 9   End card (0:26-0:28)                     Ouranos. Health monitoring for astronauts.
+
+HOW TO RECORD
+- iPhone Voice Memos is fine. Quiet room with soft stuff around (a closet full of clothes is great).
+- Phone about a hand-width from your mouth, pointed at your chin, not straight at your mouth.
+- Only your voice: Space Apps bans voices of anyone under 18.
+- Send the file to the Mac (AirDrop or Messages). The music gets turned down under your voice automatically.

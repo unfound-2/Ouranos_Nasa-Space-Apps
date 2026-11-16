@@ -10,7 +10,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
-import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, Note, SHOTS, SIMULATED, Shot, Stat, STATS, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
+import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, Note, SHOTS, SIMULATED, Shot, Stat, STATS, TAGLINE, TOTAL, URL_TEXT, VO } from "./timeline";
 
 const C = { void: "#000000", ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f" };
 const W = 1920;
@@ -420,6 +420,20 @@ const ShotView = ({ s }: { s: Shot }) => {
   }
 };
 
+/** Music level: dips to 0.32 under each voiceover line, with short ramps. */
+const voSpans = VO.filter((v) => has(`vo/l${v.n}.wav`)).map((v) => {
+  const d = ((media as Record<string, { duration?: number }>)[`vo/l${v.n}.wav`]?.duration ?? 0) * FPS;
+  return [v.at, v.at + d] as const;
+});
+const duck = (fr: number) => {
+  let g = 1;
+  for (const [a, b] of voSpans) {
+    const k = interpolate(fr, [a - 6, a, b, b + 9], [0, 1, 1, 0], clamp);
+    g = Math.min(g, 1 - 0.68 * k);
+  }
+  return g;
+};
+
 /** Disclosure text, bottom corners, in the watermark's own style. */
 const corner: React.CSSProperties = {
   position: "absolute", bottom: 24, fontFamily: MONO, fontSize: 17, letterSpacing: "0.08em", color: C.ink, opacity: 0.82,
@@ -448,6 +462,11 @@ export const Ouranos = () => (
     </Sequence>
     {/* Space Apps: video made with SI must carry a visible watermark, on every frame. */}
     <div style={{ ...corner, right: 30 }}>SI-ASSISTED</div>
-    {has(MUSIC) && <Audio src={staticFile(MUSIC)} />}
+    {VO.filter((v) => has(`vo/l${v.n}.wav`)).map((v) => (
+      <Sequence key={`vo${v.n}`} from={v.at}>
+        <Audio src={staticFile(`vo/l${v.n}.wav`)} />
+      </Sequence>
+    ))}
+    {has(MUSIC) && <Audio src={staticFile(MUSIC)} volume={(fr) => duck(fr)} />}
   </AbsoluteFill>
 );

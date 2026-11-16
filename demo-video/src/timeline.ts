@@ -123,6 +123,15 @@ export const STATS: Stat[] = [
 export const SIMULATED = { from: f(5.333), to: f(26.0) };
 
 export const MUSIC = "music/ouranos-music.wav";
+
+/**
+ * Voiceover: Sriyan's take cut into one file per line (assets/vo/l1.wav ... l9.wav, by scripts/split_vo.py),
+ * each placed on its shot. Lines that are missing are simply skipped. The music ducks under the voice.
+ */
+export const VO: { n: number; at: number }[] = [
+  { n: 1, at: f(0.25) }, { n: 2, at: f(2.15) }, { n: 3, at: f(5.4) }, { n: 4, at: f(7.4) }, { n: 5, at: f(9.5) },
+  { n: 6, at: f(14.15) }, { n: 7, at: f(18.15) }, { n: 8, at: f(22.15) }, { n: 9, at: f(26.15) },
+];
 export const URL_TEXT = "useouranos.vercel.app";
 export const TAGLINE = "Health monitoring for astronauts";
 export const CREDIT = "Built by Dhruv, Mustafa and Sriyan";
