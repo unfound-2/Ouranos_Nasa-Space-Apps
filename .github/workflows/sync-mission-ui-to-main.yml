@@ -1,0 +1,54 @@
+name: Sync mission UI to main
+
+on:
+  push:
+    branches:
+      - feat/dhruv-mission-ui-v2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-mission-ui-to-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge latest mission UI changes into main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          # Re-fetch on retries so concurrent main updates are preserved.
+          for attempt in 1 2 3; do
+            git fetch origin \
+              '+refs/heads/main:refs/remotes/origin/main' \
+              '+refs/heads/feat/dhruv-mission-ui-v2:refs/remotes/origin/feat/dhruv-mission-ui-v2'
+            git reset --hard origin/main
+
+            if ! git merge --no-edit origin/feat/dhruv-mission-ui-v2; then
+              git merge --abort || true
+              echo '::error::Mission UI sync has merge conflicts. Resolve them before retrying.'
+              exit 1
+            fi
+
+            if git push origin HEAD:refs/heads/main; then
+              echo 'Synced feat/dhruv-mission-ui-v2 into main.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          done
+
+          echo '::error::Could not push to main after three attempts. Check branch rules and Actions write permissions.'
+          exit 1
