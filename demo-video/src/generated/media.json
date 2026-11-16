@@ -62,14 +62,41 @@
   "clips/c3.mp4": {
     "duration": 6.466667
   },
-  "music/ouranos-music.wav": {
+  "music/ouranos-music-28s.wav": {
     "duration": 28
+  },
+  "music/ouranos-music.wav": {
+    "duration": 29.833
   },
   "renders/blender_assemble.mp4": {
     "duration": 3.333333
   },
   "renders/watch_hero.mp4": {
     "duration": 2.2
+  },
+  "vo/l1.wav": {
+    "duration": 1.154667
+  },
+  "vo/l2.wav": {
+    "duration": 2.536
+  },
+  "vo/l3.wav": {
+    "duration": 3.337333
+  },
+  "vo/l5.wav": {
+    "duration": 2.969333
+  },
+  "vo/l6.wav": {
+    "duration": 1.544667
+  },
+  "vo/l7.wav": {
+    "duration": 1.702667
+  },
+  "vo/l8.wav": {
+    "duration": 2.618667
+  },
+  "vo/l9.wav": {
+    "duration": 2.449333
   },
   "renders/assemble/": {
     "frames": 0
