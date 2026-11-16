@@ -1,0 +1,45 @@
+.skeleton { display: block; height: 12px; max-width: 100%; border-radius: 6px; background: #23252a; animation: skeleton-breathe 1.7s ease-in-out infinite; pointer-events: none; }
+@keyframes skeleton-breathe { 0%, 100% { opacity: .5; } 50% { opacity: .95; } }
+.skeleton-card { min-width: 0; padding: 24px; border-radius: 20px; background: #101114; }
+.skeleton-subtitle { width: 285px; margin: 22px auto 0; }
+.review-skeleton-layout { display: grid; grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); gap: 20px; margin-top: 24px; }
+.skeleton-change { display: grid; gap: 16px; margin-bottom: 16px; min-height: 150px; }
+.skeleton-change > :first-child { width: 95px; }
+.skeleton-change > :nth-child(2) { width: 80%; height: 20px; }
+.skeleton-change > :last-child { width: 92%; }
+.skeleton-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.skeleton-metric { display: grid; gap: 17px; min-height: 145px; }
+.skeleton-metric > :first-child { width: 65%; }
+.skeleton-metric > :nth-child(2) { width: 52%; height: 30px; }
+.skeleton-metric > :last-child { width: 85%; height: 9px; }
+.skeleton-chat { display: flex; flex-direction: column; gap: 20px; min-height: 545px; }
+.skeleton-chat > :first-child { width: 55%; }
+.skeleton-chat > :last-child { margin-top: auto; }
+.skeleton-chat > :last-child > .skeleton { margin-top: 12px; }
+.skeleton-chat-art { align-self: center; width: 140px; height: 140px; border-radius: 50%; margin-block: auto; }
+.overview-skeleton-layout { display: grid; grid-template-columns: 1fr 1.35fr 1.18fr; gap: 18px; margin-top: 24px; }
+.skeleton-overview-readings { display: grid; gap: 14px; }
+.skeleton-chart { display: grid; gap: 30px; min-height: 170px; }
+.skeleton-chart > :nth-child(2) { height: 65px; }
+.skeleton-chart > :last-child { width: 70%; }
+.model-skeleton { display: grid; place-items: center; width: 100%; height: 100%; min-height: 160px; }
+.model-placeholder { width: 50%; height: 80%; min-height: 180px; max-width: 180px; border-radius: 80px 80px 28px 28px; }
+.skeleton-body { min-height: 540px; }
+.generic-skeleton-layout { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; margin-top: 24px; }
+.skeleton-list { display: grid; gap: 28px; }
+.skeleton-list-row { display: grid; gap: 12px; padding-block: 12px; }
+.skeleton-list-row > :first-child { width: 70%; }
+.skeleton-list-row > :last-child { width: 45%; height: 9px; }
+.reply-skeleton { display: grid; gap: 10px; padding: 5px 0; }
+.reply-skeleton > .skeleton:nth-of-type(2) { width: 90%; }
+.reply-skeleton > .skeleton:last-child { width: 65%; }
+@media (max-width: 760px) { .review-skeleton-layout, .generic-skeleton-layout, .overview-skeleton-layout { grid-template-columns: minmax(0,1fr); } .skeleton-body { min-height: 380px; } .skeleton-chat { min-height: 460px; } .skeleton-card { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; opacity: .7; } }
+@media (forced-colors: active) { .skeleton { background: GrayText; } }
+
+.assistant-logo-placeholder { width: 128px; height: 128px; border-radius: 50%; }
+.mission-assistant-stage .skeleton { height: 128px; border-radius: 50%; }
+
+.skeleton-dateline { width: 130px; height: 16px; margin-block: 20px; }
+.page-skeleton .review-skeleton-layout { margin-top: 0; }
+.page-skeleton .skeleton-change { min-height: 167px; }

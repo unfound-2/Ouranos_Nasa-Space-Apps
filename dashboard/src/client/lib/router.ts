@@ -5,6 +5,7 @@ export type Route =
   | { name: 'pair' }
   | { name: 'overview' }
   | { name: 'crew' }
+  | { name: 'plan' }
   | { name: 'attention'; id?: string }
   | { name: 'events' }
   | { name: 'event'; id: string }
@@ -18,6 +19,7 @@ export function parseRoute(hash: string): Route {
   const parts = path.split('/').filter(Boolean)
   if (parts.length === 0) return { name: 'overview' }
   if (parts[0] === 'pair' && parts.length === 1) return { name: 'pair' }
+  if (parts[0] === 'plan' && parts.length === 1) return { name: 'plan' }
   if (parts[0] === 'crew' && parts.length === 1) return { name: 'crew' }
   if (parts[0] === 'guide' && parts.length === 1) return { name: 'guide', topic: new URLSearchParams(hash.split('?')[1]).get('topic') ?? undefined }
   if (parts[0] === 'system' && parts.length === 1) return { name: 'system' }
@@ -45,6 +47,7 @@ export const href = {
   pair: '#/pair',
   overview: '#/',
   crew: '#/crew',
+  plan: '#/plan',
   events: '#/events',
   attention: '#/attention',
   attentionFor: (id: string) => `#/attention/${encodeURIComponent(id)}`,

@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import express, { type Request, type RequestHandler } from 'express'
 import { WatchFrameSchema, WatchSignalSchema, type WatchFrame, type WatchSignal } from '../shared/watch-link'
+import { DaySchema, PlanActionSchema, actOnPlan, type DayPlan } from '../shared/daily-plan'
 import { HttpError } from './errors'
 
 const token = () => randomBytes(32).toString('base64url')
@@ -18,6 +19,7 @@ interface Pairing {
   watch: WatchFrame | null
   telemetry: Map<string, WatchFrame>
   /** When the code was redeemed on the console. */
+  plan?: DayPlan
   pairedAt: number | null
 }
 
@@ -102,6 +104,33 @@ export function createWatchLink({ now, localUser, onHeartbeat, onSignal }: Optio
     res.json(active().filter((p) => p.code === null).map((p) => ({
       deviceId: p.deviceId, watch: p.watch, telemetry: [...p.telemetry.values()].filter(fresh),
     })))
+  })
+
+  // Local-console access uses the existing LOCAL_USER guard; watches use their pairing token.
+  router.get('/planner/:deviceId', localUser, (req, res) => {
+    const p = active().find(p => p.deviceId === req.params.deviceId && p.code === null)
+    if (!p) throw new HttpError(404, 'PAIRING_REQUIRED', 'This watch is no longer paired.')
+    res.json(p.plan ?? null)
+  })
+  router.post('/planner/:deviceId', localUser, json, (req, res) => {
+    const p = active().find(p => p.deviceId === req.params.deviceId && p.code === null)
+    if (!p) throw new HttpError(404, 'PAIRING_REQUIRED', 'This watch is no longer paired.')
+    const result = DaySchema.safeParse(req.body?.plan)
+    if (!result.success || result.data.simulated) throw new HttpError(422, 'INVALID_PLAN', 'A valid mission plan is required.')
+    if (req.body.expectedRevision !== (p.plan?.revision ?? 0)) throw new HttpError(409, 'PLAN_CHANGED', 'The watch updated this plan. Refresh before saving.')
+    p.plan = { ...result.data, revision: (p.plan?.revision ?? 0) + 1, updatedAt: now().toISOString() }
+    res.json(p.plan)
+  })
+  router.get('/planner', (req, res) => {
+    res.json(authorize(req, 'watchToken').plan ?? null)
+  })
+  router.post('/planner-action', json, (req, res) => {
+    const p = authorize(req, 'watchToken')
+    const parsed = PlanActionSchema.safeParse(req.body?.action)
+    if (!p.plan || !parsed.success) throw new HttpError(422, 'INVALID_ACTION', 'Open a daily plan on the console first.')
+    if (req.body.expectedRevision !== p.plan.revision) throw new HttpError(409, 'PLAN_CHANGED', 'Refresh the plan before retrying.')
+    try { p.plan = actOnPlan(p.plan, parsed.data) } catch (e) { throw new HttpError(422, 'INVALID_ACTION', (e as Error).message) }
+    res.json(p.plan)
   })
 
   router.get('/device', async (req, res) => {

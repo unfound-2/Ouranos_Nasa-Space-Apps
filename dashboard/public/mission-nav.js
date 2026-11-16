@@ -9,6 +9,7 @@ container.innerHTML = `
     <nav aria-label="Main">
       <a class="mission-pair" href="/#/pair"><span>Pair watch</span></a>
       <a href="/#/">Overview</a>
+      <a href="/#/plan">Daily plan</a>
       <a href="/#/guide">Crew guide</a>
       <a href="/#/crew">Crew Health</a>
       <a href="/#/attention">Health review</a>

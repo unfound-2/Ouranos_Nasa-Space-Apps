@@ -35,10 +35,31 @@ struct ContentView: View {
     @State private var motionReadings: [TelemetryFrame.Reading] = []
     @State private var motion = CMMotionManager()
     @State private var biometrics = WatchBiometrics()
+    @State private var dailyPlan: WatchDayPlan?
+    @State private var planMessage = ""
+    @State private var planBusy = false
+    @State private var lastPlanRevision: Int?
+
+    private struct WatchPlanTask: Decodable, Identifiable {
+        let id: String
+        let title: String
+        let start: Int
+        let duration: Int
+        let done: Bool
+        let deferred: Bool
+        let note: String
+    }
+    private struct WatchDayPlan: Decodable {
+        let date: String
+        let revision: Int
+        let tasks: [WatchPlanTask]
+        let fatigue: String?
+    }
 
     private enum Page: String, CaseIterable {
         case home = "Home"
         case analytics = "Analytics"
+        case plan = "Daily plan"
         case settings = "Settings"
     }
 
@@ -118,7 +139,7 @@ struct ContentView: View {
                         VStack(spacing: 2) {
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 5) {
-                                    if page == .analytics { analyticsPage } else { settingsPage }
+                                    if page == .analytics { analyticsPage } else if page == .plan { dailyPlanPage } else { settingsPage }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 6)
@@ -318,6 +339,83 @@ struct ContentView: View {
         }
         .padding(.bottom, 2)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var dailyPlanPage: some View {
+        Group {
+            pageTitle("Daily plan").frame(minHeight: 32)
+            if let dailyPlan {
+                Text("How are you feeling?").font(.caption2).foregroundStyle(muted)
+                ForEach(["Rested", "Somewhat tired", "Very tired"], id: \.self) { label in
+                    control(label) {
+                        let value = label == "Rested" ? "rested" : label == "Very tired" ? "very" : "somewhat"
+                        Task { await sendPlanAction(["type": "checkin", "fatigue": value]) }
+                    }.disabled(planBusy)
+                }
+                let tasks = dailyPlan.tasks.filter { !$0.done && !$0.deferred }
+                    .sorted { $0.start < $1.start }
+                if let next = tasks.first {
+                    Text(next.title).font(.footnote).padding(.top, 6)
+                    Text(String(format: "%02d:%02d UTC · %d min", next.start / 60, next.start % 60, next.duration))
+                        .font(.caption2).foregroundStyle(muted)
+                    if !next.note.isEmpty { Text(next.note).font(.caption2).foregroundStyle(muted) }
+                    control("Mark complete") { Task { await sendPlanAction(["type": "done", "taskId": next.id]) } }
+                        .disabled(planBusy)
+                    control("Running 15 min late") {
+                        Task { await sendPlanAction(["type": "delay", "taskId": next.id, "minutes": 15]) }
+                    }.disabled(planBusy)
+                } else {
+                    Text("No activities remaining.").font(.caption2).foregroundStyle(muted)
+                }
+            } else {
+                Text("Create today’s plan on the console. It will appear here when connected.")
+                    .font(.caption2).foregroundStyle(muted)
+            }
+            if !planMessage.isEmpty { Text(planMessage).font(.caption2).foregroundStyle(muted) }
+        }
+    }
+
+    @MainActor
+    private func refreshDailyPlan(token: String) async {
+        guard !planBusy else { return }
+        do {
+            let data = try await request("api/planner", token: token)
+            let next = try JSONDecoder().decode(WatchDayPlan?.self, from: data)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            guard let next, next.date == formatter.string(from: .now) else {
+                dailyPlan = nil
+                lastPlanRevision = nil
+                return
+            }
+            if let previous = lastPlanRevision, previous != next.revision, buzz {
+                WKInterfaceDevice.current().play(.notification)
+            }
+            dailyPlan = next
+            lastPlanRevision = next.revision
+            planMessage = ""
+        } catch {
+            dailyPlan = nil
+            planMessage = "Plan unavailable. Reconnecting…"
+        }
+    }
+
+    @MainActor
+    private func sendPlanAction(_ action: [String: Any]) async {
+        guard !planBusy, let dailyPlan, let token = pairing?.watchToken else { return }
+        planBusy = true
+        defer { planBusy = false }
+        do {
+            let body = try JSONSerialization.data(withJSONObject: ["expectedRevision": dailyPlan.revision, "action": action])
+            let data = try await request("api/planner-action", method: "POST", token: token, body: body)
+            let next = try JSONDecoder().decode(WatchDayPlan.self, from: data)
+            self.dailyPlan = next
+            lastPlanRevision = next.revision
+            planMessage = "Saved. Review any schedule changes on the console."
+        } catch {
+            planMessage = "Couldn’t save. Reconnect and try again."
+        }
     }
 
     private var analyticsPage: some View {
@@ -546,6 +644,7 @@ struct ContentView: View {
                     start(.watch)
                 }
                 paired = connected
+                if connected { await refreshDailyPlan(token: pairing.watchToken) }
                 if !paired && Date.now.timeIntervalSince1970 >= pairing.codeExpiresAt {
                     sessionMessage = "Code expired. Generate another."
                     return

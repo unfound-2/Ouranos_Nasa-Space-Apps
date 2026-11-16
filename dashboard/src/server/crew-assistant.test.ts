@@ -52,3 +52,21 @@ describe('sourced crew assistant', () => {
     expect(response.body).toMatchObject({ mode: 'local', guide: { id: 'oxygen-breathing' } })
   })
 })
+
+describe('conversation context', () => {
+  it('includes bounded prior turns with the current readings for follow-up questions', async () => {
+    const history = [{ question: 'What changed in oxygen?', answer: 'It is below the simulated reference.' }]
+    const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(async (url, init) => {
+      if (String(url).startsWith('https://test.supabase.co')) return new Response(null, { status: 503 })
+      const body = JSON.parse(String(init?.body))
+      const context = JSON.parse(body.messages[1].content)
+      expect(context.history).toEqual(history)
+      expect(context.readings).toEqual(prompt.readings)
+      return Response.json({ choices: [{ message: { content: JSON.stringify({ answer: 'Compare the readings with their timestamps.', guideId: 'oxygen-breathing' }) } }] })
+    })
+    await request(app(fetch, 'test-key')).post('/assist').send({ ...prompt, question: 'What should I check about that?', history }).expect(200)
+  })
+  it('rejects oversized conversation history', async () => {
+    await request(app()).post('/assist').send({ ...prompt, history: Array.from({ length: 7 }, () => ({ question: 'Why?', answer: 'Check the source.' })) }).expect(422)
+  })
+})

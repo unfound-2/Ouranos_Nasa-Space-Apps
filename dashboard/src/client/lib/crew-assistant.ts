@@ -5,11 +5,11 @@ import { request } from './api'
 
 type Summary = ReturnType<typeof useAttentionSummary>
 
-export async function askCrewAssistant(question: string, mode: AssistantRequest['mode'], summary: Summary, fallback: string) {
+export async function askCrewAssistant(question: string, mode: AssistantRequest['mode'], summary: Summary, fallback: string, history?: AssistantRequest['history']) {
   const recommended = guideCandidates(summary.guideTopic, mode === 'chat' ? question : '')[0]
   try {
     const reply = await request<AssistantReply>('POST', '/crew-assistant', {
-      question, mode, topic: summary.guideTopic, readings: summary.deltas, feed: summary.feed,
+      question, mode, history, topic: summary.guideTopic, readings: summary.deltas, feed: summary.feed,
     } satisfies AssistantRequest, '/api/v1', 8500)
     return reply.mode === 'online' ? reply : { ...reply, answer: fallback }
   } catch {

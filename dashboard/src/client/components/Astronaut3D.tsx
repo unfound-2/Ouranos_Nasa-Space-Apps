@@ -1,3 +1,4 @@
+import { ModelSkeleton } from './Skeleton'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -476,7 +477,7 @@ export default function Astronaut3D({ regions, selected, onSelect, label, size =
       <div ref={wrapRef} className="absolute inset-0">
         <canvas ref={canvasRef} className="block h-full w-full cursor-grab touch-pan-y" aria-hidden />
       </div>
-      {!loaded && <div className="absolute inset-0 grid place-items-center text-[13px] text-ink-2">Loading the 3D model…</div>}
+      {!loaded && <div className="absolute inset-0"><ModelSkeleton /></div>}
       {loaded && focus && (
         <button type="button" className="astro-whole" onClick={() => onSelect(null)}>
           Whole suit

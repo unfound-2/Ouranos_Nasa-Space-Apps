@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { DashboardOptions, CONTAINER, Footer } from './components/Shell'
 import { WarningInbox } from './components/WarningInbox'
 import { CrewGuide } from './pages/CrewGuide'
+import { PageSkeleton } from './components/Skeleton'
 import { Empty } from './components/ui'
 import { DataProvider, useData } from './lib/data'
 import { href, navigate, useRoute, type Route } from './lib/router'
@@ -13,6 +14,7 @@ import { AttentionDetails } from './pages/AttentionDetails'
 import { Investigation } from './pages/Investigation'
 import { Overview } from './pages/Overview'
 import { SessionReport } from './pages/SessionReport'
+import { DailyPlan } from './pages/DailyPlan'
 import { SystemStatus } from './pages/SystemStatus'
 
 function Page({ route }: { route: Route }) {
@@ -28,17 +30,14 @@ function Page({ route }: { route: Route }) {
         </Empty>
       </div>
     )
-  if (!snapshot)
-    return (
-      <div className="py-16 text-center">
-        <div className="micro">Loading records from this computer</div>
-      </div>
-    )
+  if (!snapshot) return <PageSkeleton page={route.name} />
   switch (route.name) {
     case 'overview':
       return <Overview />
     case 'event':
       return <Investigation id={route.id} />
+    case 'plan':
+      return <DailyPlan />
     case 'crew':
       return <CrewHealth />
     case 'session':
@@ -61,6 +60,7 @@ const TITLES: Partial<Record<Route['name'], string>> = {
   overview: 'Mission Health',
   event: 'Event evidence',
   crew: 'Crew Health',
+  plan: 'Daily plan',
   session: 'Session report',
   attention: 'Health review',
   events: 'Event History',

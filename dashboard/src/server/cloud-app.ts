@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { DaySchema, PlanActionSchema, actOnPlan, type DayPlan } from '../shared/daily-plan.js'
 import { createCrewAssistant } from './crew-assistant.js'
 import express, { type Request } from 'express'
 import demoFixture from '../../fixtures/simulated/demo-bundle.json' with { type: 'json' }
@@ -6,6 +7,10 @@ import { EVENT_SCHEMA, ReviewActionSchema, type StoredEvent } from '../shared/co
 import { ActionError, applyHeartbeat, applyReviewAction, emptyDataset, ingestRecords, linkState, type Datasets } from '../shared/dataset.js'
 import { loadDemo } from '../shared/demo.js'
 import { WatchFrameSchema, WatchSignalSchema, type WatchFrame, type WatchSignal } from '../shared/watch-link.js'
+
+// Reserved per-device JSON record; excluded from clinical event reads and review actions.
+const planRecordId = '00000000-0000-4000-8000-000000000001'
+type PlanRecord = { event: { recordType: 'DAILY_PLAN'; plan: DayPlan }; version: number }
 
 const cookieName = '__Host-gg_watch'
 const pairMillis = 5 * 60_000
@@ -110,7 +115,7 @@ export function createCloudApp({ url, key, fetch: request = fetch, groq }: Cloud
   async function eventsFor(pairs: Pair[]) {
     return pairs.length ? db<WatchEvent[]>('gg_watch_events', {
       device_id: `in.(${pairs.map(({ device_id }) => device_id).join(',')})`,
-      select: 'device_id,event_id,event,version', order: 'created_at.desc', limit: '150',
+      select: 'device_id,event_id,event,version', event_id: `neq.${planRecordId}`, order: 'created_at.desc', limit: '150',
     }) : []
   }
 
@@ -182,6 +187,56 @@ export function createCloudApp({ url, key, fetch: request = fetch, groq }: Cloud
     res.json(pairs.map((pair) => ({ deviceId: pair.device_id, watch: pair.watch, telemetry: [] })))
   })
 
+  async function readPlan(deviceId: string) {
+    const [row] = await db<PlanRecord[]>('gg_watch_events', {
+      device_id: `eq.${deviceId}`, event_id: `eq.${planRecordId}`, select: 'event,version', limit: '1',
+    })
+    if (!row) return null
+    const parsed = DaySchema.safeParse(row.event?.plan)
+    if (row.event?.recordType !== 'DAILY_PLAN' || !parsed.success) reject('PLAN_UNAVAILABLE', 503, 'The saved plan is unavailable.')
+    return { ...parsed.data, revision: row.version }
+  }
+  async function writePlan(deviceId: string, plan: DayPlan, expected: unknown) {
+    if (!Number.isInteger(expected) || Number(expected) < 0) reject('INVALID_PLAN', 422, 'A plan revision is required.')
+    const revision = Number(expected) + 1
+    const next = { ...plan, revision, updatedAt: new Date().toISOString() }
+    const event = { recordType: 'DAILY_PLAN', plan: next }
+    const rows = expected === 0
+      ? await db<PlanRecord[]>('gg_watch_events', {}, 'POST', { device_id: deviceId, event_id: planRecordId, created_at: next.updatedAt, event, version: revision }, 'resolution=ignore-duplicates,return=representation')
+      : await db<PlanRecord[]>('gg_watch_events', { device_id: `eq.${deviceId}`, event_id: `eq.${planRecordId}`, version: `eq.${expected}` }, 'PATCH', { event, version: revision })
+    if (!rows?.length) reject('PLAN_CHANGED', 409, 'The plan changed. Refresh before saving.')
+    return next
+  }
+  app.get('/api/planner/:deviceId', async (req, res) => {
+    const pair = (await scopedPairs(req)).find(p => p.device_id === req.params.deviceId)
+    if (!pair) reject('PAIRING_REQUIRED', 401, 'Pair this watch with the console first.')
+    res.json(await readPlan(pair.device_id))
+  })
+  app.post('/api/planner/:deviceId', async (req, res) => {
+    const pair = (await scopedPairs(req)).find(p => p.device_id === req.params.deviceId)
+    if (!pair) reject('PAIRING_REQUIRED', 401, 'Pair this watch with the console first.')
+    const parsed = DaySchema.safeParse(req.body?.plan)
+    if (!parsed.success || parsed.data.simulated) reject('INVALID_PLAN', 422, 'A valid mission plan is required.')
+    res.json(await writePlan(pair.device_id, parsed.data, req.body.expectedRevision))
+  })
+  app.get('/api/planner', async (req, res) => {
+    const [pair] = await db<Pair[]>('gg_watch_pairs', { ...pairedFilter(req), select: 'device_id' })
+    if (!pair) reject('PAIRING_REQUIRED', 401, 'Pair this watch with the console first.')
+    res.json(await readPlan(pair.device_id))
+  })
+  app.post('/api/planner-action', async (req, res) => {
+    const [pair] = await db<Pair[]>('gg_watch_pairs', { ...pairedFilter(req), select: 'device_id' })
+    if (!pair) reject('PAIRING_REQUIRED', 401, 'Pair this watch with the console first.')
+    const parsed = PlanActionSchema.safeParse(req.body?.action)
+    if (!parsed.success) reject('INVALID_ACTION', 422, 'Choose a supported plan action.')
+    const plan = await readPlan(pair.device_id)
+    if (!plan) reject('PLAN_REQUIRED', 422, 'Create today’s plan on the console first.')
+    if (req.body.expectedRevision !== plan.revision) reject('PLAN_CHANGED', 409, 'Refresh the plan before retrying.')
+    let next: DayPlan
+    try { next = actOnPlan(plan, parsed.data) } catch (e) { reject('INVALID_ACTION', 422, (e as Error).message) }
+    res.json(await writePlan(pair.device_id, next, plan.revision))
+  })
+
   app.post('/api/watch', async (req, res) => {
     const frame = WatchFrameSchema.safeParse(req.body)
     const now = Date.now()
@@ -208,6 +263,7 @@ export function createCloudApp({ url, key, fetch: request = fetch, groq }: Cloud
 
   app.post('/api/signals', async (req, res) => {
     const signal = WatchSignalSchema.safeParse(req.body)
+    if (signal.success && signal.data.id === planRecordId) reject('INVALID_SIGNAL', 422, 'This identifier is reserved for the daily plan.')
     if (!signal.success) reject('INVALID_SIGNAL', 422, 'Invalid watch review signal.')
     const [pair] = await db<Pair[]>('gg_watch_pairs', { ...pairedFilter(req), select: 'device_id' })
     if (!pair) reject('PAIRING_EXPIRED', 401, 'Pair the watch with this console.')

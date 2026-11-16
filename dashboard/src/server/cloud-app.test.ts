@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
+import { demoDay } from '../shared/daily-plan'
 import { createCloudApp } from './cloud-app'
 
 type Row = Record<string, unknown>
@@ -17,13 +18,16 @@ describe('hosted watch pairing', () => {
       if (url.pathname.endsWith('/gg_pairing_attempt')) return Response.json(true)
       const rows = url.pathname.endsWith('gg_watch_events') ? events : pairs
       const found = rows.filter((row) => [...url.searchParams].every(([key, raw]) => {
+        if (raw.startsWith('neq.')) return String(row[key]) !== raw.slice(4)
         if (raw.startsWith('eq.')) return String(row[key]) === raw.slice(3)
         if (raw.startsWith('in.(')) return raw.slice(4, -1).split(',').includes(String(row[key]))
         return raw !== 'is.null' || row[key] === null
       }))
       if (method === 'POST') {
+        const duplicate = rows.some(row => row.device_id === body.device_id && row.event_id === body.event_id)
+        if (duplicate && String(new Headers(options?.headers).get('Prefer')).includes('ignore-duplicates')) return Response.json([])
         rows.push(body)
-        return new Response(null, { status: 201 })
+        return String(new Headers(options?.headers).get('Prefer')).includes('return=representation') ? Response.json([body], { status: 201 }) : new Response(null, { status: 201 })
       }
       if (method === 'PATCH') found.forEach((row) => Object.assign(row, body))
       if (method === 'DELETE') found.forEach((row) => rows.splice(rows.indexOf(row), 1))
@@ -41,6 +45,20 @@ describe('hosted watch pairing', () => {
     expect(header).toContain('Secure')
     const cookie = header.split(';')[0]
     expect((await app().get('/api/device').set('Authorization', bearer).expect(200)).body.paired).toBe(true)
+
+    // A schedule survives serverless instances, is private to the pairing, and never appears as a medical event.
+    const deviceId = redeemed.body.deviceId
+    const planUrl = `/api/planner/${deviceId}`
+    await app().get(planUrl).expect(401)
+    const plan = { ...demoDay(), simulated: false }
+    await app().post(planUrl).set('Cookie', cookie).send({ plan, expectedRevision: 0 }).expect(200)
+    await app().post(planUrl).set('Cookie', cookie).send({ plan, expectedRevision: 0 }).expect(409)
+    const saved = (await app().get('/api/planner').set('Authorization', bearer).expect(200)).body
+    expect(saved.revision).toBe(1)
+    await app().post('/api/planner-action').set('Authorization', bearer).send({ expectedRevision: 1, action: { type: 'checkin', fatigue: 'very' } }).expect(200)
+    expect((await app().get(planUrl).set('Cookie', cookie).expect(200)).body.fatigue).toBe('very')
+    await app().post(planUrl).set('Cookie', cookie).send({ plan, expectedRevision: 1 }).expect(409)
+    expect((await app().get('/api/v1/snapshot').set('Cookie', cookie).expect(200)).body.dataset.events).toEqual({})
 
     const now = Date.now() / 1000
     const frame = { version: 1, source: 'Watch sensors', observedAt: now, simulated: false,

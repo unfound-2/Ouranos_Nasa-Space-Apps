@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from 'react'
 import type { Region, RegionInfo } from '../lib/view'
+import { ModelSkeleton } from './Skeleton'
 import { Astronaut } from './Astronaut'
 
 export interface BodyMapProps {
@@ -76,7 +77,7 @@ export function BodyMap({ regions, selected, onSelect, label, size = 'hero', foc
   return (
     <div className={`relative w-full ${BOX[size]}`}>
       <Fallback onFail={() => setFailed(true)}>
-        <Suspense fallback={<div className="grid h-full place-items-center text-[12px] text-ink-3">Loading the 3D model…</div>}>
+        <Suspense fallback={<ModelSkeleton />}>
           <Astronaut3D regions={regions} selected={selected} onSelect={onSelect} label={label} size={size} focus={focus} onError={() => setFailed(true)} />
         </Suspense>
       </Fallback>

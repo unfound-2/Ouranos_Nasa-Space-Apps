@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Skeleton } from './Skeleton'
 const logoModule = '/astronaut/mission-logo-3d.js'
 
 type MissionLogo = { draw: (x: number, y: number) => void; dispose: () => void }
@@ -6,6 +7,7 @@ type MissionLogo = { draw: (x: number, y: number) => void; dispose: () => void }
 export function AssistantLogo() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [unavailable, setUnavailable] = useState(false)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const element = canvas.current
@@ -36,6 +38,7 @@ export function AssistantLogo() {
       if (disposed) return
       logo = createMissionLogo(element, 168, 168)
       logo?.draw(-.21, angle)
+      setReady(true)
       sync()
     }).catch(() => {
       if (!disposed) setUnavailable(true)
@@ -52,5 +55,8 @@ export function AssistantLogo() {
 
   return unavailable
     ? <img className="mission-logo-fallback" src="/astronaut/mission-logo.png" alt="" width="116" height="120" />
-    : <canvas ref={canvas} width={168} height={168} className="mission-logo-canvas" />
+    : <div className="relative h-[168px] w-[168px]">
+        {!ready && <Skeleton className="absolute inset-5 rounded-full" />}
+        <canvas ref={canvas} width={168} height={168} className="mission-logo-canvas" style={{ opacity: ready ? 1 : 0 }} />
+      </div>
 }
