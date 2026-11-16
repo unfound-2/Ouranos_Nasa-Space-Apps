@@ -287,11 +287,15 @@ const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
   const x = between(W / 2 - fx * pw, W - pw, 0);
   const y = between(H / 2 - fy * ph, H - ph, 0);
   const speed = Math.abs(z - zp) * 300 + Math.hypot((fx - fxp) * W, (fy - fyp) * H) * z * 0.06;
-  const blur = Math.min(10, speed);
+  // Only real camera moves smear; a slow drift stays pixel-sharp.
+  const blur = speed > 1.6 ? Math.min(10, speed) : 0;
   return (
     <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0", filter: blur > 0.4 ? `blur(${blur.toFixed(2)}px)` : undefined }}>
+      {/* The footage is laid out at its zoomed size (not scaled up), so 4K captures draw at full resolution. */}
+      <div style={{ position: "absolute", left: x, top: y, width: pw, height: ph, filter: blur ? `blur(${blur.toFixed(2)}px)` : undefined }}>
         <Footage src={s.src} startAt={s.startAt} />
+      </div>
+      <div style={{ position: "absolute", left: x, top: y, width: W, height: H, transform: `scale(${z})`, transformOrigin: "0 0" }}>
         {(s.marks ?? []).map((m, i) => <MarkBox key={i} m={m} t={t} z={z} />)}
         {s.cursor && <Cursor keys={s.cursor} t={t} z={z} />}
       </div>
@@ -300,10 +304,39 @@ const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
   );
 };
 
-/** The wordmark writes itself on behind a soft wipe while the music rises into the first hit. */
-const Title = () => {
+
+/** A problem fact: the number counts up behind a mask, punches in, and the shot zooms through into the next. */
+const Stat = ({ s }: { s: Extract<Shot, { kind: "stat" }> }) => {
   const frame = useCurrentFrame();
   const t = frame / FPS;
+  const len = (s.to - s.from) / FPS;
+  const p = interpolate(t, [0.02, 0.42], [0, 1], { ...clamp, easing: quart });
+  const n = Math.round(s.value * p);
+  const out = interpolate(t, [len - 0.14, len], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) });
+  const scale = (1.07 - 0.07 * p) * (1 + 0.1 * out);
+  const blur = (1 - p) * 8 + out * 10;
+  return (
+    <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center" }}>
+      <div style={{ transform: `scale(${scale})`, filter: blur > 0.3 ? `blur(${blur}px)` : undefined, opacity: 1 - out * 0.6, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Reveal delay={0} style={{ fontFamily: MONO, fontSize: 24, letterSpacing: "0.14em", textTransform: "uppercase", color: C.ink3 }}>{s.kicker}</Reveal>
+        <div style={{ overflow: "hidden", paddingBottom: "0.06em" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 18, transform: `translateY(${(1 - p) * 60}%)` }}>
+            <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: 300, letterSpacing: "-0.055em", lineHeight: 1, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{n}</span>
+            <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: 96, letterSpacing: "-0.03em", color: C.ink2 }}>{s.unit}</span>
+          </div>
+        </div>
+        <Reveal delay={4} style={{ fontFamily: SANS, fontSize: 42, fontWeight: 400, letterSpacing: "-0.015em", color: C.ink, marginTop: 6 }}>{s.line}</Reveal>
+      </div>
+      <div style={{ position: "absolute", left: 30, bottom: 24, fontFamily: MONO, fontSize: 16, letterSpacing: "0.06em", color: C.ink3, opacity: p }}>{s.source}</div>
+    </AbsoluteFill>
+  );
+};
+
+/** The wordmark writes itself on behind a soft wipe while the music rises into the first hit. */
+const Title = ({ len = 60 }: { len?: number }) => {
+  const frame = useCurrentFrame();
+  const fast = len < 45; // a one-second title on the hit writes on quicker
+  const t = frame / FPS * (fast ? 2.2 : 1);
   const w = interpolate(t, [0.2, 1.4], [0, 1], { ...clamp, easing: Easing.bezier(0.45, 0, 0.2, 1) });
   const edge = w * 125 - 12;
   const mask = `linear-gradient(90deg, rgba(0,0,0,1) ${edge}%, rgba(0,0,0,0) ${edge + 12}%)`;
@@ -312,7 +345,7 @@ const Title = () => {
     <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center" }}>
       <div style={{ transform: `scale(${settle})`, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ fontFamily: SCRIPT, fontSize: 236, lineHeight: 1.18, color: C.ink, padding: "0 60px", WebkitMaskImage: mask, maskImage: mask }}>Ouranos</div>
-        <Reveal delay={31} style={{ fontFamily: SANS, fontSize: 30, fontWeight: 400, letterSpacing: "-0.01em", color: C.ink2 }}>
+        <Reveal delay={fast ? 9 : 31} style={{ fontFamily: SANS, fontSize: 30, fontWeight: 400, letterSpacing: "-0.01em", color: C.ink2 }}>
           {TAGLINE}
         </Reveal>
       </div>
@@ -348,7 +381,8 @@ const End = () => {
 
 const ShotView = ({ s }: { s: Shot }) => {
   switch (s.kind) {
-    case "title": return <Title />;
+    case "title": return <Title len={s.to - s.from} />;
+    case "stat": return <Stat s={s} />;
     case "end": return <End />;
     case "web": return <WebShot s={s} />;
     case "page": return <PageShot s={s} />;

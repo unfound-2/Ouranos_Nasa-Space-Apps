@@ -1,0 +1,332 @@
+{
+ "_notes": "Times are seconds from the start of each clip (after retiming). Boxes are CSS px in the 1920x1080 viewport (multiply by 2 for 3840x2160 video pixels). Page scrolled to the top in every clip, so boxes are also screen positions.",
+ "web4k_dashboard.mp4": [
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Heart rate chart",
+   "box": {
+    "x": 1146.3,
+    "y": 351.8,
+    "w": 341.7,
+    "h": 234
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Respiration chart",
+   "box": {
+    "x": 1146.3,
+    "y": 597.8,
+    "w": 341.7,
+    "h": 331
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Watch connected \u00b7 readings received (status line)",
+   "box": {
+    "x": 1146.3,
+    "y": 291.8,
+    "w": 341.7,
+    "h": 20
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Astronaut figure (approximate, measured from frame; 3D canvas is full-screen)",
+   "box": {
+    "x": 744,
+    "y": 410,
+    "w": 380,
+    "h": 570
+   }
+  },
+  {
+   "t": 4.0,
+   "action": "appear",
+   "label": "Pulse and breathing both flagged",
+   "box": {
+    "x": 446,
+    "y": 331.8,
+    "w": 261.6,
+    "h": 20
+   }
+  },
+  {
+   "t": 4.0,
+   "action": "appear",
+   "label": "What needs attention card (flagged state)",
+   "box": {
+    "x": 432,
+    "y": 291.8,
+    "w": 289.6,
+    "h": 124
+   }
+  },
+  {
+   "t": 4.0,
+   "action": "appear",
+   "label": "Readings that triggered the flag card fills (Heart rate 128 bpm, Respiration 27 /min)",
+   "box": {
+    "x": 1146.3,
+    "y": 940.8,
+    "w": 341.7,
+    "h": 156
+   }
+  },
+  {
+   "t": 4.0,
+   "action": "change",
+   "label": "Astronaut suit turns gold; charts jump to 128 bpm / 27 /min",
+   "box": {
+    "x": 744,
+    "y": 410,
+    "w": 380,
+    "h": 570
+   }
+  }
+ ],
+ "web4k_daily_plan.mp4": [
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Inventory review 13:00 row (the activity that moves; before the 40 px layout shift)",
+   "box": {
+    "x": 472,
+    "y": 726.4,
+    "w": 585.4,
+    "h": 79.4
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "How are you feeling? card (before the shift)",
+   "box": {
+    "x": 1099.4,
+    "y": 335.8,
+    "w": 372.6,
+    "h": 306.8
+   }
+  },
+  {
+   "t": 1.2,
+   "action": "click",
+   "label": "Very tired",
+   "box": {
+    "x": 1123.4,
+    "y": 540.4,
+    "w": 324.6,
+    "h": 44
+   }
+  },
+  {
+   "t": 1.25,
+   "action": "appear",
+   "label": "Suggestion card 'A little more room.' (Inventory review 13:00 -> Tomorrow, Accept change). A status line also appears under the date and pushes both columns down 40 px",
+   "box": {
+    "x": 1099.4,
+    "y": 700.6,
+    "w": 372.6,
+    "h": 366.4
+   }
+  },
+  {
+   "t": 3.8,
+   "action": "click",
+   "label": "Accept change",
+   "box": {
+    "x": 1123.4,
+    "y": 947,
+    "w": 324.6,
+    "h": 44
+   }
+  },
+  {
+   "t": 3.84,
+   "action": "appear",
+   "label": "Status 'Changes accepted. Your plan is up to date.'",
+   "box": {
+    "x": 448,
+    "y": 335.8,
+    "w": 1024,
+    "h": 20
+   }
+  },
+  {
+   "t": 3.85,
+   "action": "appear",
+   "label": "Card returns to 'Room to adjust.'; Inventory review is gone from the list",
+   "box": {
+    "x": 1099.4,
+    "y": 700.6,
+    "w": 372.6,
+    "h": 147.5
+   }
+  },
+  {
+   "t": 4.75,
+   "action": "box",
+   "label": "Your day list after the change",
+   "box": {
+    "x": 448,
+    "y": 375.8,
+    "w": 633.4,
+    "h": 766.8
+   }
+  }
+ ],
+ "web4k_crew_guide.mp4": [
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Detail panel showing 'Document a radiation alert' (pre-selected so the later click visibly opens a new entry)",
+   "box": {
+    "x": 787.1,
+    "y": 355.8,
+    "w": 684.9,
+    "h": 411.1
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Checklist list, left column (full list)",
+   "box": {
+    "x": 448,
+    "y": 355.8,
+    "w": 321.1,
+    "h": 756
+   }
+  },
+  {
+   "t": 0.8,
+   "action": "click",
+   "label": "Search box (focus ring appears)",
+   "box": {
+    "x": 448,
+    "y": 285.8,
+    "w": 730,
+    "h": 48
+   }
+  },
+  {
+   "t": 1.0,
+   "tEnd": 2.19,
+   "action": "type",
+   "label": "Type 'radiation' (about 130 ms per letter); the list filters with each letter",
+   "typed": "radiation",
+   "box": {
+    "x": 448,
+    "y": 285.8,
+    "w": 730,
+    "h": 48
+   }
+  },
+  {
+   "t": 2.45,
+   "action": "box",
+   "label": "Filtered list: Acute radiation syndrome, Risk of Radiation Carcinogenesis, Document a radiation alert",
+   "box": {
+    "x": 448,
+    "y": 355.8,
+    "w": 321.1,
+    "h": 248
+   }
+  },
+  {
+   "t": 3.1,
+   "action": "click",
+   "label": "Acute radiation syndrome",
+   "box": {
+    "x": 456,
+    "y": 363.8,
+    "w": 305.1,
+    "h": 88
+   }
+  },
+  {
+   "t": 3.14,
+   "action": "appear",
+   "label": "Acute radiation syndrome detail opens (Related crew checklist, View NASA guide)",
+   "box": {
+    "x": 787.1,
+    "y": 355.8,
+    "w": 684.9,
+    "h": 379.4
+   }
+  }
+ ],
+ "web4k_review.mp4": [
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "Ask about these readings panel (assistant, greeting with rotating star)",
+   "box": {
+    "x": 998.4,
+    "y": 331.8,
+    "w": 473.6,
+    "h": 648.5
+   }
+  },
+  {
+   "t": 0.0,
+   "action": "box",
+   "label": "What changed card (left)",
+   "box": {
+    "x": 448,
+    "y": 331.8,
+    "w": 530.4,
+    "h": 188.5
+   }
+  },
+  {
+   "t": 1.0,
+   "action": "click",
+   "label": "What changed? (suggestion chip)",
+   "box": {
+    "x": 1044.6,
+    "y": 746.1,
+    "w": 100.5,
+    "h": 36
+   }
+  },
+  {
+   "t": 1.05,
+   "action": "appear",
+   "label": "Question bubble 'What changed?' plus loading skeleton",
+   "box": {
+    "x": 1329.2,
+    "y": 704.3,
+    "w": 114.8,
+    "h": 36
+   }
+  },
+  {
+   "t": 1.5,
+   "action": "appear",
+   "label": "Assistant answer card lands (Online assistant text plus View NASA guide link card)",
+   "box": {
+    "x": 1028.4,
+    "y": 604.7,
+    "w": 415.6,
+    "h": 223.1
+   }
+  },
+  {
+   "t": 1.5,
+   "action": "move",
+   "label": "Question bubble moves up above the answer (approximate, measured from frame)",
+   "box": {
+    "x": 1329.2,
+    "y": 565,
+    "w": 114.8,
+    "h": 36
+   }
+  }
+ ]
+}
