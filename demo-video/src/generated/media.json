@@ -68,6 +68,9 @@
   "renders/blender_assemble.mp4": {
     "duration": 3.333333
   },
+  "renders/watch_hero.mp4": {
+    "duration": 2.2
+  },
   "renders/assemble/": {
     "frames": 0
   }

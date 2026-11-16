@@ -48,7 +48,7 @@ Spare footage you can swap in: `assets/capture/web_other_crew_guide.mp4` (Crew g
 - **Captions** are adapted from the team's own website copy, with SI help on the wording.
 - **Simulated data:** every reading shown comes from the app's simulated feed, and the film labels it "SIMULATED READINGS" for those 20.7 seconds.
 
-### Stats in the opening (cite these in References)
+### Stats on the glass side panels (cite these in References)
 
 - "Up to 20 min for a message from Mars to reach Earth": NASA Human Research Program, Hazard: Distance From Earth, https://www.nasa.gov/hrp/hazard-distance-from-earth/
 - "About 40 hrs of medical training for the crew medical officer" (ISS, often not a physician): NASA, International Space Station (ISS) Medical Operations, https://ntrs.nasa.gov/api/citations/20080010877/downloads/20080010877.pdf

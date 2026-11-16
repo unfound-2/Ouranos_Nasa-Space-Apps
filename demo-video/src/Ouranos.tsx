@@ -10,7 +10,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
-import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, SHOTS, SIMULATED, Shot, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
+import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, Note, SHOTS, SIMULATED, Shot, Stat, STATS, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
 
 const C = { void: "#000000", ink: "#ededed", ink2: "#a1a1a1", ink3: "#8f8f8f" };
 const W = 1920;
@@ -276,6 +276,36 @@ const MarkBox = ({ m, t, z }: { m: Mark; t: number; z: number }) => {
   );
 };
 
+
+/** A note with an arrow that lands exactly on its target (the Solace film's grammar), constant size at any zoom. */
+const NoteView = ({ n, t, z }: { n: Note; t: number; z: number }) => {
+  if (t < n.from || t > n.to) return null;
+  const a = interpolate(t, [n.from, n.from + 0.35], [0, 1], { ...clamp, easing: quart });
+  const draw = interpolate(t, [n.from + 0.12, n.from + 0.55], [0, 1], { ...clamp, easing: quart });
+  const fade = interpolate(t, [n.to - 0.2, n.to], [1, 0], clamp);
+  const [ax, ay] = n.at;
+  const [tx, ty] = n.tip;
+  const sx = ax + (tx > ax ? 6 : -6), sy = ay - 14 / z; // arrow starts at the label's edge
+  const cx = (sx + tx) / 2, cy = Math.min(sy, ty) - 40 / z; // gentle arc
+  const len = Math.hypot(tx - sx, ty - sy) * 1.25;
+  const ang = Math.atan2(ty - cy, tx - cx);
+  const head = 12 / z;
+  return (
+    <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, opacity: fade, pointerEvents: "none" }}>
+      <svg width={W} height={H} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
+        <path d={`M ${sx} ${sy} Q ${cx} ${cy} ${tx} ${ty}`} fill="none" stroke="#ededed" strokeWidth={2.4 / z} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - draw)} style={{ filter: `drop-shadow(0 ${1 / z}px ${3 / z}px rgba(0,0,0,0.8))` }} />
+        {draw > 0.95 && (
+          <path d={`M ${tx - head * Math.cos(ang - 0.45)} ${ty - head * Math.sin(ang - 0.45)} L ${tx} ${ty} L ${tx - head * Math.cos(ang + 0.45)} ${ty - head * Math.sin(ang + 0.45)}`} fill="none" stroke="#ededed" strokeWidth={2.4 / z} strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+      <div style={{ position: "absolute", left: ax, top: ay, transform: `translate(${tx > ax ? "-100%" : "0"}, -100%) scale(${1 / z})`, transformOrigin: tx > ax ? "100% 100%" : "0 100%", opacity: a }}>
+        <div style={{ transform: `translateY(${(1 - a) * 10}px)`, whiteSpace: "nowrap", fontFamily: SANS, fontWeight: 600, fontSize: 26, letterSpacing: "-0.02em", color: C.ink, padding: "9px 16px", borderRadius: 12,
+          background: "rgba(10,10,10,0.55)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>{n.text}</div>
+      </div>
+    </div>
+  );
+};
+
 /** Someone using the site, up close: the camera follows the action, with a cursor and outlines on top. */
 const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
   const frame = useCurrentFrame();
@@ -293,10 +323,11 @@ const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
     <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
       {/* The footage is laid out at its zoomed size (not scaled up), so 4K captures draw at full resolution. */}
       <div style={{ position: "absolute", left: x, top: y, width: pw, height: ph, filter: blur ? `blur(${blur.toFixed(2)}px)` : undefined }}>
-        <Footage src={s.src} startAt={s.startAt} />
+        <Footage src={s.src} startAt={s.startAt} rate={s.rate} />
       </div>
       <div style={{ position: "absolute", left: x, top: y, width: W, height: H, transform: `scale(${z})`, transformOrigin: "0 0" }}>
         {(s.marks ?? []).map((m, i) => <MarkBox key={i} m={m} t={t} z={z} />)}
+        {(s.notes ?? []).map((n, i) => <NoteView key={`n${i}`} n={n} t={t} z={z} />)}
         {s.cursor && <Cursor keys={s.cursor} t={t} z={z} />}
       </div>
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.35) 100%)", pointerEvents: "none" }} />
@@ -305,30 +336,28 @@ const UsageShot = ({ s }: { s: Extract<Shot, { kind: "usage" }> }) => {
 };
 
 
-/** A problem fact: the number counts up behind a mask, punches in, and the shot zooms through into the next. */
-const Stat = ({ s }: { s: Extract<Shot, { kind: "stat" }> }) => {
+/** A NASA fact on a blurred glass panel beside the product: slides in, counts up, slides out. */
+const StatPanel = ({ st }: { st: Stat }) => {
   const frame = useCurrentFrame();
   const t = frame / FPS;
-  const len = (s.to - s.from) / FPS;
-  const p = interpolate(t, [0.02, 0.42], [0, 1], { ...clamp, easing: quart });
-  const n = Math.round(s.value * p);
-  const out = interpolate(t, [len - 0.14, len], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) });
-  const scale = (1.07 - 0.07 * p) * (1 + 0.1 * out);
-  const blur = (1 - p) * 8 + out * 10;
+  const len = (st.to - st.from) / FPS;
+  const inn = interpolate(t, [0, 0.45], [0, 1], { ...clamp, easing: quart });
+  const out = interpolate(t, [len - 0.3, len], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) });
+  const n = Math.round(st.value * interpolate(t, [0.15, 0.75], [0, 1], { ...clamp, easing: quart }));
+  const dir = st.side === "right" ? 1 : -1;
+  const shift = (1 - inn) * 60 * dir + out * 40 * dir;
   return (
-    <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ transform: `scale(${scale})`, filter: blur > 0.3 ? `blur(${blur}px)` : undefined, opacity: 1 - out * 0.6, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Reveal delay={0} style={{ fontFamily: MONO, fontSize: 24, letterSpacing: "0.14em", textTransform: "uppercase", color: C.ink3 }}>{s.kicker}</Reveal>
-        <div style={{ overflow: "hidden", paddingBottom: "0.06em" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 18, transform: `translateY(${(1 - p) * 60}%)` }}>
-            <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: 300, letterSpacing: "-0.055em", lineHeight: 1, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{n}</span>
-            <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: 96, letterSpacing: "-0.03em", color: C.ink2 }}>{s.unit}</span>
-          </div>
-        </div>
-        <Reveal delay={4} style={{ fontFamily: SANS, fontSize: 42, fontWeight: 400, letterSpacing: "-0.015em", color: C.ink, marginTop: 6 }}>{s.line}</Reveal>
+    <div style={{ position: "absolute", top: 120, [st.side]: 72, width: 470, padding: "30px 34px 26px", borderRadius: 18,
+      background: "rgba(10,10,10,0.38)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(28px) saturate(1.2)", WebkitBackdropFilter: "blur(28px) saturate(1.2)",
+      boxShadow: "0 24px 60px rgba(0,0,0,0.35)", opacity: inn * (1 - out), transform: `translateX(${shift}px)` }}>
+      <div style={{ fontFamily: MONO, fontSize: 18, letterSpacing: "0.14em", textTransform: "uppercase", color: C.ink3 }}>{st.kicker}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 4 }}>
+        <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: 132, letterSpacing: "-0.055em", lineHeight: 1, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{n}</span>
+        <span style={{ fontFamily: SANS, fontWeight: 500, fontSize: 46, letterSpacing: "-0.03em", color: C.ink2 }}>{st.unit}</span>
       </div>
-      <div style={{ position: "absolute", left: 30, bottom: 24, fontFamily: MONO, fontSize: 16, letterSpacing: "0.06em", color: C.ink3, opacity: p }}>{s.source}</div>
-    </AbsoluteFill>
+      <Reveal delay={8} style={{ fontFamily: SANS, fontSize: 27, lineHeight: 1.3, letterSpacing: "-0.01em", color: C.ink, marginTop: 10 }}>{st.line}</Reveal>
+      <div style={{ fontFamily: MONO, fontSize: 14, letterSpacing: "0.06em", color: C.ink3, marginTop: 16 }}>Source: {st.source}</div>
+    </div>
   );
 };
 
@@ -382,7 +411,6 @@ const End = () => {
 const ShotView = ({ s }: { s: Shot }) => {
   switch (s.kind) {
     case "title": return <Title len={s.to - s.from} />;
-    case "stat": return <Stat s={s} />;
     case "end": return <End />;
     case "web": return <WebShot s={s} />;
     case "page": return <PageShot s={s} />;
@@ -408,6 +436,11 @@ export const Ouranos = () => (
     {CAPTIONS.map((c, i) => (
       <Sequence key={`c${i}`} from={c.from} durationInFrames={c.to - c.from}>
         <CaptionView c={c} />
+      </Sequence>
+    ))}
+    {STATS.map((st, i) => (
+      <Sequence key={`s${i}`} from={st.from} durationInFrames={st.to - st.from}>
+        <StatPanel st={st} />
       </Sequence>
     ))}
     <Sequence from={SIMULATED.from} durationInFrames={SIMULATED.to - SIMULATED.from}>
