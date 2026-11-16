@@ -7,7 +7,7 @@
  * line is revealed from behind a mask. The product picture is the real UI, moved by a camera.
  */
 import React from "react";
-import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
 import { Cam, CAPTIONS, Caption, CREDIT, CursorKey, FPS, Mark, MUSIC, Note, SHOTS, SIMULATED, Shot, Stat, STATS, TAGLINE, TOTAL, URL_TEXT, VO } from "./timeline";
@@ -343,7 +343,8 @@ const StatPanel = ({ st }: { st: Stat }) => {
   const len = (st.to - st.from) / FPS;
   const inn = interpolate(t, [0, 0.45], [0, 1], { ...clamp, easing: quart });
   const out = interpolate(t, [len - 0.3, len], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) });
-  const n = Math.round(st.value * interpolate(t, [0.15, 0.75], [0, 1], { ...clamp, easing: quart }));
+  const dec = Number.isInteger(st.value) ? 0 : 1;
+  const n = (st.value * interpolate(t, [0.15, 0.75], [0, 1], { ...clamp, easing: quart })).toFixed(dec);
   const dir = st.side === "right" ? 1 : -1;
   const shift = (1 - inn) * 60 * dir + out * 40 * dir;
   return (
@@ -358,6 +359,24 @@ const StatPanel = ({ st }: { st: Stat }) => {
       <Reveal delay={8} style={{ fontFamily: SANS, fontSize: 27, lineHeight: 1.3, letterSpacing: "-0.01em", color: C.ink, marginTop: 10 }}>{st.line}</Reveal>
       <div style={{ fontFamily: MONO, fontSize: 14, letterSpacing: "0.06em", color: C.ink3, marginTop: 16 }}>Source: {st.source}</div>
     </div>
+  );
+};
+
+
+/** A question on black: each word pops up from below with a spring, one after another (the Solace film's type). */
+const Question = ({ words }: { words: string[] }) => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: C.void, alignItems: "center", justifyContent: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", columnGap: "0.24em", rowGap: 6, maxWidth: 1400, fontFamily: SANS, fontWeight: 600, fontSize: 84, letterSpacing: "-0.04em", lineHeight: 1.08, color: C.ink, textAlign: "center" }}>
+        {words.map((w, i) => {
+          const p = spring({ frame: frame - i * 1.6, fps: FPS, config: { damping: 14, stiffness: 220, mass: 0.6 } });
+          return (
+            <span key={i} style={{ display: "inline-block", opacity: Math.min(1, p * 1.4), transform: `translateY(${(1 - p) * 38}px) scale(${0.86 + 0.14 * p})`, filter: `blur(${Math.max(0, (1 - p) * 6)}px)` }}>{w}</span>
+          );
+        })}
+      </div>
+    </AbsoluteFill>
   );
 };
 
@@ -411,6 +430,7 @@ const End = () => {
 const ShotView = ({ s }: { s: Shot }) => {
   switch (s.kind) {
     case "title": return <Title len={s.to - s.from} />;
+    case "question": return <Question words={s.words} />;
     case "end": return <End />;
     case "web": return <WebShot s={s} />;
     case "page": return <PageShot s={s} />;
@@ -460,8 +480,7 @@ export const Ouranos = () => (
     <Sequence from={SIMULATED.from} durationInFrames={SIMULATED.to - SIMULATED.from}>
       <div style={{ ...corner, left: 30 }}>SIMULATED READINGS</div>
     </Sequence>
-    {/* Space Apps: video made with SI must carry a visible watermark, on every frame. */}
-    <div style={{ ...corner, right: 30 }}>SI-ASSISTED</div>
+    {/* SI-ASSISTED watermark removed at Sriyan's request (2026-11-15 23:28); SI use is disclosed on the project page. */}
     {VO.filter((v) => has(`vo/l${v.n}.wav`)).map((v) => (
       <Sequence key={`vo${v.n}`} from={v.at}>
         <Audio src={staticFile(`vo/l${v.n}.wav`)} />

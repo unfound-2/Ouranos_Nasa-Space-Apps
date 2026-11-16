@@ -35,6 +35,7 @@ export type Push = [number, number, number, number];
 type Base = { from: number; to: number };
 export type Shot =
   | (Base & { kind: "title" })
+  | (Base & { kind: "question"; words: string[] })
   | (Base & { kind: "stat"; kicker: string; value: number; unit: string; line: string; source: string })
   | (Base & { kind: "end" })
   | (Base & { kind: "clip"; src: string; startAt: number; rate?: number; push?: Push })
@@ -54,10 +55,11 @@ export const SHOTS: Shot[] = [
   { kind: "title", from: 0, to: f(2.0) },
   // Real footage (Sriyan's phone), hard cuts on the beat.
   { kind: "clip", from: f(2.0), to: f(3.333), src: "clips/c3.mp4", startAt: 0.5 },
-  { kind: "clip", from: f(3.333), to: f(4.333), src: "clips/c3.mp4", startAt: 4.3 },
-  { kind: "clip", from: f(4.333), to: f(5.333), src: "clips/c1.mp4", startAt: 0.1, push: [0.0, 1.3, 0.46, 0.48] },
+  { kind: "clip", from: f(3.333), to: f(4.667), src: "clips/c1.mp4", startAt: 0.1, push: [0.0, 1.3, 0.46, 0.48] },
+  // The question, on black, words popping in (the Solace film's type), right after the Mars line.
+  { kind: "question", from: f(4.667), to: f(6.0), words: ["So", "how", "do", "astronauts", "know", "what", "to", "do", "in", "an", "emergency?"] },
   // The real watch reads 128 bpm, Review; the camera pushes into its screen...
-  { kind: "clip", from: f(5.333), to: f(7.333), src: "clips/c2.mp4", startAt: 0.5, rate: 1.5, push: [1.62, 2.5, 0.5, 0.44] },
+  { kind: "clip", from: f(6.0), to: f(7.333), src: "clips/c2.mp4", startAt: 0.5, rate: 1.5, push: [0.85, 2.5, 0.5, 0.44] },
   // ...and lands on the app's own screen at the same moment: the chest region amber, 128 bpm, Review.
   // A still of the app's own SwiftUI view rendered at 10x, so it stays sharp at 4K.
   // A 3D render of the Ouranos watch (Blender, from the CAD; charcoal like the real print, app on screen).
@@ -86,7 +88,7 @@ export const SHOTS: Shot[] = [
     cam: [[0, 1.0, 0.5, 0.5], [0.05, 1.0, 0.5, 0.5], [1.0, 1.7, 0.57, 0.65], [1.9, 1.75, 0.644, 0.66], [3.95, 1.82, 0.644, 0.65]],
     cursor: [[0.0, 900, 960], [0.72, 1085, 764], [0.86, 1085, 764, "click"], [2.4, 1000, 905]],
     marks: [{ from: 1.7, to: 3.95, box: [1028, 605, 416, 223], color: "#ededed" }],
-    notes: [{ from: 2.2, to: 3.95, text: "Every answer links a NASA source", at: [1462, 690], tip: [1424, 792] }] },
+    notes: [{ from: 2.2, to: 3.95, text: "Cited guide, one tap away", at: [1462, 690], tip: [1424, 792] }] },
   { kind: "end", from: f(27.333), to: TOTAL },
 ];
 
@@ -97,31 +99,32 @@ export const SHOTS: Shot[] = [
 export type Caption = { from: number; to: number; place: "lower" | "left" | "margin" | "corner"; title: string[]; sub?: string };
 
 export const CAPTIONS: Caption[] = [
-  { from: f(2.13), to: f(5.2), place: "lower", title: ["A 3D-printed band"], sub: "Built around the Apple Watch SE." },
-  { from: f(5.43), to: f(7.2), place: "lower", title: ["Readings on the wrist"], sub: "Heart rate, breathing and more." },
-  { from: f(7.43), to: f(9.25), place: "left", title: ["Built for", "gloved hands"], sub: "A chain band with a big hook made for gloved fingers." },
+  { from: f(2.13), to: f(4.6), place: "lower", title: ["A 3D-printed shroud"], sub: "Made for the 40 mm Apple Watch SE. Printed in PLA at home." },
+  { from: f(6.1), to: f(7.25), place: "lower", title: ["Four vitals at a glance"], sub: "Heart rate, breathing, blood oxygen and skin temperature." },
+  { from: f(7.43), to: f(9.25), place: "left", title: ["Shroud, plate", "and 10 links"], sub: "A chain band with a big hook, joined with filament pins." },
   // Website in use, up close: type sits bottom-left over the picture.
-  { from: f(9.5), to: f(12.6), place: "corner", title: ["Live on the dashboard"], sub: "Watch readings arrive as they happen." },
-  { from: f(12.8), to: f(14.55), place: "corner", title: ["It flags what changes"], sub: "Pulse and breathing, marked for review." },
-  { from: f(14.8), to: f(19.2), place: "corner", title: ["Plans around how you feel"], sub: "Very tired? Flexible work moves to tomorrow." },
-  { from: f(19.5), to: f(23.2), place: "corner", title: ["The right checklist, fast"], sub: "Search the crew guide and open the steps." },
+  { from: f(9.5), to: f(12.6), place: "corner", title: ["Paired with one code"], sub: "A single-use code links the watch to the crew dashboard." },
+  { from: f(12.8), to: f(14.55), place: "corner", title: ["Pulse and breathing flagged"], sub: "The readings behind the flag are listed beside it." },
+  { from: f(14.8), to: f(19.2), place: "corner", title: ["Fixed tasks stay put"], sub: "Only flexible work moves, and the crew approves every change." },
+  { from: f(19.5), to: f(23.2), place: "corner", title: ["185 guide entries"], sub: "175 NASA source records plus 10 crew checklists." },
   { from: f(23.5), to: f(27.2), place: "corner", title: ["Evidence, not a diagnosis"], sub: "No link to Earth? Onboard guidance runs on the local mission computer." },
 ];
 
 /**
  * NASA facts that pop up beside the product on a blurred glass panel (sources on screen and in References):
- *  - up to 20 min one-way signal delay, Mars to Earth: https://www.nasa.gov/hrp/hazard-distance-from-earth/
+ *  - 1-1.5% bone mineral density lost per month in space: https://www.nasa.gov/humans-in-space/the-human-body-in-space/
+ *  - (voiceover) up to 20 min one-way signal delay, Mars to Earth: https://www.nasa.gov/hrp/hazard-distance-from-earth/
  *  - about 40 h pre-mission medical training for an ISS crew medical officer (often not a physician):
  *    https://ntrs.nasa.gov/api/citations/20080010877/downloads/20080010877.pdf
  */
 export type Stat = { from: number; to: number; side: "right" | "left"; kicker: string; value: number; unit: string; line: string; source: string };
 export const STATS: Stat[] = [
-  { from: f(2.4), to: f(5.25), side: "right", kicker: "Up to", value: 20, unit: "min", line: "for a message from Mars to reach Earth.", source: "NASA Human Research Program" },
+  { from: f(2.4), to: f(4.6), side: "right", kicker: "Up to", value: 1.5, unit: "%", line: "of bone density lost per month in space.", source: "NASA, The Human Body in Space" },
   { from: f(23.8), to: f(27.2), side: "left", kicker: "About", value: 40, unit: "hrs", line: "of medical training for the crew medical officer.", source: "NASA, ISS Medical Operations" },
 ];
 
 /** Every reading on screen from here on comes from the app's simulated feed, so the film says so. */
-export const SIMULATED = { from: f(5.333), to: f(27.333) };
+export const SIMULATED = { from: f(6.0), to: f(27.333) };
 
 export const MUSIC = "music/ouranos-music.wav";
 
@@ -131,7 +134,7 @@ export const MUSIC = "music/ouranos-music.wav";
  */
 export const VO: { n: number; at: number }[] = [
   // Cut from Sriyan's take by Whisper word times (3 = lines 3+4 read as one phrase; 7 starts at "finds").
-  { n: 1, at: f(0.35) }, { n: 2, at: f(2.2) }, { n: 3, at: f(5.5) }, { n: 5, at: f(9.55) },
+  { n: 1, at: f(0.35) }, { n: 2, at: f(1.9) }, { n: 3, at: f(6.05) }, { n: 5, at: f(9.75) },
   { n: 6, at: f(14.85) }, { n: 7, at: f(19.55) }, { n: 8, at: f(23.6) }, { n: 9, at: f(27.35) },
 ];
 export const URL_TEXT = "useouranos.vercel.app";
