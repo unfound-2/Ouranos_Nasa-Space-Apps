@@ -24,16 +24,15 @@ Cuts sit on the music's beat grid (90 BPM, so 2.0, 5.333, 9.333, 13.333, 17.333,
 | 0:00 | The wordmark writes itself on, with "Health monitoring for astronauts" | text |
 | 0:02 | Putting the watch on, the chain band from the side, the wrist | `assets/clips/c3.mp4`, `c1.mp4` (Sriyan's phone) |
 | 0:05 | The real watch reads 128 bpm, Review; the camera pushes into its screen | `assets/clips/c2.mp4` |
-| 0:07 | Match cut to the app's own screen: the body figure's chest amber, 128 bpm, Review | `assets/capture/watch_body.mp4` (simulator, Sim mode) |
-| 0:09 | Mission health; on the 11.3 s beat the flag lands and the page takes the whole frame | `assets/capture/web_dashboard.mp4` |
-| 0:13 | Monitoring systems: every reading with its unit, time, source and quality | `assets/capture/web_crew_health.mp4` |
-| 0:17 | From the heart-rate chart down to the readings that triggered the flag | `assets/capture/web_dashboard_long.mp4` |
-| 0:21 | Health review: the assistant's answer lands on the beat, then the NASA guide link | `assets/capture/web_other_health_review.mp4` |
+| 0:07 | Match cut to the app's own screen: the body figure's chest amber, 128 bpm, Review | `assets/capture/watch_body_hires.png` |
+| 0:09 | Mission health, the whole page, live; the flag lands on the 13.3 s beat and the astronaut turns gold | `assets/capture/web_hd_dashboard.mp4` |
+| 0:17 | Health review, the whole page: "What changed?" goes in, the answer and its NASA guide link land on the 19.3 s beat | `assets/capture/web_hd_review.mp4` |
 | 0:26 | End card on the final hit: wordmark, tagline, URL, team | text |
 
-How it is cut: hard cuts on the beat, full-frame footage, no cards or frames. Type sits bottom-left over the phone footage, or in a black column beside the product, and each line rises from behind a mask. "SIMULATED READINGS" sits bottom-left whenever readings are on screen (they all come from the app's simulated feed), opposite the SI watermark.
+How it is cut: hard cuts on the beat, full-frame footage, no cards or frames. The website pages are shown whole and sharp: they were recorded at 3840x2160 (2x device pixels) from useouranos.vercel.app, paired to the dashboard's own mock watch (`dashboard/scripts/mock-watch.mjs`, every frame marked simulated), then downscaled to 1920x1080 with Lanczos (the 4K masters are not committed: rendering straight from them ran this Mac out of memory). The camera does not zoom into them. Type sits bottom-left over the phone footage, beside the watch screen, or in the website's own empty left margin; each line rises from behind a mask. "SIMULATED READINGS" sits bottom-left whenever readings are on screen, opposite the SI watermark.
 
-`watch_body.mp4` was recorded from the watchOS simulator (Apple Watch Series 11, 46 mm) with the redrawn body figure from branch `feat/watch-body-figure`, then cropped (status-bar clock and menu button removed) and upscaled 2x with Lanczos. The chest turns amber at 5.533 s in that file.
+`watch_body_hires.png` is the watch app's own SwiftUI view (`BodyFigure` from branch `feat/watch-body-figure`, with the app's elevated demo readings) rendered at 10x on a Mac, so it stays sharp at 4K. `watch_body.mp4` is the same screen recorded from the watchOS simulator.
+
 
 Spare footage you can swap in: `assets/capture/web_other_crew_guide.mp4` (Crew guide), `web_other_daily_plan.mp4` (Daily plan), `assets/capture/web_home_watch.mp4` (the Home page's 3D watch assembling), `watch_app.mp4` (simulator, the Analytics screen; flags at 13.8 to 15.5 s), `watch_pairing_code.mp4`, `assets/renders/blender_assemble.mp4` (Blender render of the CAD case and band, scene in `blender/ouranos_hero.blend`). `assets/capture/notes.md` lists the best moments in each website recording.
 

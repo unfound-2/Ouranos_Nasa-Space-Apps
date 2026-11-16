@@ -7,7 +7,7 @@
  * line is revealed from behind a mask. The product picture is the real UI, moved by a camera.
  */
 import React from "react";
-import { AbsoluteFill, Audio, Easing, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { MONO, SANS, SCRIPT } from "./lib/fonts";
 import media from "./generated/media.json";
 import { Cam, CAPTIONS, Caption, CREDIT, FPS, MUSIC, SHOTS, SIMULATED, Shot, TAGLINE, TOTAL, URL_TEXT } from "./timeline";
@@ -71,10 +71,13 @@ const CaptionView = ({ c }: { c: Caption }) => {
   const len = c.to - c.from;
   const out = interpolate(frame, [len - 7, len], [1, 0], { ...clamp, easing: quart });
   const lower = c.place === "lower";
-  const size = lower ? 80 : 78;
+  const margin = c.place === "margin";
+  const size = lower ? 80 : margin ? 44 : 78;
   const block: React.CSSProperties = lower
     ? { position: "absolute", left: TEXT_X, bottom: 136, width: 1100 }
-    : { position: "absolute", left: TEXT_X, top: H / 2, width: 600, transform: "translateY(-50%)" };
+    : margin
+      ? { position: "absolute", left: 64, top: 312, width: 352 }
+      : { position: "absolute", left: TEXT_X, top: H / 2, width: 600, transform: "translateY(-50%)" };
   return (
     <AbsoluteFill style={{ opacity: out }}>
       {lower && (
@@ -87,8 +90,8 @@ const CaptionView = ({ c }: { c: Caption }) => {
           </Reveal>
         ))}
         {c.sub && (
-          <div style={{ marginTop: lower ? 22 : 26 }}>
-            <Reveal delay={c.title.length * 3 + 3} style={{ fontFamily: SANS, fontSize: lower ? 30 : 29, fontWeight: 400, letterSpacing: "-0.012em", lineHeight: 1.32, color: C.ink2, maxWidth: lower ? 900 : 560 }}>
+          <div style={{ marginTop: lower ? 22 : margin ? 16 : 26 }}>
+            <Reveal delay={c.title.length * 3 + 3} style={{ fontFamily: SANS, fontSize: lower ? 30 : margin ? 21 : 29, fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1.36, color: C.ink2, maxWidth: lower ? 900 : margin ? 330 : 560 }}>
               {c.sub}
             </Reveal>
           </div>
@@ -132,15 +135,16 @@ const WatchShot = ({ s }: { s: Extract<Shot, { kind: "watch" }> }) => {
   const len = s.to - s.from;
   const p = interpolate(frame, [0, 20], [0, 1], { ...clamp, easing: quart });
   const drift = interpolate(frame, [0, len], [0, 1], clamp);
-  const bw = 832;
-  const bh = 704;
+  const still = /\.png$/.test(s.src);
+  const bw = still ? 832 : 832;
+  const bh = still ? 816 : 704;
   const cx = 960 + (1290 - 960) * p;
   const cy = 500 + (552 - 500) * p;
-  const scale = 1.24 * (1.42 - 0.42 * p) * (1 + 0.025 * drift);
+  const scale = (still ? 1.1 : 1.24) * (1.42 - 0.42 * p) * (1 + 0.025 * drift);
   return (
     <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
       <div style={{ position: "absolute", left: cx - bw / 2, top: cy - bh / 2, width: bw, height: bh, transform: `rotate(${-13 * (1 - p)}deg) scale(${scale})` }}>
-        <Footage src={s.src} startAt={s.startAt} />
+        {/\.png$/.test(s.src) ? <Img src={staticFile(s.src)} style={{ width: "100%", height: "100%" }} /> : <Footage src={s.src} startAt={s.startAt} />}
       </div>
     </AbsoluteFill>
   );
@@ -178,6 +182,23 @@ const WebShot = ({ s }: { s: Extract<Shot, { kind: "web" }> }) => {
             <Footage src={s.src} startAt={s.startAt} />
           </div>
         </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** A whole website page, full frame and sharp (recorded at 2x), with a slow camera drift. */
+const PageShot = ({ s }: { s: Extract<Shot, { kind: "page" }> }) => {
+  const frame = useCurrentFrame();
+  const [z, fx, fy] = camAt(s.cam, frame / FPS);
+  const pw = W * z;
+  const ph = H * z;
+  const x = between(W / 2 - fx * pw, W - pw, 0);
+  const y = between(H / 2 - fy * ph, H - ph, 0);
+  return (
+    <AbsoluteFill style={{ background: C.void, overflow: "hidden" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transform: `translate(${x}px, ${y}px) scale(${z})`, transformOrigin: "0 0" }}>
+        <Footage src={s.src} startAt={s.startAt} />
       </div>
     </AbsoluteFill>
   );
@@ -234,6 +255,7 @@ const ShotView = ({ s }: { s: Shot }) => {
     case "title": return <Title />;
     case "end": return <End />;
     case "web": return <WebShot s={s} />;
+    case "page": return <PageShot s={s} />;
     case "watch": return <WatchShot s={s} />;
     case "clip": return <ClipShot s={s} />;
   }
