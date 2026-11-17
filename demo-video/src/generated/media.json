@@ -1,0 +1,62 @@
+{
+  "capture/watch_app.mp4": {
+    "duration": 7.6
+  },
+  "capture/watch_app_long.mp4": {
+    "duration": 15.5
+  },
+  "capture/watch_body.mp4": {
+    "duration": 19.9
+  },
+  "capture/watch_body_hires.png": {
+    "duration": 0
+  },
+  "capture/watch_pairing_code.mp4": {
+    "duration": 6
+  },
+  "capture/web_crew_health.mp4": {
+    "duration": 7.866667
+  },
+  "capture/web_dashboard.mp4": {
+    "duration": 10
+  },
+  "capture/web_dashboard_long.mp4": {
+    "duration": 16
+  },
+  "capture/web_hd_dashboard.mp4": {
+    "duration": 28.033333
+  },
+  "capture/web_hd_review.mp4": {
+    "duration": 14.033333
+  },
+  "capture/web_home_watch.mp4": {
+    "duration": 6.5
+  },
+  "capture/web_other_crew_guide.mp4": {
+    "duration": 6
+  },
+  "capture/web_other_daily_plan.mp4": {
+    "duration": 7
+  },
+  "capture/web_other_health_review.mp4": {
+    "duration": 7.5
+  },
+  "clips/c1.mp4": {
+    "duration": 5.5
+  },
+  "clips/c2.mp4": {
+    "duration": 11.933008
+  },
+  "clips/c3.mp4": {
+    "duration": 6.466667
+  },
+  "music/ouranos-music.wav": {
+    "duration": 28
+  },
+  "renders/blender_assemble.mp4": {
+    "duration": 3.333333
+  },
+  "renders/assemble/": {
+    "frames": 0
+  }
+}

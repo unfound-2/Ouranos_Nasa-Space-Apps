@@ -1,0 +1,6 @@
+node_modules/
+out/
+raw/
+.DS_Store
+*.blend1
+*.log
